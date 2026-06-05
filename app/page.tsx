@@ -25,103 +25,109 @@ const categories = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-white text-black">
+    <main className="min-h-screen bg-[#F2EDE4] text-black font-sans">
 
       {/* NAVBAR */}
-      <nav className="flex items-center justify-between px-8 py-5 border-b">
-        <Link href="/" className="text-2xl font-bold tracking-tight">ArtConnect</Link>
-        <div className="flex gap-4">
-          <Link href="/login" className="px-4 py-2 rounded-xl border text-sm font-medium">
+      <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
+        <Link href="/" className="text-xl font-black tracking-tight uppercase">
+          ArtConnect
+        </Link>
+        <div className="flex items-center gap-6">
+          <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">
             Login
           </Link>
-          <Link href="/signup" className="px-4 py-2 rounded-xl bg-black text-white text-sm font-medium">
+          <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors">
             Join Now
           </Link>
         </div>
       </nav>
 
       {/* HERO */}
-      <section className="flex flex-col items-center justify-center text-center px-6 py-28">
-        <span className="text-sm font-medium bg-black text-white px-4 py-1 rounded-full mb-6">
+      <section className="px-8 pt-20 pb-16 border-b border-black">
+        <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-6">
           For local artists & creatives
-        </span>
-        <h1 className="text-6xl font-bold max-w-4xl leading-tight">
-          Discover & Book Local Artists Near You
-        </h1>
-        <p className="mt-6 text-xl text-gray-500 max-w-2xl">
-          ArtConnect is where photographers, musicians, makeup artists, painters,
-          and every kind of creative talent gets discovered — and where clients
-          find the perfect artist for any moment.
         </p>
-        <div className="flex gap-4 mt-10">
-          <Link href="/signup" className="px-6 py-3 rounded-2xl bg-black text-white text-lg font-medium">
-            Find an Artist
-          </Link>
-          <Link href="/signup" className="px-6 py-3 rounded-2xl border text-lg font-medium">
-            Share Your Work
-          </Link>
+        <h1 className="text-[clamp(3rem,10vw,9rem)] font-black uppercase leading-none tracking-tight max-w-6xl">
+          Where Local<br />
+          <span className="text-[#E5000F]">Artists</span><br />
+          Get Found.
+        </h1>
+        <div className="flex flex-col md:flex-row gap-6 md:gap-16 mt-12 max-w-4xl">
+          <p className="text-base text-black/60 max-w-sm leading-relaxed">
+            ArtConnect is a platform for every kind of creative — photographers, musicians,
+            makeup artists, painters, and more — to showcase their work, sell, and get booked.
+          </p>
+          <div className="flex gap-4 items-start">
+            <Link href="/signup" className="bg-black text-white text-sm font-bold uppercase tracking-widest px-6 py-3 hover:bg-[#E5000F] transition-colors">
+              Find an Artist
+            </Link>
+            <Link href="/signup" className="border border-black text-sm font-bold uppercase tracking-widest px-6 py-3 hover:border-[#E5000F] hover:text-[#E5000F] transition-colors">
+              Share Your Work
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="px-10 pb-24 max-w-5xl mx-auto">
-        <h2 className="text-3xl font-bold mb-12 text-center">How It Works</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center font-bold text-lg">1</div>
-            <h3 className="text-xl font-bold">Artists Create a Profile</h3>
-            <p className="text-gray-500">Upload your photos, music, videos and set your rates — hourly, per session, or sell your work directly.</p>
-          </div>
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center font-bold text-lg">2</div>
-            <h3 className="text-xl font-bold">Clients Discover Talent</h3>
-            <p className="text-gray-500">Browse by category, location, or style. Find the perfect artist for your event, project, or moment.</p>
-          </div>
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center font-bold text-lg">3</div>
-            <h3 className="text-xl font-bold">Connect & Book</h3>
-            <p className="text-gray-500">Book a session, buy their work, or hire them for your next event — all in one place.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* CATEGORIES */}
-      <section className="px-10 pb-24 bg-gray-50 py-20">
-        <h2 className="text-3xl font-bold mb-4 text-center">All Creative Categories</h2>
-        <p className="text-center text-gray-500 mb-12 text-lg">Every kind of local talent, one platform.</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-5 max-w-7xl mx-auto">
-          {categories.map((cat) => (
-            <div
-              key={cat.name}
-              className="bg-white border rounded-3xl p-6 hover:shadow-lg transition cursor-pointer"
-            >
-              <h3 className="text-lg font-bold">{cat.name}</h3>
-              <p className="mt-2 text-gray-500 text-sm">{cat.description}</p>
+      <section className="border-b border-black">
+        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-black">
+          {[
+            { num: "01", title: "Create a Profile", body: "Upload your photos, music, or videos. Set your rates — hourly, per session, or sell your work directly." },
+            { num: "02", title: "Get Discovered", body: "Clients browse by category and location. Your work speaks for itself." },
+            { num: "03", title: "Book & Earn", body: "Accept bookings, sell your art, and grow your local presence — on your terms." },
+          ].map((step) => (
+            <div key={step.num} className="px-8 py-12">
+              <span className="text-5xl font-black text-[#E5000F] leading-none">{step.num}</span>
+              <h3 className="text-xl font-black uppercase mt-4 mb-3">{step.title}</h3>
+              <p className="text-sm text-black/60 leading-relaxed">{step.body}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* FOR ARTISTS CTA */}
-      <section className="px-10 py-24 text-center">
-        <h2 className="text-4xl font-bold max-w-2xl mx-auto">
-          Are You a Local Artist? Get Recognized.
+      {/* CATEGORIES */}
+      <section className="px-8 py-16 border-b border-black">
+        <div className="flex items-baseline justify-between mb-12">
+          <h2 className="text-4xl font-black uppercase">All Categories</h2>
+          <span className="text-sm text-black/40 uppercase tracking-widest">{categories.length} disciplines</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-black border border-black">
+          {categories.map((cat) => (
+            <div
+              key={cat.name}
+              className="bg-[#F2EDE4] p-6 hover:bg-[#E5000F] hover:text-white transition-colors cursor-pointer group"
+            >
+              <h3 className="text-base font-black uppercase">{cat.name}</h3>
+              <p className="mt-2 text-xs leading-relaxed opacity-60 group-hover:opacity-80">{cat.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ARTIST CTA */}
+      <section className="px-8 py-20 border-b border-black bg-black text-white">
+        <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-6">
+          Are you a local artist?
+        </p>
+        <h2 className="text-[clamp(2rem,6vw,6rem)] font-black uppercase leading-none max-w-4xl">
+          Stop Being<br />Invisible.
         </h2>
-        <p className="mt-5 text-gray-500 text-lg max-w-xl mx-auto">
-          Create your free profile, upload your work, set your own rates,
-          and let clients find you. No middlemen. Your talent, your terms.
+        <p className="mt-6 text-white/50 max-w-md text-base leading-relaxed">
+          Create your profile, upload your work, set your own rates, and let clients
+          find you. No middlemen. Your talent, your terms.
         </p>
         <Link
           href="/signup"
-          className="inline-block mt-8 px-8 py-4 rounded-2xl bg-black text-white text-lg font-medium"
+          className="inline-block mt-10 bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-8 py-4 hover:bg-white hover:text-black transition-colors"
         >
           Join as an Artist
         </Link>
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t py-8 text-center text-gray-400 text-sm">
-        <p>© 2026 ArtConnect. Built to support local artists everywhere.</p>
+      <footer className="px-8 py-6 flex items-center justify-between border-t border-black">
+        <span className="text-sm font-black uppercase tracking-tight">ArtConnect</span>
+        <span className="text-xs text-black/40 uppercase tracking-widest">© 2026. Built for local artists.</span>
       </footer>
 
     </main>

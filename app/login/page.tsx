@@ -12,26 +12,30 @@ export default function LoginPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: wire up to auth backend
     alert(`Logged in as: ${form.email}`);
   }
 
   return (
-    <main className="min-h-screen bg-white text-black flex flex-col">
+    <main className="min-h-screen bg-[#F2EDE4] text-black font-sans flex flex-col">
+
       {/* NAVBAR */}
-      <nav className="flex items-center justify-between p-6 border-b">
-        <Link href="/" className="text-2xl font-bold">ArtConnect</Link>
-        <div className="flex gap-4">
-          <Link href="/login" className="px-4 py-2 rounded-xl border">Login</Link>
-          <Link href="/signup" className="px-4 py-2 rounded-xl bg-black text-white">Join Now</Link>
+      <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
+        <Link href="/" className="text-xl font-black tracking-tight uppercase">ArtConnect</Link>
+        <div className="flex items-center gap-6">
+          <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">
+            Login
+          </Link>
+          <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2">
+            Join Now
+          </Link>
         </div>
       </nav>
 
-      {/* FORM */}
       <div className="flex flex-1 items-center justify-center px-6 py-16">
-        <div className="w-full max-w-md border rounded-3xl p-10">
-          <h2 className="text-3xl font-bold mb-2">Welcome back</h2>
-          <p className="text-gray-500 mb-8">Log in to your ArtConnect account.</p>
+        <div className="w-full max-w-md border border-black bg-white p-10">
+
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-3">Welcome back</p>
+          <h2 className="text-4xl font-black uppercase leading-none mb-8">Log<br />In</h2>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <input
@@ -41,7 +45,7 @@ export default function LoginPage() {
               required
               value={form.email}
               onChange={handleChange}
-              className="border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-black"
+              className="border border-black px-4 py-3 bg-transparent text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30 uppercase tracking-wide"
             />
             <input
               name="password"
@@ -50,19 +54,19 @@ export default function LoginPage() {
               required
               value={form.password}
               onChange={handleChange}
-              className="border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-black"
+              className="border border-black px-4 py-3 bg-transparent text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30 uppercase tracking-wide"
             />
             <button
               type="submit"
-              className="mt-2 py-3 rounded-xl bg-black text-white font-medium text-lg"
+              className="mt-2 py-4 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors"
             >
-              Log in
+              Log In
             </button>
           </form>
 
-          <p className="mt-6 text-center text-gray-500 text-sm">
+          <p className="mt-6 text-center text-xs uppercase tracking-widest text-black/40">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-black font-medium underline">
+            <Link href="/signup" className="text-black font-bold hover:text-[#E5000F] transition-colors">
               Sign up
             </Link>
           </p>
