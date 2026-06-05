@@ -32,7 +32,7 @@ export default function SignupPage() {
       <div className="flex flex-1 items-center justify-center px-6 py-16">
         <div className="w-full max-w-md border rounded-3xl p-10">
           <h2 className="text-3xl font-bold mb-2">Create your account</h2>
-          <p className="text-gray-500 mb-8">Join ArtConnect — free forever.</p>
+          <p className="text-gray-500 mb-8">Join ArtConnect and connect with top photographers.</p>
 
           {/* Role toggle */}
           <div className="flex rounded-xl overflow-hidden border mb-8">
