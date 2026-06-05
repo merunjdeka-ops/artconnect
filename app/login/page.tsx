@@ -20,7 +20,7 @@ export default function LoginPage() {
     <main className="min-h-screen bg-white text-black flex flex-col">
       {/* NAVBAR */}
       <nav className="flex items-center justify-between p-6 border-b">
-        <Link href="/" className="text-2xl font-bold">LensConnect</Link>
+        <Link href="/" className="text-2xl font-bold">ArtConnect</Link>
         <div className="flex gap-4">
           <Link href="/login" className="px-4 py-2 rounded-xl border">Login</Link>
           <Link href="/signup" className="px-4 py-2 rounded-xl bg-black text-white">Join Now</Link>
@@ -31,7 +31,7 @@ export default function LoginPage() {
       <div className="flex flex-1 items-center justify-center px-6 py-16">
         <div className="w-full max-w-md border rounded-3xl p-10">
           <h2 className="text-3xl font-bold mb-2">Welcome back</h2>
-          <p className="text-gray-500 mb-8">Log in to your LensConnect account.</p>
+          <p className="text-gray-500 mb-8">Log in to your ArtConnect account.</p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <input

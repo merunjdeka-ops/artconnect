@@ -7,7 +7,7 @@ export default function Home() {
       {/* NAVBAR */}
       <nav className="flex items-center justify-between p-6 border-b">
         <h1 className="text-2xl font-bold">
-          LensConnect
+          ArtConnect
         </h1>
 
         <div className="flex gap-4">
@@ -221,7 +221,7 @@ export default function Home() {
 
       {/* FOOTER */}
       <footer className="border-t py-8 text-center text-gray-600">
-        <p>© 2026 LensConnect. All rights reserved.</p>
+        <p>© 2026 ArtConnect. All rights reserved.</p>
       </footer>
 
     </main>
