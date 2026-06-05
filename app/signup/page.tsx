@@ -87,7 +87,7 @@ export default function SignupPage() {
               minLength={8}
               value={form.password}
               onChange={handleChange}
-              className="border border-black px-4 py-3 bg-transparent text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30 uppercase tracking-wide"
+              className="border border-black px-4 py-3 bg-transparent text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
             />
             <button
               type="submit"
