@@ -1,26 +1,26 @@
 import Link from "next/link";
 
 const categories = [
-  { name: "Photography", icon: "📷", description: "Portrait, wedding, events, commercial and more." },
-  { name: "Music", icon: "🎵", description: "Live performers, session musicians, singers and bands." },
-  { name: "Makeup Artist", icon: "💄", description: "Bridal, editorial, special effects and everyday glam." },
-  { name: "Painting", icon: "🎨", description: "Custom paintings, murals, portraits and abstract art." },
-  { name: "Illustration", icon: "✏️", description: "Digital and hand-drawn illustrations for any project." },
-  { name: "Videography", icon: "🎬", description: "Event coverage, short films, music videos and reels." },
-  { name: "DJ", icon: "🎧", description: "Events, weddings, parties and private bookings." },
-  { name: "Dance", icon: "💃", description: "Choreographers, dance instructors and performers." },
-  { name: "Hair Styling", icon: "💇", description: "Creative hairstylists for shoots, events and more." },
-  { name: "Graphic Design", icon: "🖥️", description: "Logos, branding, posters and visual identity." },
-  { name: "Pottery & Ceramics", icon: "🏺", description: "Handcrafted ceramics, custom pieces and workshops." },
-  { name: "Sculpture", icon: "🗿", description: "Custom sculptures in wood, clay, metal and stone." },
-  { name: "Calligraphy", icon: "🖋️", description: "Wedding invitations, signage and custom lettering." },
-  { name: "Fashion Design", icon: "👗", description: "Custom clothing, alterations and costume design." },
-  { name: "Tattoo Artist", icon: "🖊️", description: "Custom tattoos and body art across all styles." },
-  { name: "Comedy & Stand-Up", icon: "🎤", description: "Comedians and entertainers for events and shows." },
-  { name: "Poetry & Spoken Word", icon: "📜", description: "Live performances, commissions and event pieces." },
-  { name: "Acting & Theatre", icon: "🎭", description: "Actors, directors and theatre performers." },
-  { name: "Jewelry Making", icon: "💍", description: "Handcrafted custom jewelry and accessories." },
-  { name: "Interior Design", icon: "🛋️", description: "Artistic interior styling and space transformation." },
+  { name: "Photography", description: "Portrait, wedding, events, commercial and more." },
+  { name: "Music", description: "Live performers, session musicians, singers and bands." },
+  { name: "Makeup Artist", description: "Bridal, editorial, special effects and everyday glam." },
+  { name: "Painting", description: "Custom paintings, murals, portraits and abstract art." },
+  { name: "Illustration", description: "Digital and hand-drawn illustrations for any project." },
+  { name: "Videography", description: "Event coverage, short films, music videos and reels." },
+  { name: "DJ", description: "Events, weddings, parties and private bookings." },
+  { name: "Dance", description: "Choreographers, dance instructors and performers." },
+  { name: "Hair Styling", description: "Creative hairstylists for shoots, events and more." },
+  { name: "Graphic Design", description: "Logos, branding, posters and visual identity." },
+  { name: "Pottery & Ceramics", description: "Handcrafted ceramics, custom pieces and workshops." },
+  { name: "Sculpture", description: "Custom sculptures in wood, clay, metal and stone." },
+  { name: "Calligraphy", description: "Wedding invitations, signage and custom lettering." },
+  { name: "Fashion Design", description: "Custom clothing, alterations and costume design." },
+  { name: "Tattoo Artist", description: "Custom tattoos and body art across all styles." },
+  { name: "Comedy & Stand-Up", description: "Comedians and entertainers for events and shows." },
+  { name: "Poetry & Spoken Word", description: "Live performances, commissions and event pieces." },
+  { name: "Acting & Theatre", description: "Actors, directors and theatre performers." },
+  { name: "Jewelry Making", description: "Handcrafted custom jewelry and accessories." },
+  { name: "Interior Design", description: "Artistic interior styling and space transformation." },
 ];
 
 export default function Home() {
@@ -68,17 +68,17 @@ export default function Home() {
         <h2 className="text-3xl font-bold mb-12 text-center">How It Works</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
           <div className="flex flex-col items-center gap-4">
-            <span className="text-4xl">🎨</span>
+            <div className="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center font-bold text-lg">1</div>
             <h3 className="text-xl font-bold">Artists Create a Profile</h3>
             <p className="text-gray-500">Upload your photos, music, videos and set your rates — hourly, per session, or sell your work directly.</p>
           </div>
           <div className="flex flex-col items-center gap-4">
-            <span className="text-4xl">🔍</span>
+            <div className="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center font-bold text-lg">2</div>
             <h3 className="text-xl font-bold">Clients Discover Talent</h3>
             <p className="text-gray-500">Browse by category, location, or style. Find the perfect artist for your event, project, or moment.</p>
           </div>
           <div className="flex flex-col items-center gap-4">
-            <span className="text-4xl">🤝</span>
+            <div className="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center font-bold text-lg">3</div>
             <h3 className="text-xl font-bold">Connect & Book</h3>
             <p className="text-gray-500">Book a session, buy their work, or hire them for your next event — all in one place.</p>
           </div>
@@ -95,8 +95,7 @@ export default function Home() {
               key={cat.name}
               className="bg-white border rounded-3xl p-6 hover:shadow-lg transition cursor-pointer"
             >
-              <span className="text-3xl">{cat.icon}</span>
-              <h3 className="text-lg font-bold mt-3">{cat.name}</h3>
+              <h3 className="text-lg font-bold">{cat.name}</h3>
               <p className="mt-2 text-gray-500 text-sm">{cat.description}</p>
             </div>
           ))}
