@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "ArtConnect",
-  description: "Find the perfect photographer for any moment.",
+  description: "Discover and book local artists — photographers, musicians, makeup artists, painters and more.",
 };
 
 export default function RootLayout({

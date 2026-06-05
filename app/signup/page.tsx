@@ -32,7 +32,7 @@ export default function SignupPage() {
       <div className="flex flex-1 items-center justify-center px-6 py-16">
         <div className="w-full max-w-md border rounded-3xl p-10">
           <h2 className="text-3xl font-bold mb-2">Create your account</h2>
-          <p className="text-gray-500 mb-8">Join ArtConnect and connect with top photographers.</p>
+          <p className="text-gray-500 mb-8">Join ArtConnect — for artists and the people who love their work.</p>
 
           {/* Role toggle */}
           <div className="flex rounded-xl overflow-hidden border mb-8">
@@ -43,7 +43,7 @@ export default function SignupPage() {
                 role === "client" ? "bg-black text-white" : "text-gray-600"
               }`}
             >
-              I need a photographer
+              I'm looking for an artist
             </button>
             <button
               type="button"
@@ -52,7 +52,7 @@ export default function SignupPage() {
                 role === "photographer" ? "bg-black text-white" : "text-gray-600"
               }`}
             >
-              I am a photographer
+              I'm an artist
             </button>
           </div>
 
