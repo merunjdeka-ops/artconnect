@@ -21,23 +21,27 @@ export default function SignupPage() {
     setError("");
     setLoading(true);
 
-    const { error } = await getSupabase().auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        data: {
-          full_name: form.name,
-          role: role,
+    try {
+      const { error } = await getSupabase().auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: {
+            full_name: form.name,
+            role: role,
+          },
         },
-      },
-    });
+      });
 
-    setLoading(false);
-
-    if (error) {
-      setError(error.message);
-    } else {
-      router.push("/signup/confirm");
+      if (error) {
+        setError(error.message);
+      } else {
+        router.push("/signup/confirm");
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 

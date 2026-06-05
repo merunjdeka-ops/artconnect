@@ -20,17 +20,21 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const { error } = await getSupabase().auth.signInWithPassword({
-      email: form.email,
-      password: form.password,
-    });
+    try {
+      const { error } = await getSupabase().auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
+      });
 
-    setLoading(false);
-
-    if (error) {
-      setError(error.message);
-    } else {
-      router.push("/dashboard");
+      if (error) {
+        setError(error.message);
+      } else {
+        router.push("/dashboard");
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
