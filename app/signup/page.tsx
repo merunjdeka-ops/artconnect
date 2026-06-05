@@ -2,18 +2,43 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [role, setRole] = useState<"client" | "artist">("client");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    alert(`Signed up as ${role}: ${form.email}`);
+    setError("");
+    setLoading(true);
+
+    const { error } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        data: {
+          full_name: form.name,
+          role: role,
+        },
+      },
+    });
+
+    setLoading(false);
+
+    if (error) {
+      setError(error.message);
+    } else {
+      router.push("/signup/confirm");
+    }
   }
 
   return (
@@ -60,6 +85,12 @@ export default function SignupPage() {
             </button>
           </div>
 
+          {error && (
+            <div className="mb-6 px-4 py-3 border border-[#E5000F] text-[#E5000F] text-xs uppercase tracking-widest">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <input
               name="name"
@@ -68,7 +99,7 @@ export default function SignupPage() {
               required
               value={form.name}
               onChange={handleChange}
-              className="border border-black px-4 py-3 bg-transparent text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30 uppercase tracking-wide"
+              className="border border-black px-4 py-3 bg-transparent text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
             />
             <input
               name="email"
@@ -77,12 +108,12 @@ export default function SignupPage() {
               required
               value={form.email}
               onChange={handleChange}
-              className="border border-black px-4 py-3 bg-transparent text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30 uppercase tracking-wide"
+              className="border border-black px-4 py-3 bg-transparent text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
             />
             <input
               name="password"
               type="password"
-              placeholder="Password"
+              placeholder="Password (min. 8 characters)"
               required
               minLength={8}
               value={form.password}
@@ -91,9 +122,10 @@ export default function SignupPage() {
             />
             <button
               type="submit"
-              className="mt-2 py-4 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors"
+              disabled={loading}
+              className="mt-2 py-4 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Account
+              {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
 
