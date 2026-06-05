@@ -1,65 +1,229 @@
-import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-white text-black">
+
+      {/* NAVBAR */}
+      <nav className="flex items-center justify-between p-6 border-b">
+        <h1 className="text-2xl font-bold">
+          LensConnect
+        </h1>
+
+        <div className="flex gap-4">
+          <Link href="/login" className="px-4 py-2 rounded-xl border">
+            Login
+          </Link>
+
+          <Link href="/signup" className="px-4 py-2 rounded-xl bg-black text-white">
+            Join Now
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </nav>
+
+      {/* HERO SECTION */}
+      <section className="flex flex-col items-center justify-center text-center px-6 py-32">
+
+        <h1 className="text-6xl font-bold max-w-4xl">
+          Find The Perfect Photographer For Any Moment
+        </h1>
+
+        <p className="mt-6 text-xl text-gray-600 max-w-2xl">
+          Discover talented photographers, explore portfolios,
+          and connect with professionals based on your style,
+          budget, and location.
+        </p>
+
+        <div className="flex gap-4 mt-10">
+
+          <Link href="/signup" className="px-6 py-3 rounded-2xl bg-black text-white text-lg">
+            Explore Photographers
+          </Link>
+
+          <Link href="/signup" className="px-6 py-3 rounded-2xl border text-lg">
+            Join As Photographer
+          </Link>
+
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* CATEGORIES */}
+      <section className="px-10 pb-20">
+
+        <h2 className="text-3xl font-bold mb-10 text-center">
+          Popular Categories
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+
+          {/* Wedding */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Wedding
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Find photographers for weddings and events.
+            </p>
+          </div>
+
+          {/* Fashion */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Fashion
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Discover creative fashion photographers.
+            </p>
+          </div>
+
+          {/* Portrait */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Portrait
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Book portrait and personal shoots.
+            </p>
+          </div>
+
+          {/* Product Photography */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Product
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Professional product photos for e-commerce and advertising.
+            </p>
+          </div>
+
+          {/* Documentary */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Documentary
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Real-life storytelling through candid photography.
+            </p>
+          </div>
+
+          {/* Landscape */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Landscape
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Breathtaking nature and outdoor scenery photography.
+            </p>
+          </div>
+
+          {/* Wildlife */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Wildlife
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Capture animals in their natural habitats.
+            </p>
+          </div>
+
+          {/* Sports */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Sports
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Action shots for events, teams, and athletes.
+            </p>
+          </div>
+
+          {/* Architectural */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Architectural
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Buildings, interiors, and real estate photography.
+            </p>
+          </div>
+
+          {/* Food */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Food
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Delicious food photography for restaurants and blogs.
+            </p>
+          </div>
+
+          {/* Event */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Event
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Corporate events, parties, and celebrations.
+            </p>
+          </div>
+
+          {/* Street Photography */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Street
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Urban life and candid moments in public spaces.
+            </p>
+          </div>
+
+          {/* Fine Art */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Fine Art
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Creative and artistic photography for galleries.
+            </p>
+          </div>
+
+          {/* Newborn & Baby */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Newborn & Baby
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Cherish precious moments of yourlittle one.
+            </p>
+          </div>
+
+          {/* Family */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Family
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Group portraits and family session photography.
+            </p>
+          </div>
+
+          {/* Automotive */}
+          <div className="border rounded-3xl p-8 hover:shadow-lg transition cursor-pointer">
+            <h3 className="text-2xl font-bold">
+              Automotive
+            </h3>
+            <p className="mt-4 text-gray-600">
+              Cars, motorcycles, and vehicle photography.
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="border-t py-8 text-center text-gray-600">
+        <p>© 2026 LensConnect. All rights reserved.</p>
+      </footer>
+
+    </main>
   );
 }
