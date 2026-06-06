@@ -251,16 +251,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Settings shortcut */}
-      <div className="px-8 max-w-6xl mx-auto mt-10 mb-4">
-        <Link
-          href="/dashboard/settings"
-          className="inline-block text-xs font-bold uppercase tracking-widest text-black/40 hover:text-black transition-colors"
-        >
-          Account Settings (password, notifications, deactivate, delete) →
-        </Link>
-      </div>
-
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black mt-10">
         <span className="text-sm font-black uppercase tracking-tight">ArtConnect</span>
         <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
