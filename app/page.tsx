@@ -1,4 +1,6 @@
+"use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const categories = [
   { name: "Photography", description: "Portrait, wedding, events, commercial and more." },
@@ -24,6 +26,7 @@ const categories = [
 ];
 
 export default function Home() {
+  const router = useRouter();
   return (
     <main className="min-h-screen bg-[#F2EDE4] text-black font-sans">
 
@@ -93,13 +96,14 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-black border border-black">
           {categories.map((cat) => (
-            <div
+            <button
               key={cat.name}
-              className="bg-[#F2EDE4] p-6 hover:bg-[#E5000F] hover:text-white transition-colors cursor-pointer group"
+              onClick={() => router.push(`/artists?category=${encodeURIComponent(cat.name)}`)}
+              className="bg-[#F2EDE4] p-6 hover:bg-[#E5000F] hover:text-white transition-colors cursor-pointer group text-left w-full"
             >
               <h3 className="text-base font-black uppercase">{cat.name}</h3>
               <p className="mt-2 text-xs leading-relaxed opacity-60 group-hover:opacity-80">{cat.description}</p>
-            </div>
+            </button>
           ))}
         </div>
       </section>

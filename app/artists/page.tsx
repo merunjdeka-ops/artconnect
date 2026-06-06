@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 
 const CATEGORIES = [
@@ -31,11 +31,12 @@ type Artist = {
   is_available: boolean;
 };
 
-export default function ArtistsPage() {
+function ArtistsPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loggedIn, setLoggedIn] = useState(false);
   const [artists, setArtists] = useState<Artist[]>([]);
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [activeCategory, setActiveCategory] = useState(() => searchParams.get("category") || "All");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -377,5 +378,17 @@ export default function ArtistsPage() {
         </div>
       </footer>
     </main>
+  );
+}
+
+export default function ArtistsPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-[#F2EDE4] flex items-center justify-center">
+        <p className="text-xs uppercase tracking-widest text-black/40">Loading...</p>
+      </main>
+    }>
+      <ArtistsPageInner />
+    </Suspense>
   );
 }
