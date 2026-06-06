@@ -157,7 +157,7 @@ export default function ArtistsPage() {
       <section className="px-8 pt-16 pb-10 border-b border-black">
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-4">Discover</p>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <h1 className="text-6xl font-black uppercase leading-none">
+          <h1 className="text-6xl font-black uppercase leading-none text-black">
             Local<br />Artists
           </h1>
           <input
@@ -181,7 +181,7 @@ export default function ArtistsPage() {
                 className={`px-4 py-2 text-xs font-bold uppercase tracking-widest border transition-colors whitespace-nowrap ${
                   activeCategory === cat
                     ? "bg-black text-white border-black"
-                    : "border-black hover:bg-black hover:text-white"
+                    : "border-black text-black hover:bg-black hover:text-white"
                 }`}
               >
                 {cat}
@@ -225,7 +225,7 @@ export default function ArtistsPage() {
             className={`px-4 py-2 text-xs font-bold uppercase tracking-widest border transition-colors whitespace-nowrap ${
               availableOnly
                 ? "bg-[#E5000F] text-white border-[#E5000F]"
-                : "border-black hover:bg-black hover:text-white"
+                : "border-black text-black hover:bg-black hover:text-white"
             }`}
           >
             Available Only
