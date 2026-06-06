@@ -18,6 +18,7 @@ type Artist = {
   instagram: string | null;
   website: string | null;
   is_available: boolean;
+  email: string | null;
 };
 
 type PortfolioItem = {
@@ -43,7 +44,7 @@ export default function ArtistProfilePage() {
   const [artist, setArtist] = useState<Artist | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState({ event_date: "", duration_hours: "1", message: "" });
   const [bookingStatus, setBookingStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -76,7 +77,16 @@ export default function ArtistProfilePage() {
 
       setArtist(artistData);
       setPortfolio(portfolioData || []);
-      setCurrentUser(user ? { id: user.id } : null);
+
+      if (user) {
+        const { data: clientProfile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .single();
+        setCurrentUser({ id: user.id, name: clientProfile?.full_name || "" });
+      }
+
       setLoading(false);
     }
     load();
@@ -106,6 +116,23 @@ export default function ArtistProfilePage() {
       });
 
       if (error) throw error;
+
+      // Fire-and-forget email notification to artist
+      if (artist?.email) {
+        fetch("/api/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "booking_request",
+            to: artist.email,
+            artistName: artist.full_name,
+            clientName: currentUser.name,
+            date: booking.event_date,
+            message: booking.message,
+          }),
+        }).catch(() => {});
+      }
+
       setBookingStatus("sent");
     } catch (err: unknown) {
       setBookingError(err instanceof Error ? err.message : "Failed to send booking request.");
