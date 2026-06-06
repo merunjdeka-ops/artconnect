@@ -49,6 +49,7 @@ export default function ArtistsPage() {
         .from("profiles")
         .select("id, full_name, category, location, bio, hourly_rate, session_rate, is_available")
         .eq("role", "artist")
+        .eq("is_deactivated", false)
         .not("bio", "is", null)
         .not("category", "is", null)
         .order("created_at", { ascending: false });

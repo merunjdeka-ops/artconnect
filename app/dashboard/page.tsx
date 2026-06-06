@@ -16,6 +16,7 @@ type Profile = {
   hourly_rate: number | null;
   session_rate: number | null;
   is_available: boolean;
+  is_deactivated: boolean;
 };
 
 type Booking = {
@@ -42,6 +43,7 @@ export default function DashboardPage() {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [togglingDeactivate, setTogglingDeactivate] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -110,6 +112,20 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleToggleDeactivate() {
+    setTogglingDeactivate(true);
+    try {
+      const supabase = getSupabase();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const newVal = !profile?.is_deactivated;
+      await supabase.from("profiles").update({ is_deactivated: newVal }).eq("id", user.id);
+      setProfile(prev => prev ? { ...prev, is_deactivated: newVal } : prev);
+    } finally {
+      setTogglingDeactivate(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-[#F2EDE4] flex items-center justify-center">
@@ -147,8 +163,25 @@ export default function DashboardPage() {
           )}
         </div>
 
+        {/* Deactivated banner */}
+        {profile?.is_deactivated && (
+          <div className="border border-black bg-black text-white p-6 mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <p className="font-black uppercase text-white text-sm mb-1">Your account is deactivated</p>
+              <p className="text-xs text-white/60">Your profile is hidden from clients. No one can find or book you until you reactivate.</p>
+            </div>
+            <button
+              onClick={handleToggleDeactivate}
+              disabled={togglingDeactivate}
+              className="shrink-0 bg-[#E5000F] text-white text-xs font-bold uppercase tracking-widest px-6 py-3 hover:bg-white hover:text-black transition-colors disabled:opacity-50"
+            >
+              {togglingDeactivate ? "Reactivating..." : "Reactivate Account"}
+            </button>
+          </div>
+        )}
+
         {/* Profile incomplete warning for artists */}
-        {isArtist && !profileComplete && (
+        {isArtist && !profileComplete && !profile?.is_deactivated && (
           <div className="border border-[#E5000F] bg-white p-6 mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <p className="font-black uppercase text-[#E5000F] text-sm mb-1">Your profile is incomplete</p>
@@ -266,17 +299,50 @@ export default function DashboardPage() {
 
       {/* DANGER ZONE */}
       <div className="px-8 max-w-6xl mx-auto mt-16 mb-4">
-        <div className="border border-[#E5000F]/30 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-[#E5000F] mb-1">Danger Zone</p>
-            <p className="text-sm text-black/50">Permanently delete your account and all your data. This cannot be undone.</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-black/30 mb-4">Account Settings</p>
+        <div className="border border-black/20 divide-y divide-black/10">
+
+          {/* Deactivate / Reactivate */}
+          <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-black uppercase mb-1">
+                {profile?.is_deactivated ? "Reactivate Account" : "Deactivate Account"}
+              </p>
+              <p className="text-xs text-black/50">
+                {profile?.is_deactivated
+                  ? "Your profile is currently hidden. Click to make it visible to clients again."
+                  : "Temporarily hide your profile from clients. You can reactivate anytime. Your data is kept safe."}
+              </p>
+            </div>
+            <button
+              onClick={handleToggleDeactivate}
+              disabled={togglingDeactivate}
+              className={`shrink-0 text-xs font-bold uppercase tracking-widest px-6 py-3 transition-colors disabled:opacity-50 border ${
+                profile?.is_deactivated
+                  ? "bg-black text-white border-black hover:bg-[#E5000F] hover:border-[#E5000F]"
+                  : "border-black text-black hover:bg-black hover:text-white"
+              }`}
+            >
+              {togglingDeactivate
+                ? "Saving..."
+                : profile?.is_deactivated ? "Reactivate" : "Deactivate"}
+            </button>
           </div>
-          <button
-            onClick={() => { setShowDeleteModal(true); setDeleteConfirm(""); setDeleteError(""); }}
-            className="shrink-0 border border-[#E5000F] text-[#E5000F] text-xs font-bold uppercase tracking-widest px-6 py-3 hover:bg-[#E5000F] hover:text-white transition-colors"
-          >
-            Delete Account
-          </button>
+
+          {/* Delete */}
+          <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-black uppercase text-[#E5000F] mb-1">Delete Account</p>
+              <p className="text-xs text-black/50">Permanently delete your account and all your data. This cannot be undone.</p>
+            </div>
+            <button
+              onClick={() => { setShowDeleteModal(true); setDeleteConfirm(""); setDeleteError(""); }}
+              className="shrink-0 border border-[#E5000F] text-[#E5000F] text-xs font-bold uppercase tracking-widest px-6 py-3 hover:bg-[#E5000F] hover:text-white transition-colors"
+            >
+              Delete Account
+            </button>
+          </div>
+
         </div>
       </div>
 
