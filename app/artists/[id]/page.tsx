@@ -21,6 +21,15 @@ type Artist = {
   email: string | null;
 };
 
+type Package = {
+  id: string;
+  name: string;
+  price: number;
+  duration_hours: number | null;
+  description: string | null;
+  includes: string | null;
+};
+
 type PortfolioItem = {
   id: string;
   title: string;
@@ -43,6 +52,7 @@ export default function ArtistProfilePage() {
   const router = useRouter();
   const [artist, setArtist] = useState<Artist | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  const [packages, setPackages] = useState<Package[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,9 +74,10 @@ export default function ArtistProfilePage() {
     async function load() {
       const supabase = getSupabase();
 
-      const [{ data: artistData }, { data: portfolioData }, { data: { user } }] = await Promise.all([
+      const [{ data: artistData }, { data: portfolioData }, { data: pkgData }, { data: { user } }] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", id).single(),
         supabase.from("portfolio_items").select("*").eq("artist_id", id).order("created_at", { ascending: false }),
+        supabase.from("packages").select("*").eq("artist_id", id).order("price", { ascending: true }),
         supabase.auth.getUser(),
       ]);
 
@@ -77,6 +88,7 @@ export default function ArtistProfilePage() {
 
       setArtist(artistData);
       setPortfolio(portfolioData || []);
+      setPackages(pkgData || []);
 
       if (user) {
         const { data: clientProfile } = await supabase
@@ -247,6 +259,39 @@ export default function ArtistProfilePage() {
             <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-4">About</h2>
             <p className="text-base leading-relaxed text-black/80">{artist.bio}</p>
           </div>
+
+          {/* Packages */}
+          {packages.length > 0 && (
+            <div className="mb-12">
+              <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-6">Service Packages</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-black border border-black">
+                {packages.map((pkg, i) => (
+                  <div key={pkg.id} className={`p-6 flex flex-col ${i === packages.length - 1 ? "bg-black text-white" : "bg-[#F2EDE4]"}`}>
+                    <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${i === packages.length - 1 ? "text-[#E5000F]" : "text-black/40"}`}>
+                      {pkg.name}
+                      {i === packages.length - 1 && " — Best"}
+                    </p>
+                    <p className="text-3xl font-black mb-1">€{pkg.price}</p>
+                    {pkg.duration_hours && (
+                      <p className={`text-xs uppercase tracking-widest mb-3 ${i === packages.length - 1 ? "text-white/50" : "text-black/40"}`}>
+                        {pkg.duration_hours}h session
+                      </p>
+                    )}
+                    {pkg.description && (
+                      <p className={`text-sm leading-relaxed mb-3 ${i === packages.length - 1 ? "text-white/70" : "text-black/60"}`}>
+                        {pkg.description}
+                      </p>
+                    )}
+                    {pkg.includes && (
+                      <p className={`text-xs mt-auto pt-3 border-t ${i === packages.length - 1 ? "border-white/20 text-white/50" : "border-black/10 text-black/40"}`}>
+                        {pkg.includes}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Portfolio */}
           {portfolio.length > 0 && (

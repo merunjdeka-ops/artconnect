@@ -98,7 +98,7 @@ export default function DashboardPage() {
       <div className="px-8 py-12 max-w-6xl mx-auto">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 border-b border-black pb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 border-b border-black pb-8 fade-in-up">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-2">
               {isArtist ? "Artist" : "Client"} Dashboard
@@ -156,11 +156,8 @@ export default function DashboardPage() {
                   <Link href="/artists" className="block bg-black text-white px-5 py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors text-center">
                     Browse Artists
                   </Link>
-                  <Link href="/artists" className="block border border-black px-5 py-3 text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
-                    Find Photographer
-                  </Link>
-                  <Link href="/artists" className="block border border-black px-5 py-3 text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
-                    Find Musician
+                  <Link href="/artists?category=Photography" className="block border border-black px-5 py-3 text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors text-center">
+                    Browse by Category →
                   </Link>
                 </>
               )}
