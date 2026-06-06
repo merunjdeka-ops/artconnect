@@ -125,8 +125,13 @@ export default function Home() {
       </section>
 
       {/* FOOTER */}
-      <footer className="px-8 py-6 flex items-center justify-between border-t border-black">
+      <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black">
         <span className="text-sm font-black uppercase tracking-tight">ArtConnect</span>
+        <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
+          <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>
+          <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
+          <Link href="/dmca" className="hover:text-black transition-colors">DMCA</Link>
+        </div>
         <span className="text-xs text-black/40 uppercase tracking-widest">© 2026. Built for local artists.</span>
       </footer>
 
