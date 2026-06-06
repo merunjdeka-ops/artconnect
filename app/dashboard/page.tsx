@@ -38,6 +38,10 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -79,6 +83,32 @@ export default function DashboardPage() {
 
     load();
   }, [router]);
+
+  async function handleDeleteAccount() {
+    if (deleteConfirm !== "DELETE") return;
+    setDeleting(true);
+    setDeleteError("");
+
+    try {
+      const supabase = getSupabase();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session");
+
+      const res = await fetch("/api/delete-account", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to delete account");
+
+      await supabase.auth.signOut();
+      router.push("/");
+    } catch (err: unknown) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete account.");
+      setDeleting(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -233,6 +263,66 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* DANGER ZONE */}
+      <div className="px-8 max-w-6xl mx-auto mt-16 mb-4">
+        <div className="border border-[#E5000F]/30 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-[#E5000F] mb-1">Danger Zone</p>
+            <p className="text-sm text-black/50">Permanently delete your account and all your data. This cannot be undone.</p>
+          </div>
+          <button
+            onClick={() => { setShowDeleteModal(true); setDeleteConfirm(""); setDeleteError(""); }}
+            className="shrink-0 border border-[#E5000F] text-[#E5000F] text-xs font-bold uppercase tracking-widest px-6 py-3 hover:bg-[#E5000F] hover:text-white transition-colors"
+          >
+            Delete Account
+          </button>
+        </div>
+      </div>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+          <div className="bg-[#F2EDE4] border border-black max-w-md w-full p-8 fade-in-up">
+            <h2 className="text-xl font-black uppercase mb-2">Delete Account</h2>
+            <p className="text-sm text-black/60 mb-6 leading-relaxed">
+              This will permanently delete your account, profile, portfolio, and all bookings.
+              This action <strong>cannot be undone</strong>.
+            </p>
+
+            <p className="text-xs font-bold uppercase tracking-widest mb-2">
+              Type <span className="text-[#E5000F]">DELETE</span> to confirm
+            </p>
+            <input
+              type="text"
+              value={deleteConfirm}
+              onChange={e => setDeleteConfirm(e.target.value)}
+              placeholder="DELETE"
+              className="w-full border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors mb-4 bg-white placeholder:text-black/30"
+            />
+
+            {deleteError && (
+              <p className="text-xs text-[#E5000F] uppercase tracking-widest mb-4">{deleteError}</p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 border border-black py-3 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirm !== "DELETE" || deleting}
+                className="flex-1 bg-[#E5000F] text-white py-3 text-xs font-bold uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {deleting ? "Deleting..." : "Yes, Delete Everything"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black mt-10">
         <span className="text-sm font-black uppercase tracking-tight">ArtConnect</span>
