@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
@@ -25,6 +25,7 @@ type Package = {
   id: string;
   name: string;
   price: number;
+  pricing_type: string | null;
   duration_hours: number | null;
   description: string | null;
   includes: string | null;
@@ -56,9 +57,11 @@ export default function ArtistProfilePage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedPkg, setSelectedPkg] = useState<Package | null>(null);
   const [booking, setBooking] = useState({ event_date: "", duration_hours: "1", message: "" });
   const [bookingStatus, setBookingStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [bookingError, setBookingError] = useState("");
+  const bookingRef = useRef<HTMLDivElement>(null);
 
   const fetchReviews = useCallback(async () => {
     const supabase = getSupabase();
@@ -122,9 +125,11 @@ export default function ArtistProfilePage() {
         artist_id: artist?.id,
         client_id: currentUser.id,
         event_date: booking.event_date || null,
-        duration_hours: parseFloat(booking.duration_hours),
+        duration_hours: selectedPkg?.duration_hours ?? parseFloat(booking.duration_hours),
         message: booking.message,
         status: "pending",
+        package_name: selectedPkg?.name ?? null,
+        package_price: selectedPkg?.price ?? null,
       });
 
       if (error) throw error;
@@ -264,31 +269,62 @@ export default function ArtistProfilePage() {
           {packages.length > 0 && (
             <div className="mb-12">
               <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-6">Service Packages</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-black border border-black">
-                {packages.map((pkg, i) => (
-                  <div key={pkg.id} className={`p-6 flex flex-col ${i === packages.length - 1 ? "bg-black text-white" : "bg-[#F2EDE4]"}`}>
-                    <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${i === packages.length - 1 ? "text-[#E5000F]" : "text-black/40"}`}>
-                      {pkg.name}
-                      {i === packages.length - 1 && " — Best"}
+              <div className={`grid gap-px bg-black border border-black ${packages.length === 1 ? "grid-cols-1" : packages.length === 2 ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-3"}`}>
+                {packages.map((pkg, i) => {
+                  const isLast = i === packages.length - 1;
+                  const isSelected = selectedPkg?.id === pkg.id;
+                  const includesList = pkg.includes?.split("\n").map(s => s.trim()).filter(Boolean) || [];
+                  const pricingLabel: Record<string, string> = {
+                    hourly: "/hr", session: "/session", half_day: " half day",
+                    full_day: " full day", event: "/event", fixed: " fixed price",
+                  };
+                  const priceLabel = pricingLabel[pkg.pricing_type || "session"] || "/session";
+                  return (
+                  <div key={pkg.id} className={`p-6 flex flex-col transition-all ${isLast ? "bg-black text-white" : "bg-[#F2EDE4]"} ${isSelected ? "ring-4 ring-inset ring-[#E5000F]" : ""}`}>
+                    <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${isLast ? "text-[#E5000F]" : "text-black/40"}`}>
+                      {pkg.name}{isLast && packages.length > 1 ? " — Best" : ""}
                     </p>
-                    <p className="text-3xl font-black mb-1">€{pkg.price}</p>
-                    {pkg.duration_hours && (
-                      <p className={`text-xs uppercase tracking-widest mb-3 ${i === packages.length - 1 ? "text-white/50" : "text-black/40"}`}>
-                        {pkg.duration_hours}h session
-                      </p>
-                    )}
+                    <p className="text-3xl font-black mb-0">€{pkg.price}</p>
+                    <p className={`text-xs uppercase tracking-widest mb-3 ${isLast ? "text-white/50" : "text-black/40"}`}>
+                      {priceLabel}{pkg.duration_hours ? ` · ${pkg.duration_hours}h` : ""}
+                    </p>
                     {pkg.description && (
-                      <p className={`text-sm leading-relaxed mb-3 ${i === packages.length - 1 ? "text-white/70" : "text-black/60"}`}>
+                      <p className={`text-sm leading-relaxed mb-4 ${isLast ? "text-white/70" : "text-black/60"}`}>
                         {pkg.description}
                       </p>
                     )}
-                    {pkg.includes && (
-                      <p className={`text-xs mt-auto pt-3 border-t ${i === packages.length - 1 ? "border-white/20 text-white/50" : "border-black/10 text-black/40"}`}>
-                        {pkg.includes}
-                      </p>
+                    {includesList.length > 0 && (
+                      <ul className={`flex-1 flex flex-col gap-1.5 mb-5 text-xs border-t pt-4 ${isLast ? "border-white/20 text-white/60" : "border-black/10 text-black/50"}`}>
+                        {includesList.map((item, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className={`font-black shrink-0 ${isLast ? "text-[#E5000F]" : "text-black"}`}>✓</span>
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {!isOwnProfile && (
+                      <button
+                        onClick={() => {
+                          setSelectedPkg(isSelected ? null : pkg);
+                          if (!isSelected) {
+                            setTimeout(() => bookingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+                          }
+                        }}
+                        className={`mt-auto py-2.5 text-xs font-bold uppercase tracking-widest transition-colors ${
+                          isSelected
+                            ? "bg-[#E5000F] text-white"
+                            : isLast
+                            ? "bg-white text-black hover:bg-[#E5000F] hover:text-white"
+                            : "border border-black hover:bg-black hover:text-white"
+                        }`}
+                      >
+                        {isSelected ? "✓ Selected" : "Select Package"}
+                      </button>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -362,9 +398,9 @@ export default function ArtistProfilePage() {
 
         {/* Right: Booking form */}
         {!isOwnProfile && (
-          <div>
+          <div ref={bookingRef}>
             <div className="border border-black bg-white p-6 sticky top-6">
-              <h2 className="text-lg font-black uppercase mb-6">Book {artist.full_name?.split(" ")[0]}</h2>
+              <h2 className="text-lg font-black uppercase mb-5">Book {artist.full_name?.split(" ")[0]}</h2>
 
               {bookingStatus === "sent" ? (
                 <div className="text-center py-6">
@@ -373,6 +409,29 @@ export default function ArtistProfilePage() {
                 </div>
               ) : (
                 <form onSubmit={handleBooking} className="flex flex-col gap-4">
+
+                  {/* Selected package badge */}
+                  {selectedPkg ? (
+                    <div className="bg-black text-white p-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-white/40 uppercase tracking-widest mb-0.5">Package Selected</p>
+                        <p className="font-black uppercase text-sm">{selectedPkg.name}</p>
+                        <p className="text-[#E5000F] font-black text-lg">€{selectedPkg.price}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPkg(null)}
+                        className="text-white/40 hover:text-white text-lg leading-none transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : packages.length > 0 ? (
+                    <p className="text-xs text-black/40 uppercase tracking-widest border border-dashed border-black/20 p-3 text-center">
+                      ↑ Select a package above or fill in custom details below
+                    </p>
+                  ) : null}
+
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-widest mb-2">Date</label>
                     <input
@@ -383,17 +442,20 @@ export default function ArtistProfilePage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest mb-2">Duration (hours)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="24"
-                      value={booking.duration_hours}
-                      onChange={e => setBooking(p => ({ ...p, duration_hours: e.target.value }))}
-                      className="w-full border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors bg-transparent"
-                    />
-                  </div>
+                  {/* Only show duration if no package selected (package has its own duration) */}
+                  {!selectedPkg && (
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest mb-2">Duration (hours)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="24"
+                        value={booking.duration_hours}
+                        onChange={e => setBooking(p => ({ ...p, duration_hours: e.target.value }))}
+                        className="w-full border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors bg-transparent"
+                      />
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-widest mb-2">Message *</label>
@@ -411,14 +473,19 @@ export default function ArtistProfilePage() {
                     <p className="text-xs text-[#E5000F] uppercase tracking-widest">{bookingError}</p>
                   )}
 
-                  {artist.hourly_rate && booking.duration_hours && (
-                    <div className="border-t border-black/10 pt-3">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-black/50 uppercase text-xs tracking-widest">Estimated</span>
-                        <span className="font-black">€{(artist.hourly_rate * parseFloat(booking.duration_hours)).toFixed(0)}</span>
-                      </div>
+                  {/* Price estimate */}
+                  <div className="border-t border-black/10 pt-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-black/50 uppercase text-xs tracking-widest">Estimated Total</span>
+                      <span className="font-black">
+                        {selectedPkg
+                          ? `€${selectedPkg.price}`
+                          : artist.hourly_rate && booking.duration_hours
+                          ? `€${(artist.hourly_rate * parseFloat(booking.duration_hours)).toFixed(0)}`
+                          : "To be agreed"}
+                      </span>
                     </div>
-                  )}
+                  </div>
 
                   {!currentUser ? (
                     <Link href="/login" className="block text-center py-4 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors">
