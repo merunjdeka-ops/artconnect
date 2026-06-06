@@ -35,7 +35,7 @@ type Review = {
   rating: number;
   comment: string | null;
   created_at: string;
-  profiles: { full_name: string } | null;
+  profiles: { full_name: string } | { full_name: string }[] | null;
 };
 
 export default function ArtistProfilePage() {
@@ -289,7 +289,7 @@ export default function ArtistProfilePage() {
                       <div className="flex items-center gap-3">
                         <StarRating rating={review.rating} size="sm" />
                         <span className="text-xs font-bold uppercase tracking-widest">
-                          {review.profiles?.full_name ?? "Anonymous"}
+                          {(Array.isArray(review.profiles) ? review.profiles[0]?.full_name : review.profiles?.full_name) ?? "Anonymous"}
                         </span>
                       </div>
                       <span className="text-xs text-black/30 uppercase tracking-widest">
