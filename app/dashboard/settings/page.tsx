@@ -45,6 +45,7 @@ type Profile = {
 export default function SettingsPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("personal");
 
@@ -93,51 +94,55 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
 
+      setUserId(user.id);
+      setEmail(user.email || "");
+
       const { data: prof } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      if (!prof) { router.push("/dashboard"); return; }
-
-      setProfile(prof);
-      setFullName(prof.full_name || "");
-      setPhone(prof.phone || "");
-      setLocation(prof.location || "");
-      setAddress(prof.address || "");
-      setEmail(prof.email || user.email || "");
-      setLanguage(prof.language || "en");
-      setNotifBookings(prof.notification_bookings ?? true);
-      setNotifReviews(prof.notification_reviews ?? true);
-      setNotifMarketing(prof.notification_marketing ?? false);
-      setProfileVisibility(prof.profile_visibility || "public");
+      // Don't redirect if profile is null — just show empty fields
+      if (prof) {
+        setProfile(prof);
+        setFullName(prof.full_name || "");
+        setPhone(prof.phone || "");
+        setLocation(prof.location || "");
+        setAddress(prof.address || "");
+        setEmail(prof.email || user.email || "");
+        setLanguage(prof.language || "en");
+        setNotifBookings(prof.notification_bookings ?? true);
+        setNotifReviews(prof.notification_reviews ?? true);
+        setNotifMarketing(prof.notification_marketing ?? false);
+        setProfileVisibility(prof.profile_visibility || "public");
+      }
       setLoading(false);
     }
     load();
   }, [router]);
 
   async function savePersonal() {
+    if (!userId) return;
     setSavingPersonal(true);
     setPersonalMsg("");
     try {
       const supabase = getSupabase();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { error } = await supabase.from("profiles").update({
+      const { error } = await supabase.from("profiles").upsert({
+        id: userId,
         full_name: fullName,
         phone,
         location,
         address,
-      }).eq("id", user.id);
+      }, { onConflict: "id" });
       if (error) throw error;
       setProfile(p => p ? { ...p, full_name: fullName, phone, location, address } : p);
       setPersonalMsg("Saved successfully.");
-    } catch {
-      setPersonalMsg("Failed to save. Please try again.");
+    } catch (e: unknown) {
+      setPersonalMsg("Failed to save: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setSavingPersonal(false);
-      setTimeout(() => setPersonalMsg(""), 3000);
+      setTimeout(() => setPersonalMsg(""), 5000);
     }
   }
 
@@ -170,68 +175,74 @@ export default function SettingsPage() {
   }
 
   async function saveNotifications() {
+    if (!userId) return;
     setSavingNotif(true);
     setNotifMsg("");
     try {
       const supabase = getSupabase();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      await supabase.from("profiles").update({
+      const { error } = await supabase.from("profiles").upsert({
+        id: userId,
         notification_bookings: notifBookings,
         notification_reviews: notifReviews,
         notification_marketing: notifMarketing,
-      }).eq("id", user.id);
+      }, { onConflict: "id" });
+      if (error) throw error;
       setNotifMsg("Preferences saved.");
-    } catch {
-      setNotifMsg("Failed to save.");
+    } catch (e: unknown) {
+      setNotifMsg("Failed to save: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setSavingNotif(false);
-      setTimeout(() => setNotifMsg(""), 3000);
+      setTimeout(() => setNotifMsg(""), 5000);
     }
   }
 
   async function savePreferences() {
+    if (!userId) return;
     setSavingPrefs(true);
     setPrefsMsg("");
     try {
       const supabase = getSupabase();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      await supabase.from("profiles").update({ language }).eq("id", user.id);
+      const { error } = await supabase.from("profiles").upsert({
+        id: userId,
+        language,
+      }, { onConflict: "id" });
+      if (error) throw error;
       setPrefsMsg("Preferences saved.");
-    } catch {
-      setPrefsMsg("Failed to save.");
+    } catch (e: unknown) {
+      setPrefsMsg("Failed to save: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setSavingPrefs(false);
-      setTimeout(() => setPrefsMsg(""), 3000);
+      setTimeout(() => setPrefsMsg(""), 5000);
     }
   }
 
   async function savePrivacy() {
+    if (!userId) return;
     setSavingPrivacy(true);
     setPrivacyMsg("");
     try {
       const supabase = getSupabase();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      await supabase.from("profiles").update({ profile_visibility: profileVisibility }).eq("id", user.id);
+      const { error } = await supabase.from("profiles").upsert({
+        id: userId,
+        profile_visibility: profileVisibility,
+      }, { onConflict: "id" });
+      if (error) throw error;
       setPrivacyMsg("Privacy settings saved.");
-    } catch {
-      setPrivacyMsg("Failed to save.");
+    } catch (e: unknown) {
+      setPrivacyMsg("Failed to save: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setSavingPrivacy(false);
-      setTimeout(() => setPrivacyMsg(""), 3000);
+      setTimeout(() => setPrivacyMsg(""), 5000);
     }
   }
 
   async function handleToggleDeactivate() {
+    if (!userId) return;
     setTogglingDeactivate(true);
     try {
       const supabase = getSupabase();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
       const newVal = !profile?.is_deactivated;
-      await supabase.from("profiles").update({ is_deactivated: newVal }).eq("id", user.id);
+      await supabase.from("profiles").upsert({ id: userId, is_deactivated: newVal }, { onConflict: "id" });
       setProfile(p => p ? { ...p, is_deactivated: newVal } : p);
     } finally {
       setTogglingDeactivate(false);
