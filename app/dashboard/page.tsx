@@ -16,7 +16,7 @@ type Profile = {
   hourly_rate: number | null;
   session_rate: number | null;
   is_available: boolean;
-  is_deactivated: boolean;
+  is_deactivated?: boolean;
 };
 
 type Booking = {
@@ -39,11 +39,6 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState("");
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
-  const [togglingDeactivate, setTogglingDeactivate] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -85,46 +80,6 @@ export default function DashboardPage() {
 
     load();
   }, [router]);
-
-  async function handleDeleteAccount() {
-    if (deleteConfirm !== "DELETE") return;
-    setDeleting(true);
-    setDeleteError("");
-
-    try {
-      const supabase = getSupabase();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("No active session");
-
-      const res = await fetch("/api/delete-account", {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to delete account");
-
-      await supabase.auth.signOut();
-      router.push("/");
-    } catch (err: unknown) {
-      setDeleteError(err instanceof Error ? err.message : "Failed to delete account.");
-      setDeleting(false);
-    }
-  }
-
-  async function handleToggleDeactivate() {
-    setTogglingDeactivate(true);
-    try {
-      const supabase = getSupabase();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const newVal = !profile?.is_deactivated;
-      await supabase.from("profiles").update({ is_deactivated: newVal }).eq("id", user.id);
-      setProfile(prev => prev ? { ...prev, is_deactivated: newVal } : prev);
-    } finally {
-      setTogglingDeactivate(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -168,15 +123,14 @@ export default function DashboardPage() {
           <div className="border border-black bg-black text-white p-6 mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <p className="font-black uppercase text-white text-sm mb-1">Your account is deactivated</p>
-              <p className="text-xs text-white/60">Your profile is hidden from clients. No one can find or book you until you reactivate.</p>
+              <p className="text-xs text-white/60">Your profile is hidden from clients. Go to Settings to reactivate.</p>
             </div>
-            <button
-              onClick={handleToggleDeactivate}
-              disabled={togglingDeactivate}
-              className="shrink-0 bg-[#E5000F] text-white text-xs font-bold uppercase tracking-widest px-6 py-3 hover:bg-white hover:text-black transition-colors disabled:opacity-50"
+            <Link
+              href="/dashboard/settings?section=danger"
+              className="shrink-0 bg-[#E5000F] text-white text-xs font-bold uppercase tracking-widest px-6 py-3 hover:bg-white hover:text-black transition-colors"
             >
-              {togglingDeactivate ? "Reactivating..." : "Reactivate Account"}
-            </button>
+              Go to Settings →
+            </Link>
           </div>
         )}
 
@@ -297,98 +251,15 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* DANGER ZONE */}
-      <div className="px-8 max-w-6xl mx-auto mt-16 mb-4">
-        <p className="text-xs font-bold uppercase tracking-widest text-black/30 mb-4">Account Settings</p>
-        <div className="border border-black/20 divide-y divide-black/10">
-
-          {/* Deactivate / Reactivate */}
-          <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-black uppercase mb-1">
-                {profile?.is_deactivated ? "Reactivate Account" : "Deactivate Account"}
-              </p>
-              <p className="text-xs text-black/50">
-                {profile?.is_deactivated
-                  ? "Your profile is currently hidden. Click to make it visible to clients again."
-                  : "Temporarily hide your profile from clients. You can reactivate anytime. Your data is kept safe."}
-              </p>
-            </div>
-            <button
-              onClick={handleToggleDeactivate}
-              disabled={togglingDeactivate}
-              className={`shrink-0 text-xs font-bold uppercase tracking-widest px-6 py-3 transition-colors disabled:opacity-50 border ${
-                profile?.is_deactivated
-                  ? "bg-black text-white border-black hover:bg-[#E5000F] hover:border-[#E5000F]"
-                  : "border-black text-black hover:bg-black hover:text-white"
-              }`}
-            >
-              {togglingDeactivate
-                ? "Saving..."
-                : profile?.is_deactivated ? "Reactivate" : "Deactivate"}
-            </button>
-          </div>
-
-          {/* Delete */}
-          <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-black uppercase text-[#E5000F] mb-1">Delete Account</p>
-              <p className="text-xs text-black/50">Permanently delete your account and all your data. This cannot be undone.</p>
-            </div>
-            <button
-              onClick={() => { setShowDeleteModal(true); setDeleteConfirm(""); setDeleteError(""); }}
-              className="shrink-0 border border-[#E5000F] text-[#E5000F] text-xs font-bold uppercase tracking-widest px-6 py-3 hover:bg-[#E5000F] hover:text-white transition-colors"
-            >
-              Delete Account
-            </button>
-          </div>
-
-        </div>
+      {/* Settings shortcut */}
+      <div className="px-8 max-w-6xl mx-auto mt-10 mb-4">
+        <Link
+          href="/dashboard/settings"
+          className="inline-block text-xs font-bold uppercase tracking-widest text-black/40 hover:text-black transition-colors"
+        >
+          Account Settings (password, notifications, deactivate, delete) →
+        </Link>
       </div>
-
-      {/* DELETE CONFIRMATION MODAL */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
-          <div className="bg-[#F2EDE4] border border-black max-w-md w-full p-8 fade-in-up">
-            <h2 className="text-xl font-black uppercase mb-2">Delete Account</h2>
-            <p className="text-sm text-black/60 mb-6 leading-relaxed">
-              This will permanently delete your account, profile, portfolio, and all bookings.
-              This action <strong>cannot be undone</strong>.
-            </p>
-
-            <p className="text-xs font-bold uppercase tracking-widest mb-2">
-              Type <span className="text-[#E5000F]">DELETE</span> to confirm
-            </p>
-            <input
-              type="text"
-              value={deleteConfirm}
-              onChange={e => setDeleteConfirm(e.target.value)}
-              placeholder="DELETE"
-              className="w-full border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors mb-4 bg-white placeholder:text-black/30"
-            />
-
-            {deleteError && (
-              <p className="text-xs text-[#E5000F] uppercase tracking-widest mb-4">{deleteError}</p>
-            )}
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="flex-1 border border-black py-3 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteAccount}
-                disabled={deleteConfirm !== "DELETE" || deleting}
-                className="flex-1 bg-[#E5000F] text-white py-3 text-xs font-bold uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {deleting ? "Deleting..." : "Yes, Delete Everything"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black mt-10">
         <span className="text-sm font-black uppercase tracking-tight">ArtConnect</span>

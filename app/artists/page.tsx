@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 
 const CATEGORIES = [
@@ -31,6 +32,8 @@ type Artist = {
 };
 
 export default function ArtistsPage() {
+  const router = useRouter();
+  const [loggedIn, setLoggedIn] = useState(false);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
@@ -45,6 +48,11 @@ export default function ArtistsPage() {
   useEffect(() => {
     async function load() {
       const supabase = getSupabase();
+
+      // Check if user is logged in to show correct navbar
+      const { data: { user } } = await supabase.auth.getUser();
+      setLoggedIn(!!user);
+
       const { data } = await supabase
         .from("profiles")
         .select("id, full_name, category, location, bio, hourly_rate, session_rate, is_available")
@@ -149,8 +157,23 @@ export default function ArtistsPage() {
       <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
         <Link href="/" className="text-xl font-black tracking-tight uppercase">ArtConnect</Link>
         <div className="flex items-center gap-6">
-          <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
-          <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors">Join Now</Link>
+          {loggedIn ? (
+            <>
+              <Link href="/dashboard" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Dashboard</Link>
+              <Link href="/dashboard/settings" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Settings</Link>
+              <button
+                onClick={async () => { await getSupabase().auth.signOut(); router.push("/"); }}
+                className="text-sm font-bold uppercase tracking-widest bg-black text-white px-5 py-2 hover:bg-[#E5000F] transition-colors"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
+              <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors">Join Now</Link>
+            </>
+          )}
         </div>
       </nav>
 
