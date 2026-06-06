@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
+import StarRating from "@/app/components/StarRating";
+import ReviewForm from "@/app/components/ReviewForm";
 
 type Artist = {
   id: string;
@@ -26,16 +28,36 @@ type PortfolioItem = {
   media_type: string;
 };
 
+type Review = {
+  id: string;
+  client_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  profiles: { full_name: string } | null;
+};
+
 export default function ArtistProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [artist, setArtist] = useState<Artist | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState({ event_date: "", duration_hours: "1", message: "" });
   const [bookingStatus, setBookingStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [bookingError, setBookingError] = useState("");
+
+  const fetchReviews = useCallback(async () => {
+    const supabase = getSupabase();
+    const { data } = await supabase
+      .from("reviews")
+      .select("id, client_id, rating, comment, created_at, profiles(full_name)")
+      .eq("artist_id", id)
+      .order("created_at", { ascending: false });
+    setReviews((data as Review[]) || []);
+  }, [id]);
 
   useEffect(() => {
     async function load() {
@@ -58,7 +80,8 @@ export default function ArtistProfilePage() {
       setLoading(false);
     }
     load();
-  }, [id, router]);
+    fetchReviews();
+  }, [id, router, fetchReviews]);
 
   async function handleBooking(e: React.FormEvent) {
     e.preventDefault();
@@ -100,6 +123,10 @@ export default function ArtistProfilePage() {
 
   const isOwnProfile = currentUser?.id === artist.id;
 
+  const avgRating = reviews.length > 0
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+    : null;
+
   return (
     <main className="min-h-screen bg-[#F2EDE4] font-sans">
       {/* NAVBAR */}
@@ -122,6 +149,15 @@ export default function ArtistProfilePage() {
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-3">{artist.category}</p>
             <h1 className="text-6xl font-black uppercase leading-none">{artist.full_name}</h1>
             <p className="text-sm text-black/50 uppercase tracking-widest mt-3">{artist.location}</p>
+
+            {avgRating !== null && (
+              <div className="flex items-center gap-3 mt-4">
+                <StarRating rating={avgRating} size="md" />
+                <span className="text-xs text-black/50 uppercase tracking-widest">
+                  {avgRating.toFixed(1)} &mdash; {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
+                </span>
+              </div>
+            )}
 
             <div className="flex gap-6 mt-6">
               {artist.hourly_rate && (
@@ -177,7 +213,7 @@ export default function ArtistProfilePage() {
 
       <div className="max-w-5xl mx-auto px-8 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
 
-        {/* Left: Bio + Portfolio */}
+        {/* Left: Bio + Portfolio + Reviews */}
         <div className="lg:col-span-2">
           {/* Bio */}
           <div className="mb-12">
@@ -187,7 +223,7 @@ export default function ArtistProfilePage() {
 
           {/* Portfolio */}
           {portfolio.length > 0 && (
-            <div>
+            <div className="mb-12">
               <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-6">Portfolio</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-black border border-black">
                 {portfolio.map(item => (
@@ -209,6 +245,46 @@ export default function ArtistProfilePage() {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Reviews */}
+          <div className="mb-12">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-6">
+              Reviews{reviews.length > 0 ? ` (${reviews.length})` : ""}
+            </h2>
+            {reviews.length === 0 ? (
+              <p className="text-sm text-black/40 uppercase tracking-widest">No reviews yet.</p>
+            ) : (
+              <div className="flex flex-col gap-px bg-black border border-black">
+                {reviews.map(review => (
+                  <div key={review.id} className="bg-[#F2EDE4] p-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <StarRating rating={review.rating} size="sm" />
+                        <span className="text-xs font-bold uppercase tracking-widest">
+                          {review.profiles?.full_name ?? "Anonymous"}
+                        </span>
+                      </div>
+                      <span className="text-xs text-black/30 uppercase tracking-widest">
+                        {new Date(review.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                      </span>
+                    </div>
+                    {review.comment && (
+                      <p className="text-sm text-black/70 leading-relaxed mt-2">{review.comment}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Review form — shown only to logged-in non-artists */}
+          {currentUser && !isOwnProfile && (
+            <ReviewForm
+              artistId={artist.id}
+              clientId={currentUser.id}
+              onReviewSubmitted={fetchReviews}
+            />
           )}
         </div>
 
