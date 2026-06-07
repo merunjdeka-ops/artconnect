@@ -333,26 +333,77 @@ export default function ArtistProfilePage() {
           {/* Portfolio */}
           {portfolio.length > 0 && (
             <div className="mb-12">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-6">Portfolio</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-black border border-black">
-                {portfolio.map(item => (
-                  <div key={item.id} className="bg-[#F2EDE4] p-4">
-                    {item.media_type === "image" && (
-                      <img src={item.media_url} alt={item.title} className="w-full h-48 object-cover mb-3" />
-                    )}
-                    {item.media_type === "video" && (
-                      <video src={item.media_url} controls className="w-full h-48 object-cover mb-3" />
-                    )}
-                    {item.media_type === "audio" && (
-                      <div className="bg-black p-3 mb-3">
-                        <audio src={item.media_url} controls className="w-full" />
+              {/* Images */}
+              {portfolio.filter(i => i.media_type === "image").length > 0 && (
+                <>
+                  <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-6">Portfolio</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-black border border-black mb-10">
+                    {portfolio.filter(i => i.media_type === "image").map(item => (
+                      <div key={item.id} className="bg-[#F2EDE4] p-4">
+                        <img src={item.media_url} alt={item.title} className="w-full h-48 object-cover mb-3" />
+                        <h3 className="font-black uppercase text-sm">{item.title}</h3>
+                        {item.description && <p className="text-xs text-black/50 mt-1">{item.description}</p>}
                       </div>
-                    )}
-                    <h3 className="font-black uppercase text-sm">{item.title}</h3>
-                    {item.description && <p className="text-xs text-black/50 mt-1">{item.description}</p>}
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
+
+              {/* Video */}
+              {portfolio.filter(i => i.media_type === "video").map(item => (
+                <div key={item.id} className="bg-[#F2EDE4] border border-black p-4 mb-4">
+                  <video src={item.media_url} controls className="w-full h-48 object-cover mb-3" />
+                  <h3 className="font-black uppercase text-sm">{item.title}</h3>
+                  {item.description && <p className="text-xs text-black/50 mt-1">{item.description}</p>}
+                </div>
+              ))}
+
+              {/* Music embeds */}
+              {portfolio.filter(i => ["soundcloud", "spotify", "youtube", "audio"].includes(i.media_type)).length > 0 && (
+                <>
+                  <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-6">Music Samples</h2>
+                  <div className="flex flex-col gap-px bg-black border border-black">
+                    {portfolio.filter(i => ["soundcloud", "spotify", "youtube", "audio"].includes(i.media_type)).map(item => (
+                      <div key={item.id} className="bg-[#F2EDE4] p-5">
+                        <h3 className="font-black uppercase text-sm mb-1">{item.title}</h3>
+                        {item.description && <p className="text-xs text-black/50 mb-3">{item.description}</p>}
+                        {item.media_type === "soundcloud" && (
+                          <iframe
+                            src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(item.media_url)}&color=%23E5000F&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false`}
+                            width="100%" height="120" frameBorder="0"
+                            allow="autoplay" className="block"
+                          />
+                        )}
+                        {item.media_type === "spotify" && (() => {
+                          const m = item.media_url.match(/spotify\.com\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/);
+                          return m ? (
+                            <iframe
+                              src={`https://open.spotify.com/embed/${m[1]}/${m[2]}`}
+                              width="100%" height="80" frameBorder="0"
+                              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                              className="block"
+                            />
+                          ) : null;
+                        })()}
+                        {item.media_type === "youtube" && (() => {
+                          const m = item.media_url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+                          return m ? (
+                            <iframe
+                              src={`https://www.youtube.com/embed/${m[1]}`}
+                              width="100%" height="200" frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen className="block"
+                            />
+                          ) : null;
+                        })()}
+                        {item.media_type === "audio" && (
+                          <audio src={item.media_url} controls className="w-full" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
