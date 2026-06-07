@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import GuideButton from "@/app/components/GuideButton";
 
 const categories = [
   { name: "Photography", description: "Portrait, wedding, events, commercial and more." },
@@ -139,6 +140,16 @@ export default function Home() {
         <span className="text-xs text-black/40 uppercase tracking-widest">© 2026. Built for local artists.</span>
       </footer>
 
+      <GuideButton
+        title="How ArtConnect Works"
+        steps={[
+          { title: "Find an Artist", description: "Browse by category using the grid below, or click 'Browse All Artists' to see everyone on the platform." },
+          { title: "Filter by Category", description: "Click any category card (Photography, Music, Makeup Artist, etc.) to jump straight to artists in that field." },
+          { title: "View Artist Profiles", description: "Click any artist to see their full profile, portfolio, packages, pricing and reviews." },
+          { title: "Send a Booking Request", description: "On the artist's profile, select a package (or enter custom details) and send a booking request with your date and message." },
+          { title: "Create an Account", description: "Click 'Join Now' to sign up as a client (to book) or as an artist (to get booked). It's free." },
+        ]}
+      />
     </main>
   );
 }

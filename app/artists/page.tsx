@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
+import GuideButton from "@/app/components/GuideButton";
 
 const CATEGORIES = [
   "All", "Photography", "Music", "Makeup Artist", "Painting", "Illustration",
@@ -377,6 +378,18 @@ function ArtistsPageInner() {
           <Link href="/dmca" className="hover:text-black transition-colors">DMCA</Link>
         </div>
       </footer>
+
+      <GuideButton
+        title="Browsing Artists"
+        steps={[
+          { title: "Search by Name or Location", description: "Type in the search bar at the top to find artists by name, city, or keywords from their bio." },
+          { title: "Filter by Category", description: "Click any category button (Photography, Music, DJ, etc.) to show only artists in that field." },
+          { title: "Set a Price Range", description: "Use the Min/Max price fields to filter artists by their hourly or session rate." },
+          { title: "Show Available Only", description: "Toggle 'Available Only' to hide artists who are currently busy and only show those ready to book." },
+          { title: "Sort Results", description: "Use the Sort By dropdown to order results by price (low/high) or name A–Z." },
+          { title: "Open an Artist Profile", description: "Click any artist card to see their full profile, portfolio, packages and send a booking request." },
+        ]}
+      />
     </main>
   );
 }

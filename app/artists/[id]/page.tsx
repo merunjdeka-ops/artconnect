@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import GuideButton from "@/app/components/GuideButton";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
@@ -515,6 +516,19 @@ export default function ArtistProfilePage() {
           <Link href="/dmca" className="hover:text-black transition-colors">DMCA</Link>
         </div>
       </footer>
+
+      <GuideButton
+        title="Artist Profile Guide"
+        steps={[
+          { title: "View the Portfolio", description: "Scroll down to see the artist's portfolio — photos, videos or audio samples of their past work." },
+          { title: "Check Service Packages", description: "Packages show what the artist offers at different price points. Each card lists what's included." },
+          { title: "Select a Package", description: "Click 'Select Package' on any package card — it highlights in red and pre-fills the booking form on the right." },
+          { title: "Send a Booking Request", description: "Fill in your preferred date, add a message describing your project, then click 'Send Booking Request'." },
+          { title: "No Package? No Problem", description: "You can skip selecting a package and just fill in the date, hours, and message for a custom request." },
+          { title: "Read Reviews", description: "Scroll down to see reviews left by previous clients. After your booking you can leave one too." },
+          { title: "Login Required to Book", description: "You need a free account to send a booking request. Click 'Login to Book' if you aren't signed in yet." },
+        ]}
+      />
     </main>
   );
 }

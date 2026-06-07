@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NavbarAuth from "@/app/components/NavbarAuth";
+import GuideButton from "@/app/components/GuideButton";
 import { getSupabase } from "@/lib/supabase";
 
 type Profile = {
@@ -259,6 +260,18 @@ export default function DashboardPage() {
           <Link href="/dmca" className="hover:text-black transition-colors">DMCA</Link>
         </div>
       </footer>
+
+      <GuideButton
+        title="Your Dashboard"
+        steps={[
+          { title: "Quick Actions", description: "Use the left panel to jump to key actions — browse artists, edit your profile, or manage your portfolio." },
+          { title: "Your Profile Summary", description: "The middle panel shows your category, location, rate, and availability at a glance." },
+          { title: "Recent Bookings", description: "The right panel shows your 5 most recent bookings with their current status (Pending, Accepted, Declined)." },
+          { title: "Complete Your Profile (Artists)", description: "If you see a warning banner, click 'Complete Profile' to add your bio, category and location so clients can find you." },
+          { title: "Settings", description: "Click 'Settings' in the top navigation to update your personal info, password, notifications and privacy." },
+          { title: "Deactivate or Delete", description: "To temporarily hide your profile or permanently delete your account, go to Settings → Deactivate / Delete." },
+        ]}
+      />
     </main>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import NavbarAuth from "@/app/components/NavbarAuth";
+import GuideButton from "@/app/components/GuideButton";
 import { getSupabase } from "@/lib/supabase";
 
 const LANGUAGES = [
@@ -704,6 +705,19 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      <GuideButton
+        title="Settings Guide"
+        steps={[
+          { title: "Personal Info", description: "Update your full name, phone number, location and street address. Changing location updates where you appear in artist searches." },
+          { title: "Account", description: "Your email is shown here (read-only). Use this section to set a new password — enter it twice to confirm." },
+          { title: "Notifications", description: "Choose which emails you receive — booking updates, review alerts, and platform news. Toggle each on or off." },
+          { title: "Preferences", description: "Set your preferred language for the platform interface." },
+          { title: "Privacy & Safety", description: "Control who can see your profile: Public (everyone), Unlisted (direct link only), or Private (hidden from all)." },
+          { title: "Deactivate Account", description: "Temporarily hide your profile from all clients. Your data is kept safe. Reactivate any time from this same page." },
+          { title: "Delete Account", description: "Permanently erase your account and all data. This cannot be undone. You must type DELETE to confirm." },
+        ]}
+      />
     </main>
   );
 }
