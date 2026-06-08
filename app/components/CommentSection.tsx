@@ -31,7 +31,7 @@ export default function CommentSection({ artistId, currentUser, dark = false }: 
       .select("id, content, created_at, client_id, profiles(full_name)")
       .eq("artist_id", artistId)
       .order("created_at", { ascending: false });
-    setComments((data as Comment[]) || []);
+    setComments((data as unknown as Comment[]) || []);
     setLoading(false);
   }
 
