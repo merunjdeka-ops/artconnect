@@ -368,7 +368,7 @@ export default function ArtistProfilePage() {
       <div className="px-8 lg:px-16 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12 xl:gap-20">
 
         {/* Left: Bio + Portfolio + Reviews */}
-        <div className="lg:col-span-2 min-w-0 overflow-hidden">
+        <div className="lg:col-span-2 min-w-0">
 
           {/* Bio */}
           <div className="mb-12">
@@ -449,7 +449,7 @@ export default function ArtistProfilePage() {
                   </span>
                 )}
               </div>
-              <div className="border border-black overflow-hidden group w-full max-w-full">
+              <div className="border border-black overflow-hidden group">
                 {isVideo(artist.daily_pic_url!) ? (
                   /* Video story — click to open fullscreen */
                   <div className="relative cursor-pointer" onClick={() => setStoryOpen(true)}>
