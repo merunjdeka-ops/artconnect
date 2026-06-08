@@ -5,12 +5,29 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 
+const HANDCRAFT_SUBCATEGORIES = [
+  "Handcraft - Wood",
+  "Handcraft - Paper & Origami",
+  "Handcraft - Textile & Sewing",
+  "Handcraft - Knitting & Crochet",
+  "Handcraft - Embroidery",
+  "Handcraft - Leather",
+  "Handcraft - Ceramics & Clay",
+  "Handcraft - Candles & Soap",
+  "Handcraft - Resin Art",
+  "Handcraft - Glass & Mosaic",
+  "Handcraft - Macramé",
+  "Handcraft - Jewelry Making",
+  "Handcraft - Other",
+];
+
 const CATEGORIES = [
   "All", "Photography", "Music", "Makeup Artist", "Painting", "Illustration",
   "Videography", "DJ", "Dance", "Hair Styling", "Graphic Design",
   "Pottery & Ceramics", "Sculpture", "Calligraphy", "Fashion Design",
   "Tattoo Artist", "Comedy & Stand-Up", "Poetry & Spoken Word",
-  "Acting & Theatre", "Jewelry Making", "Interior Design",
+  "Acting & Theatre", "Handcraft", "Interior Design",
+  ...HANDCRAFT_SUBCATEGORIES,
 ];
 
 const SORT_OPTIONS = [
@@ -73,7 +90,12 @@ function ArtistsPageInner() {
     let result = [...artists];
 
     if (activeCategory !== "All") {
-      result = result.filter(a => a.category === activeCategory);
+      if (activeCategory === "Handcraft") {
+        // Show all handcraft subcategories
+        result = result.filter(a => a.category?.startsWith("Handcraft"));
+      } else {
+        result = result.filter(a => a.category === activeCategory);
+      }
     }
 
     if (search.trim()) {
@@ -197,23 +219,60 @@ function ArtistsPageInner() {
 
       {/* CATEGORY FILTERS — horizontal scroll on mobile */}
       <section className="px-8 py-6 border-b border-black">
-        <div className="overflow-x-auto -mx-2 px-2 scrollbar-none">
+        {/* Main category row */}
+        <div className="overflow-x-auto -mx-2 px-2 scrollbar-none mb-2">
           <div className="flex gap-2 min-w-max">
-            {CATEGORIES.map(cat => (
+            {["All", "Photography", "Music", "Makeup Artist", "Painting", "Illustration",
+              "Videography", "DJ", "Dance", "Hair Styling", "Graphic Design",
+              "Pottery & Ceramics", "Sculpture", "Calligraphy", "Fashion Design",
+              "Tattoo Artist", "Comedy & Stand-Up", "Poetry & Spoken Word",
+              "Acting & Theatre", "Interior Design", "Handcraft",
+            ].map(cat => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
                 className={`px-4 py-2 text-xs font-bold uppercase tracking-widest border transition-colors whitespace-nowrap ${
-                  activeCategory === cat
+                  activeCategory === cat || (cat === "Handcraft" && activeCategory.startsWith("Handcraft"))
                     ? "bg-black text-white border-black"
                     : "border-black text-black hover:bg-black hover:text-white"
                 }`}
               >
-                {cat}
+                {cat === "Handcraft" ? "🧵 Handcraft" : cat}
               </button>
             ))}
           </div>
         </div>
+
+        {/* Handcraft subcategory row — shown when Handcraft is active */}
+        {(activeCategory === "Handcraft" || activeCategory.startsWith("Handcraft -")) && (
+          <div className="overflow-x-auto -mx-2 px-2 scrollbar-none mt-3 pt-3 border-t border-black/10">
+            <div className="flex gap-2 min-w-max">
+              <button
+                onClick={() => setActiveCategory("Handcraft")}
+                className={`px-3 py-1.5 text-xs font-bold uppercase tracking-widest border transition-colors whitespace-nowrap ${
+                  activeCategory === "Handcraft"
+                    ? "bg-[#E5000F] text-white border-[#E5000F]"
+                    : "border-black/40 text-black/60 hover:border-black hover:text-black"
+                }`}
+              >
+                All Handcraft
+              </button>
+              {HANDCRAFT_SUBCATEGORIES.map(sub => (
+                <button
+                  key={sub}
+                  onClick={() => setActiveCategory(sub)}
+                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-widest border transition-colors whitespace-nowrap ${
+                    activeCategory === sub
+                      ? "bg-[#E5000F] text-white border-[#E5000F]"
+                      : "border-black/40 text-black/60 hover:border-black hover:text-black"
+                  }`}
+                >
+                  {sub.replace("Handcraft - ", "")}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ADVANCED FILTERS ROW */}

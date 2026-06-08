@@ -6,13 +6,44 @@ import Link from "next/link";
 import NavbarAuth from "@/app/components/NavbarAuth";
 import { getSupabase } from "@/lib/supabase";
 
-const CATEGORIES = [
-  "Photography", "Music", "Makeup Artist", "Painting", "Illustration",
-  "Videography", "DJ", "Dance", "Hair Styling", "Graphic Design",
-  "Pottery & Ceramics", "Sculpture", "Calligraphy", "Fashion Design",
-  "Tattoo Artist", "Comedy & Stand-Up", "Poetry & Spoken Word",
-  "Acting & Theatre", "Jewelry Making", "Interior Design",
+const CATEGORY_GROUPS: { group: string; items: string[] }[] = [
+  {
+    group: "Visual Arts",
+    items: ["Photography", "Videography", "Painting", "Illustration", "Graphic Design", "Sculpture", "Calligraphy"],
+  },
+  {
+    group: "Handcraft",
+    items: [
+      "Handcraft - Wood",
+      "Handcraft - Paper & Origami",
+      "Handcraft - Textile & Sewing",
+      "Handcraft - Knitting & Crochet",
+      "Handcraft - Embroidery",
+      "Handcraft - Leather",
+      "Handcraft - Ceramics & Clay",
+      "Handcraft - Candles & Soap",
+      "Handcraft - Resin Art",
+      "Handcraft - Glass & Mosaic",
+      "Handcraft - Macramé",
+      "Handcraft - Jewelry Making",
+      "Handcraft - Other",
+    ],
+  },
+  {
+    group: "Music & Performance",
+    items: ["Music", "DJ", "Dance", "Acting & Theatre", "Comedy & Stand-Up", "Poetry & Spoken Word"],
+  },
+  {
+    group: "Beauty & Fashion",
+    items: ["Makeup Artist", "Hair Styling", "Fashion Design", "Tattoo Artist"],
+  },
+  {
+    group: "Design & Other",
+    items: ["Pottery & Ceramics", "Interior Design", "Other"],
+  },
 ];
+
+const CATEGORIES = CATEGORY_GROUPS.flatMap(g => g.items);
 
 type Package = {
   name: string;
@@ -207,7 +238,15 @@ export default function SetupPage() {
               className="w-full border border-black px-4 py-3 bg-white text-sm outline-none focus:border-[#E5000F] transition-colors"
             >
               <option value="">Select your discipline</option>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              {CATEGORY_GROUPS.map(group => (
+                <optgroup key={group.group} label={`── ${group.group} ──`}>
+                  {group.items.map(c => (
+                    <option key={c} value={c}>
+                      {c.startsWith("Handcraft - ") ? c.replace("Handcraft - ", "  ↳ ") : c}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
 
