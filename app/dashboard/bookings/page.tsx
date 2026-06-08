@@ -25,7 +25,19 @@ const STATUS_STYLE: Record<string, string> = {
   pending:  "border-yellow-500 text-yellow-600 bg-yellow-50",
   accepted: "border-green-600 text-green-700 bg-green-50",
   declined: "border-[#E5000F] text-[#E5000F] bg-red-50",
+  expired:  "border-black/30 text-black/40 bg-black/5",
 };
+
+// A pending booking is expired if the event date was more than 1 day ago
+function isExpired(booking: Booking): boolean {
+  if (booking.status !== "pending" || !booking.event_date) return false;
+  const eventDay = new Date(booking.event_date);
+  eventDay.setHours(0, 0, 0, 0);
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 1); // 1 day grace
+  cutoff.setHours(0, 0, 0, 0);
+  return eventDay < cutoff;
+}
 
 export default function BookingsPage() {
   const router = useRouter();
@@ -35,7 +47,7 @@ export default function BookingsPage() {
   const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState("");
   const [acting, setActing] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "pending" | "accepted" | "declined">("all");
+  const [filter, setFilter] = useState<"all" | "pending" | "accepted" | "declined" | "expired">("all");
 
   useEffect(() => {
     async function load() {
@@ -121,13 +133,20 @@ export default function BookingsPage() {
     }
   }
 
-  const filtered = filter === "all" ? bookings : bookings.filter(b => b.status === filter);
+  const filtered = filter === "all"
+    ? bookings
+    : filter === "expired"
+      ? bookings.filter(b => isExpired(b))
+      : filter === "pending"
+        ? bookings.filter(b => b.status === "pending" && !isExpired(b))
+        : bookings.filter(b => b.status === filter);
 
   const counts = {
     all: bookings.length,
-    pending: bookings.filter(b => b.status === "pending").length,
+    pending: bookings.filter(b => b.status === "pending" && !isExpired(b)).length,
     accepted: bookings.filter(b => b.status === "accepted").length,
     declined: bookings.filter(b => b.status === "declined").length,
+    expired: bookings.filter(b => isExpired(b)).length,
   };
 
   if (loading) return (
@@ -155,7 +174,7 @@ export default function BookingsPage() {
 
         {/* Filter tabs */}
         <div className="flex gap-2 mb-8 flex-wrap">
-          {(["all", "pending", "accepted", "declined"] as const).map(f => (
+          {(["all", "pending", "accepted", "declined", "expired"] as const).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -177,16 +196,22 @@ export default function BookingsPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-px bg-black border border-black">
-            {filtered.map(booking => (
-              <div key={booking.id} className="bg-[#F2EDE4] p-6">
+            {filtered.map(booking => {
+              const expired = isExpired(booking);
+              const displayStatus = expired ? "expired" : booking.status;
+              return (
+              <div key={booking.id} className={`bg-[#F2EDE4] p-6 ${expired ? "opacity-60" : ""}`}>
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                   {/* Left: booking info */}
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3 flex-wrap">
                       <h3 className="font-black uppercase text-base">{booking.other_name}</h3>
-                      <span className={`text-xs font-bold uppercase border px-2 py-0.5 tracking-widest ${STATUS_STYLE[booking.status]}`}>
-                        {booking.status}
+                      <span className={`text-xs font-bold uppercase border px-2 py-0.5 tracking-widest ${STATUS_STYLE[displayStatus]}`}>
+                        {displayStatus}
                       </span>
+                      {expired && (
+                        <span className="text-xs text-black/40 uppercase tracking-widest">— request lapsed</span>
+                      )}
                       {booking.package_name && (
                         <span className="text-xs bg-black text-white px-2 py-0.5 font-bold uppercase tracking-widest">
                           {booking.package_name}
@@ -245,8 +270,8 @@ export default function BookingsPage() {
 
                   {/* Right: action buttons */}
                   <div className="flex md:flex-col gap-3 shrink-0">
-                    {/* Artist: accept / decline pending */}
-                    {role === "artist" && booking.status === "pending" && (
+                    {/* Artist: accept / decline pending (not shown if expired) */}
+                    {role === "artist" && booking.status === "pending" && !expired && (
                       <>
                         <button
                           onClick={() => updateStatus(booking.id, "accepted", booking)}
@@ -298,7 +323,8 @@ export default function BookingsPage() {
                     )}
                   </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
