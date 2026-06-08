@@ -587,7 +587,7 @@ export default function SettingsPage() {
                     <p className="text-xs font-bold uppercase tracking-widest mb-2">Your Data Rights (GDPR)</p>
                     <p className="text-xs text-black/50 leading-relaxed">
                       You have the right to access, export, or delete all personal data we hold about you.
-                      To request a data export, email us at <span className="font-bold">privacy@artconnect.it</span>.
+                      To request a data export, email us at <span className="font-bold">goartconnect@gmail.com</span>.
                       To delete all data permanently, use the Delete Account option.
                     </p>
                   </div>

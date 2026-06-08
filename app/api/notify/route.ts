@@ -224,7 +224,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "ArtConnect <noreply@artconnect.com>",
+        from: "ArtConnect <onboarding@resend.dev>",
         to: [to],
         subject,
         html,

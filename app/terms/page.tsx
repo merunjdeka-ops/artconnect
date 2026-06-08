@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LEGAL_EMAIL } from "@/lib/config";
 
 export const metadata = {
   title: "Terms of Service — ArtConnect",
@@ -119,7 +120,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-black uppercase mb-3 text-black">13. Contact</h2>
-            <p>If you have any questions about these Terms, please contact us at <span className="text-black font-bold">legal@artconnect.com</span>.</p>
+            <p>If you have any questions about these Terms, please contact us at <span className="text-black font-bold">{LEGAL_EMAIL}</span>.</p>
           </section>
 
         </div>

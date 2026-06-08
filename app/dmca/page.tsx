@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DMCA_EMAIL } from "@/lib/config";
 
 export const metadata = {
   title: "DMCA Policy — ArtConnect",
@@ -46,7 +47,7 @@ export default function DmcaPage() {
             <p className="mb-3">Send your DMCA notice to our designated agent:</p>
             <div className="border border-black p-6 bg-white">
               <p className="font-bold uppercase tracking-widest text-xs mb-3">DMCA Agent — ArtConnect</p>
-              <p>Email: <span className="font-bold">dmca@artconnect.com</span></p>
+              <p>Email: <span className="font-bold">{DMCA_EMAIL}</span></p>
               <p className="mt-1 text-black/50 text-xs">Please use the subject line: "DMCA Takedown Notice"</p>
             </div>
             <p className="mt-4">We strongly recommend submitting notices via email for fastest response. We aim to respond to all valid DMCA notices within <strong>3 business days</strong>.</p>
@@ -93,7 +94,7 @@ export default function DmcaPage() {
 
           <section>
             <h2 className="text-lg font-black uppercase mb-3 text-black">8. Contact</h2>
-            <p>For all copyright-related concerns, contact us at <span className="text-black font-bold">dmca@artconnect.com</span>.</p>
+            <p>For all copyright-related concerns, contact us at <span className="text-black font-bold">{DMCA_EMAIL}</span>.</p>
           </section>
 
         </div>

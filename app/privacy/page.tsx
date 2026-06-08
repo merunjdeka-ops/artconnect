@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PRIVACY_EMAIL } from "@/lib/config";
 
 export const metadata = {
   title: "Privacy Policy — ArtConnect",
@@ -93,7 +94,7 @@ export default function PrivacyPage() {
               <li><strong>Portability:</strong> Request your data in a portable format</li>
               <li><strong>Objection:</strong> Object to processing of your data for marketing purposes</li>
             </ul>
-            <p className="mt-3">To exercise any of these rights, contact us at <span className="text-black font-bold">privacy@artconnect.com</span>.</p>
+            <p className="mt-3">To exercise any of these rights, contact us at <span className="text-black font-bold">{PRIVACY_EMAIL}</span>.</p>
           </section>
 
           <section>
@@ -113,7 +114,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-black uppercase mb-3 text-black">11. Contact</h2>
-            <p>For privacy-related questions or requests, contact us at <span className="text-black font-bold">privacy@artconnect.com</span>.</p>
+            <p>For privacy-related questions or requests, contact us at <span className="text-black font-bold">{PRIVACY_EMAIL}</span>.</p>
           </section>
 
         </div>
