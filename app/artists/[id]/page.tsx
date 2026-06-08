@@ -598,9 +598,77 @@ export default function ArtistProfilePage() {
 
         </div>
 
-        {/* Right: Booking form */}
-        {!isOwnProfile && (
-          <div ref={bookingRef}>
+        {/* Right: Booking form OR own-profile panel */}
+        <div ref={bookingRef}>
+        {isOwnProfile ? (
+          <div className="sticky top-6 flex flex-col gap-4">
+            {/* Profile summary card */}
+            <div className="border border-black bg-white p-6">
+              <p className="text-xs font-bold uppercase tracking-widest text-black/40 mb-4">Your Profile</p>
+              <div className="flex flex-col gap-3">
+                <div className="flex justify-between items-center border-b border-black/10 pb-3">
+                  <span className="text-xs uppercase tracking-widest text-black/50">Category</span>
+                  <span className="text-xs font-bold uppercase">{artist.category}</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-black/10 pb-3">
+                  <span className="text-xs uppercase tracking-widest text-black/50">Location</span>
+                  <span className="text-xs font-bold uppercase">{artist.location || "—"}</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-black/10 pb-3">
+                  <span className="text-xs uppercase tracking-widest text-black/50">Status</span>
+                  <span className={`text-xs font-bold uppercase ${artist.is_available ? "text-green-700" : "text-[#E5000F]"}`}>
+                    {artist.is_available ? "● Available" : "● Busy"}
+                  </span>
+                </div>
+                {artist.hourly_rate && (
+                  <div className="flex justify-between items-center border-b border-black/10 pb-3">
+                    <span className="text-xs uppercase tracking-widest text-black/50">Hourly Rate</span>
+                    <span className="text-xs font-bold uppercase text-[#E5000F]">€{artist.hourly_rate}/hr</span>
+                  </div>
+                )}
+                {artist.session_rate && (
+                  <div className="flex justify-between items-center border-b border-black/10 pb-3">
+                    <span className="text-xs uppercase tracking-widest text-black/50">Session Rate</span>
+                    <span className="text-xs font-bold uppercase text-[#E5000F]">€{artist.session_rate}/session</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center border-b border-black/10 pb-3">
+                  <span className="text-xs uppercase tracking-widest text-black/50">Portfolio</span>
+                  <span className="text-xs font-bold uppercase">{portfolio.length} item{portfolio.length !== 1 ? "s" : ""}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs uppercase tracking-widest text-black/50">Reviews</span>
+                  <span className="text-xs font-bold uppercase">
+                    {reviews.length > 0 ? `${avgRating?.toFixed(1)} ★ (${reviews.length})` : "None yet"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick actions */}
+            <div className="border border-black bg-white p-6">
+              <p className="text-xs font-bold uppercase tracking-widest text-black/40 mb-4">Quick Actions</p>
+              <div className="flex flex-col gap-2">
+                <Link href="/dashboard/setup" className="block text-center py-3 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors">
+                  Edit Profile
+                </Link>
+                <Link href="/dashboard/portfolio" className="block text-center py-3 border border-black text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+                  Manage Portfolio
+                </Link>
+                <Link href="/dashboard/availability" className="block text-center py-3 border border-black text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+                  Set Availability
+                </Link>
+                <Link href="/dashboard/bookings" className="block text-center py-3 border border-black text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+                  View Bookings
+                </Link>
+                <Link href="/dashboard" className="block text-center py-3 border border-black/30 text-xs font-bold uppercase tracking-widest text-black/50 hover:border-black hover:text-black transition-colors">
+                  ← Dashboard
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div>
             <div className="border border-black bg-white p-6 sticky top-6">
               <h2 className="text-lg font-black uppercase mb-5">Book {artist.full_name?.split(" ")[0]}</h2>
 
@@ -819,6 +887,7 @@ export default function ArtistProfilePage() {
             </div>
           </div>
         )}
+        </div>
 
 
       </div>
