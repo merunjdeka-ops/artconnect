@@ -477,7 +477,7 @@ export default function ArtistProfilePage() {
                 )}
                 {artist.daily_pic_caption && (
                   <div className="px-5 py-4 border-t border-black bg-white">
-                    <p className="text-sm text-black/70 leading-relaxed">{artist.daily_pic_caption}</p>
+                    <div className="text-sm text-black/70 leading-relaxed rich-caption" dangerouslySetInnerHTML={{ __html: artist.daily_pic_caption }} />
                   </div>
                 )}
               </div>
@@ -901,7 +901,7 @@ export default function ArtistProfilePage() {
               <img src={artist.daily_pic_url!} alt="Story" className="max-h-[80vh] max-w-full object-contain" />
             )}
             {artist.daily_pic_caption && (
-              <p className="text-white/70 text-sm text-center max-w-xl">{artist.daily_pic_caption}</p>
+              <div className="text-white/70 text-sm text-center max-w-xl rich-caption" dangerouslySetInnerHTML={{ __html: artist.daily_pic_caption }} />
             )}
           </div>
         </div>

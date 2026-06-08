@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NavbarAuth from "@/app/components/NavbarAuth";
 import GuideButton from "@/app/components/GuideButton";
+import RichCaptionEditor from "@/app/components/RichCaptionEditor";
 import { getSupabase } from "@/lib/supabase";
 
 async function uploadToCloudinary(file: File, folder = "daily_pics"): Promise<string> {
@@ -463,12 +464,10 @@ export default function DashboardPage() {
                 <>
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-widest mb-2 text-black/50">Caption (optional)</label>
-                    <textarea
-                      rows={3}
-                      placeholder="Add a caption to your daily photo..."
+                    <RichCaptionEditor
                       value={dailyCaption}
-                      onChange={e => setDailyCaption(e.target.value)}
-                      className="w-full border border-black px-4 py-3 bg-white text-sm outline-none focus:border-[#E5000F] transition-colors resize-none placeholder:text-black/30"
+                      onChange={setDailyCaption}
+                      placeholder="Add a caption to your daily photo…"
                     />
                   </div>
                   <button

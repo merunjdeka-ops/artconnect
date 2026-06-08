@@ -187,6 +187,16 @@ input:focus, textarea:focus, select:focus {
   background: #000;
 }
 
+/* ── Rich caption rendered output ── */
+.rich-caption b, .rich-caption strong { font-weight: 700; }
+.rich-caption i, .rich-caption em { font-style: italic; }
+.rich-caption u { text-decoration: underline; }
+.rich-caption s { text-decoration: line-through; }
+.rich-caption ul { list-style: disc; padding-left: 1.25rem; margin: 0.25rem 0; }
+.rich-caption ol { list-style: decimal; padding-left: 1.25rem; margin: 0.25rem 0; }
+.rich-caption li { margin: 0.15rem 0; }
+.rich-caption br { display: block; content: ""; margin: 0.1rem 0; }
+
 /* ── Selection color ── */
 ::selection {
   background: var(--red);
