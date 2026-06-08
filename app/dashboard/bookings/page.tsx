@@ -243,36 +243,60 @@ export default function BookingsPage() {
                     </div>
                   </div>
 
-                  {/* Right: action buttons — only for artist on pending bookings */}
-                  {role === "artist" && booking.status === "pending" && (
-                    <div className="flex md:flex-col gap-3 shrink-0">
-                      <button
-                        onClick={() => updateStatus(booking.id, "accepted", booking)}
-                        disabled={acting === booking.id}
-                        className="px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-green-700 transition-colors disabled:opacity-50 whitespace-nowrap"
-                      >
-                        {acting === booking.id ? "..." : "✓ Accept"}
-                      </button>
-                      <button
-                        onClick={() => updateStatus(booking.id, "declined", booking)}
-                        disabled={acting === booking.id}
-                        className="px-6 py-3 border border-black text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] hover:text-white hover:border-[#E5000F] transition-colors disabled:opacity-50 whitespace-nowrap"
-                      >
-                        {acting === booking.id ? "..." : "✕ Decline"}
-                      </button>
-                    </div>
-                  )}
+                  {/* Right: action buttons */}
+                  <div className="flex md:flex-col gap-3 shrink-0">
+                    {/* Artist: accept / decline pending */}
+                    {role === "artist" && booking.status === "pending" && (
+                      <>
+                        <button
+                          onClick={() => updateStatus(booking.id, "accepted", booking)}
+                          disabled={acting === booking.id}
+                          className="px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-green-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+                        >
+                          {acting === booking.id ? "..." : "✓ Accept"}
+                        </button>
+                        <button
+                          onClick={() => updateStatus(booking.id, "declined", booking)}
+                          disabled={acting === booking.id}
+                          className="px-6 py-3 border border-black text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] hover:text-white hover:border-[#E5000F] transition-colors disabled:opacity-50 whitespace-nowrap"
+                        >
+                          {acting === booking.id ? "..." : "✕ Decline"}
+                        </button>
+                      </>
+                    )}
 
-                  {/* Client: link to artist profile */}
-                  {role === "client" && (
-                    <Link
-                      href={`/artists/${booking.other_id}`}
-                      className="shrink-0 text-xs font-bold uppercase tracking-widest border border-black px-5 py-3 hover:bg-black hover:text-white transition-colors"
-                    >
-                      View Artist →
-                    </Link>
-                  )}
-                </div>
+                    {/* Both parties: cancellation request on accepted bookings */}
+                    {booking.status === "accepted" && (() => {
+                      const subject = encodeURIComponent(`Cancellation Request — Booking #${booking.id.slice(0, 8).toUpperCase()}`);
+                      const body = encodeURIComponent(
+                        `Hello ArtConnect Support,\n\nI would like to request a cancellation for the following booking:\n\n` +
+                        `Booking ID: ${booking.id}\n` +
+                        `${role === "artist" ? "Client" : "Artist"}: ${booking.other_name}\n` +
+                        `Date: ${booking.event_date ? new Date(booking.event_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "TBD"}\n` +
+                        (booking.package_name ? `Package: ${booking.package_name}\n` : "") +
+                        (booking.package_price ? `Price: €${booking.package_price}\n` : "") +
+                        `\nReason for cancellation:\n[Please describe your reason here]\n\nThank you.`
+                      );
+                      return (
+                        <a
+                          href={`mailto:help@goartconnect.com?subject=${subject}&body=${body}`}
+                          className="px-5 py-3 border border-black/30 text-xs font-bold uppercase tracking-widest text-black/50 hover:border-[#E5000F] hover:text-[#E5000F] transition-colors whitespace-nowrap text-center"
+                        >
+                          Request Cancellation
+                        </a>
+                      );
+                    })()}
+
+                    {/* Client: link to artist profile */}
+                    {role === "client" && (
+                      <Link
+                        href={`/artists/${booking.other_id}`}
+                        className="shrink-0 text-xs font-bold uppercase tracking-widest border border-black px-5 py-3 hover:bg-black hover:text-white transition-colors text-center"
+                      >
+                        View Artist →
+                      </Link>
+                    )}
+                  </div>
               </div>
             ))}
           </div>
