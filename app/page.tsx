@@ -65,7 +65,7 @@ export default function Home() {
             <Link href="/artists" className="bg-black text-white text-sm font-bold uppercase tracking-widest px-6 py-3 hover:bg-[#E5000F] transition-colors">
               Find an Artist
             </Link>
-            <Link href="/signup" className="border border-black text-sm font-bold uppercase tracking-widest px-6 py-3 hover:border-[#E5000F] hover:text-[#E5000F] transition-colors">
+            <Link href="/signup?role=artist" className="border border-black text-sm font-bold uppercase tracking-widest px-6 py-3 hover:border-[#E5000F] hover:text-[#E5000F] transition-colors">
               Share Your Work
             </Link>
           </div>

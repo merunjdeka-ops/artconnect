@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
-  const [role, setRole] = useState<"client" | "artist">("client");
+  const searchParams = useSearchParams();
+  const forceArtist = searchParams.get("role") === "artist";
+  const [role, setRole] = useState<"client" | "artist">(forceArtist ? "artist" : "client");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -67,27 +69,35 @@ export default function SignupPage() {
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-3">Get started</p>
           <h2 className="text-4xl font-black uppercase leading-none mb-8">Create<br />Account</h2>
 
-          {/* Role toggle */}
-          <div className="flex border border-black mb-8">
-            <button
-              type="button"
-              onClick={() => setRole("client")}
-              className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${
-                role === "client" ? "bg-black text-white" : "text-black hover:bg-black/5"
-              }`}
-            >
-              I need an artist
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("artist")}
-              className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors border-l border-black ${
-                role === "artist" ? "bg-[#E5000F] text-white" : "text-black hover:bg-black/5"
-              }`}
-            >
-              I am an artist
-            </button>
-          </div>
+          {/* Role toggle — hidden when coming from "Share Your Work" */}
+          {forceArtist ? (
+            <div className="flex border border-[#E5000F] mb-8">
+              <div className="flex-1 py-3 text-xs font-bold uppercase tracking-widest text-center bg-[#E5000F] text-white">
+                I am an artist
+              </div>
+            </div>
+          ) : (
+            <div className="flex border border-black mb-8">
+              <button
+                type="button"
+                onClick={() => setRole("client")}
+                className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${
+                  role === "client" ? "bg-black text-white" : "text-black hover:bg-black/5"
+                }`}
+              >
+                I need an artist
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole("artist")}
+                className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors border-l border-black ${
+                  role === "artist" ? "bg-[#E5000F] text-white" : "text-black hover:bg-black/5"
+                }`}
+              >
+                I am an artist
+              </button>
+            </div>
+          )}
 
           {error && (
             <div className="mb-6 px-4 py-3 border border-[#E5000F] text-[#E5000F] text-xs uppercase tracking-widest">
@@ -142,5 +152,13 @@ export default function SignupPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
   );
 }
