@@ -321,14 +321,19 @@ export default function DashboardPage() {
         <div className="mt-px border border-black bg-[#F2EDE4] p-8 max-w-6xl mx-auto mt-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-1">Daily Photo</h2>
-              <p className="text-sm text-black/60">Share a photo with your followers — it shows prominently on your profile. Update it as often as you like.</p>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-1">Daily Photo — Story</h2>
+              <p className="text-sm text-black/60">Visible on your profile for <strong>24 hours</strong> after upload, then it disappears automatically — like an Instagram story.</p>
             </div>
-            {profile?.daily_pic_updated_at && (
-              <span className="text-xs text-black/30 uppercase tracking-widest shrink-0 ml-6">
-                Last updated: {new Date(profile.daily_pic_updated_at).toLocaleDateString("en-IT", { day: "numeric", month: "short" })}
-              </span>
-            )}
+            {profile?.daily_pic_updated_at && (() => {
+              const age = Date.now() - new Date(profile.daily_pic_updated_at!).getTime();
+              const hoursLeft = Math.max(0, 24 - Math.floor(age / 3600000));
+              const expired = age >= 24 * 3600 * 1000;
+              return (
+                <span className={`text-xs font-bold uppercase tracking-widest shrink-0 ml-6 px-3 py-1 border ${expired ? "border-black/20 text-black/30" : hoursLeft <= 3 ? "border-[#E5000F] text-[#E5000F]" : "border-black text-black"}`}>
+                  {expired ? "Expired" : `${hoursLeft}h left`}
+                </span>
+              );
+            })()}
           </div>
 
           {dailyError && (
@@ -341,27 +346,34 @@ export default function DashboardPage() {
           <div className="flex flex-col md:flex-row gap-8 items-start">
             {/* Current pic preview */}
             <div className="w-full md:w-64 shrink-0">
-              {profile?.daily_pic_url ? (
-                <div className="border border-black overflow-hidden">
-                  <img src={profile.daily_pic_url} alt="Daily pic" className="w-full h-48 object-cover" />
-                  <div className="p-3 border-t border-black flex justify-between items-center">
-                    <span className="text-xs text-black/50 uppercase tracking-widest">Current photo</span>
-                    <button
-                      onClick={removeDailyPic}
-                      disabled={dailySaving}
-                      className="text-xs text-[#E5000F] font-bold uppercase tracking-widest hover:text-black transition-colors disabled:opacity-50"
-                    >
-                      Remove
-                    </button>
+              {profile?.daily_pic_url && (() => {
+                const age = Date.now() - new Date(profile.daily_pic_updated_at!).getTime();
+                const expired = age >= 24 * 3600 * 1000;
+                return expired ? null : (
+                  <div className="border border-black overflow-hidden">
+                    <img src={profile.daily_pic_url!} alt="Daily pic" className="w-full h-48 object-cover" />
+                    <div className="p-3 border-t border-black flex justify-between items-center">
+                      <span className="text-xs text-black/50 uppercase tracking-widest">Live on profile</span>
+                      <button
+                        onClick={removeDailyPic}
+                        disabled={dailySaving}
+                        className="text-xs text-[#E5000F] font-bold uppercase tracking-widest hover:text-black transition-colors disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ) : (
+                );
+              })()}
+              {(!profile?.daily_pic_url || Date.now() - new Date(profile.daily_pic_updated_at ?? 0).getTime() >= 24 * 3600 * 1000) && (
                 <div
                   className="border-2 border-dashed border-black/30 h-48 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-black transition-colors"
                   onClick={() => dailyRef.current?.click()}
                 >
                   <span className="text-3xl">📷</span>
-                  <span className="text-xs font-bold uppercase tracking-widest text-black/40">No photo yet</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-black/40">
+                    {profile?.daily_pic_url ? "Story expired — upload new" : "No story yet"}
+                  </span>
                 </div>
               )}
             </div>
@@ -395,7 +407,7 @@ export default function DashboardPage() {
                 disabled={dailyUploading || dailySaving}
                 className="px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-50 self-start"
               >
-                {dailyUploading ? "Uploading..." : profile?.daily_pic_url ? "Replace Photo" : "Upload Photo"}
+                {dailyUploading ? "Uploading..." : "Post Story"}
               </button>
 
               {profile?.daily_pic_url && (

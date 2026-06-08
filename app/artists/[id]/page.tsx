@@ -173,6 +173,13 @@ export default function ArtistProfilePage() {
 
   const isOwnProfile = currentUser?.id === artist.id;
 
+  // Daily pic expires after 24 hours (like an Instagram story)
+  const dailyPicActive = (() => {
+    if (!artist.daily_pic_url || !artist.daily_pic_updated_at) return false;
+    const age = Date.now() - new Date(artist.daily_pic_updated_at).getTime();
+    return age < 24 * 60 * 60 * 1000;
+  })();
+
   const avgRating = reviews.length > 0
     ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
     : null;
@@ -182,8 +189,8 @@ export default function ArtistProfilePage() {
 
       {/* ── HERO BANNER ── */}
       <div className="relative w-full h-[65vh] min-h-[420px] overflow-hidden">
-        {/* Full photo — avatar first, daily pic as fallback, then gradient */}
-        {(artist.avatar_url || artist.daily_pic_url) ? (
+        {/* Full photo — avatar first, active daily pic as fallback, then gradient */}
+        {(artist.avatar_url || dailyPicActive) ? (
           <img
             src={artist.avatar_url || artist.daily_pic_url!}
             alt={artist.full_name}
@@ -350,8 +357,8 @@ export default function ArtistProfilePage() {
             </div>
           )}
 
-          {/* Daily Pic */}
-          {artist.daily_pic_url && (
+          {/* Daily Pic — only shown within 24h of upload */}
+          {dailyPicActive && (
             <div className="mb-12">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xs font-bold uppercase tracking-widest text-black/40">Today&apos;s Photo</h2>
@@ -362,7 +369,7 @@ export default function ArtistProfilePage() {
                 )}
               </div>
               <div className="border border-black overflow-hidden">
-                <img src={artist.daily_pic_url} alt="Daily photo" className="w-full object-cover max-h-[480px]" />
+                <img src={artist.daily_pic_url!} alt="Daily photo" className="w-full object-cover max-h-[480px]" />
                 {artist.daily_pic_caption && (
                   <div className="px-5 py-4 border-t border-black bg-white">
                     <p className="text-sm text-black/70 leading-relaxed">{artist.daily_pic_caption}</p>
