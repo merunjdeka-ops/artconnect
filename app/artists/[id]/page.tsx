@@ -9,6 +9,18 @@ import StarRating from "@/app/components/StarRating";
 import ReviewForm from "@/app/components/ReviewForm";
 import CommentSection from "@/app/components/CommentSection";
 
+type AvailabilityPeriod = {
+  id: string;
+  start_date: string;
+  end_date: string;
+  hours_from: string;
+  hours_to: string;
+  days_of_week: number[];
+  note: string;
+};
+
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 type Artist = {
   id: string;
   full_name: string;
@@ -25,6 +37,7 @@ type Artist = {
   daily_pic_url: string | null;
   daily_pic_caption: string | null;
   daily_pic_updated_at: string | null;
+  availability_schedule: AvailabilityPeriod[] | null;
 };
 
 type Package = {
@@ -82,10 +95,31 @@ export default function ArtistProfilePage() {
   }, [lightbox, portfolio]);
   const [loading, setLoading] = useState(true);
   const [selectedPkg, setSelectedPkg] = useState<Package | null>(null);
-  const [booking, setBooking] = useState({ event_date: "", duration_hours: "1", message: "" });
+  const [booking, setBooking] = useState({
+    start_date: "",
+    end_date: "",
+    hours_per_day: "4",
+    event_type: "",
+    location: "",
+    message: "",
+  });
   const [bookingStatus, setBookingStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [bookingError, setBookingError] = useState("");
   const bookingRef = useRef<HTMLDivElement>(null);
+
+  // Derived booking values
+  const bookingDays = (() => {
+    if (!booking.start_date) return 1;
+    const end = booking.end_date || booking.start_date;
+    const diff = Math.round((new Date(end).getTime() - new Date(booking.start_date).getTime()) / 86400000);
+    return Math.max(1, diff + 1);
+  })();
+  const totalHours = bookingDays * parseFloat(booking.hours_per_day || "1");
+  const estimatedTotal = selectedPkg
+    ? selectedPkg.price
+    : artist && artist.hourly_rate
+    ? artist.hourly_rate * totalHours
+    : null;
 
   const fetchReviews = useCallback(async () => {
     const supabase = getSupabase();
@@ -145,15 +179,25 @@ export default function ArtistProfilePage() {
 
     try {
       const supabase = getSupabase();
+      const durationHours = selectedPkg?.duration_hours ?? totalHours;
+      const fullMessage = [
+        booking.event_type ? `Event type: ${booking.event_type}` : "",
+        booking.location ? `Location: ${booking.location}` : "",
+        booking.end_date && booking.end_date !== booking.start_date
+          ? `Date range: ${booking.start_date} → ${booking.end_date} (${bookingDays} day${bookingDays > 1 ? "s" : ""}, ${booking.hours_per_day}h/day)`
+          : "",
+        booking.message,
+      ].filter(Boolean).join("\n");
+
       const { error } = await supabase.from("bookings").insert({
         artist_id: artist?.id,
         client_id: currentUser.id,
-        event_date: booking.event_date || null,
-        duration_hours: selectedPkg?.duration_hours ?? parseFloat(booking.duration_hours),
-        message: booking.message,
+        event_date: booking.start_date || null,
+        duration_hours: durationHours,
+        message: fullMessage,
         status: "pending",
         package_name: selectedPkg?.name ?? null,
-        package_price: selectedPkg?.price ?? null,
+        package_price: selectedPkg?.price ?? estimatedTotal,
       });
 
       if (error) throw error;
@@ -168,8 +212,8 @@ export default function ArtistProfilePage() {
             to: artist.email,
             artistName: artist.full_name,
             clientName: currentUser.name,
-            date: booking.event_date,
-            message: booking.message,
+            date: booking.start_date,
+            message: fullMessage,
           }),
         }).catch(() => {});
       }
@@ -517,6 +561,10 @@ export default function ArtistProfilePage() {
           {currentUser && !isOwnProfile && (
             <ReviewForm artistId={artist.id} clientId={currentUser.id} onReviewSubmitted={fetchReviews} />
           )}
+
+          {/* Comments — always public; hide form on own profile */}
+          <CommentSection artistId={artist.id} currentUser={isOwnProfile ? null : currentUser} />
+
         </div>
 
         {/* Right: Booking form */}
@@ -532,6 +580,8 @@ export default function ArtistProfilePage() {
                 </div>
               ) : (
                 <form onSubmit={handleBooking} className="flex flex-col gap-4">
+
+                  {/* Package banner */}
                   {selectedPkg ? (
                     <div className="bg-black text-white p-4 flex items-center justify-between">
                       <div>
@@ -547,34 +597,182 @@ export default function ArtistProfilePage() {
                     </p>
                   ) : null}
 
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest mb-2">Date</label>
-                    <input type="date" value={booking.event_date} onChange={e => setBooking(p => ({ ...p, event_date: e.target.value }))}
-                      className="w-full border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors bg-transparent" />
-                  </div>
-
-                  {!selectedPkg && (
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-widest mb-2">Duration (hours)</label>
-                      <input type="number" min="1" max="24" value={booking.duration_hours} onChange={e => setBooking(p => ({ ...p, duration_hours: e.target.value }))}
-                        className="w-full border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors bg-transparent" />
+                  {/* Availability windows */}
+                  {artist.availability_schedule && artist.availability_schedule.length > 0 && (
+                    <div className="border border-black/20 bg-black/5 p-4">
+                      <p className="text-xs font-bold uppercase tracking-widest mb-3 text-black/50">When {artist.full_name?.split(" ")[0]} Is Available</p>
+                      <div className="flex flex-col gap-2">
+                        {artist.availability_schedule.map(p => {
+                          const start = new Date(p.start_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+                          const end = p.end_date && p.end_date !== p.start_date
+                            ? new Date(p.end_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                            : null;
+                          const days = p.days_of_week.length === 7 ? "Every day"
+                            : JSON.stringify(p.days_of_week) === JSON.stringify([1,2,3,4,5]) ? "Mon–Fri"
+                            : JSON.stringify(p.days_of_week) === JSON.stringify([0,6]) ? "Weekends"
+                            : p.days_of_week.map((d: number) => DAY_LABELS[d]).join(", ");
+                          return (
+                            <div key={p.id} className="flex items-start gap-2">
+                              <span className="text-[#E5000F] font-black text-xs mt-0.5 shrink-0">●</span>
+                              <div>
+                                <p className="text-xs font-bold">
+                                  {end ? `${start} → ${end}` : start}
+                                </p>
+                                <p className="text-xs text-black/40">{days} · {p.hours_from}–{p.hours_to}{p.note ? ` · ${p.note}` : ""}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 
+                  {/* Event type */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-2">Event Type</label>
+                    <select
+                      value={booking.event_type}
+                      onChange={e => setBooking(p => ({ ...p, event_type: e.target.value }))}
+                      className="w-full border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors bg-white appearance-none cursor-pointer"
+                    >
+                      <option value="">— Select type —</option>
+                      <option value="Wedding">Wedding</option>
+                      <option value="Portrait Session">Portrait Session</option>
+                      <option value="Corporate Event">Corporate Event</option>
+                      <option value="Concert / Live Event">Concert / Live Event</option>
+                      <option value="Fashion / Editorial">Fashion / Editorial</option>
+                      <option value="Product Photography">Product Photography</option>
+                      <option value="Real Estate">Real Estate</option>
+                      <option value="Birthday / Party">Birthday / Party</option>
+                      <option value="Documentary">Documentary</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  {/* Date range */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-2">Start Date *</label>
+                    <input
+                      type="date"
+                      required
+                      min={new Date().toISOString().split("T")[0]}
+                      value={booking.start_date}
+                      onChange={e => setBooking(p => ({
+                        ...p,
+                        start_date: e.target.value,
+                        end_date: p.end_date && p.end_date < e.target.value ? e.target.value : p.end_date,
+                      }))}
+                      className="w-full border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors bg-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-2">
+                      End Date <span className="text-black/30 normal-case font-normal">— leave blank for single day</span>
+                    </label>
+                    <input
+                      type="date"
+                      min={booking.start_date || new Date().toISOString().split("T")[0]}
+                      value={booking.end_date}
+                      onChange={e => setBooking(p => ({ ...p, end_date: e.target.value }))}
+                      className="w-full border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors bg-transparent"
+                    />
+                  </div>
+
+                  {/* Duration summary badge */}
+                  {booking.start_date && (
+                    <div className="bg-black text-white px-4 py-2 flex items-center justify-between text-xs uppercase tracking-widest">
+                      <span className="text-white/50">Duration</span>
+                      <span className="font-black">
+                        {bookingDays} day{bookingDays > 1 ? "s" : ""}
+                        {" · "}{totalHours}h total
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Hours per day */}
+                  {!selectedPkg && (
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest mb-2">
+                        Hours per Day
+                      </label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {["2", "4", "6", "8"].map(h => (
+                          <button
+                            key={h}
+                            type="button"
+                            onClick={() => setBooking(p => ({ ...p, hours_per_day: h }))}
+                            className={`py-2.5 text-xs font-bold uppercase tracking-widest border transition-colors ${
+                              booking.hours_per_day === h
+                                ? "bg-black text-white border-black"
+                                : "border-black hover:bg-black/5"
+                            }`}
+                          >
+                            {h}h
+                          </button>
+                        ))}
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-xs text-black/40 uppercase tracking-widest">Custom:</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="24"
+                          value={booking.hours_per_day}
+                          onChange={e => setBooking(p => ({ ...p, hours_per_day: e.target.value }))}
+                          className="w-20 border border-black px-3 py-1.5 text-sm outline-none focus:border-[#E5000F] transition-colors bg-transparent text-center"
+                        />
+                        <span className="text-xs text-black/40">hrs</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Location */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-2">Location / Venue</label>
+                    <input
+                      type="text"
+                      placeholder="City, venue, or address…"
+                      value={booking.location}
+                      onChange={e => setBooking(p => ({ ...p, location: e.target.value }))}
+                      className="w-full border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors bg-transparent placeholder:text-black/30"
+                    />
+                  </div>
+
+                  {/* Message */}
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-widest mb-2">Message *</label>
-                    <textarea required rows={4} placeholder="Describe your project or event..." value={booking.message}
+                    <textarea
+                      required
+                      rows={3}
+                      placeholder="Describe your project, style preferences, special requests…"
+                      value={booking.message}
                       onChange={e => setBooking(p => ({ ...p, message: e.target.value }))}
-                      className="w-full border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors resize-none placeholder:text-black/30 bg-transparent" />
+                      className="w-full border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors resize-none placeholder:text-black/30 bg-transparent"
+                    />
                   </div>
 
                   {bookingError && <p className="text-xs text-[#E5000F] uppercase tracking-widest">{bookingError}</p>}
 
-                  <div className="border-t border-black/10 pt-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-black/50 uppercase text-xs tracking-widest">Estimated Total</span>
-                      <span className="font-black">
-                        {selectedPkg ? `€${selectedPkg.price}` : artist.hourly_rate && booking.duration_hours ? `€${(artist.hourly_rate * parseFloat(booking.duration_hours)).toFixed(0)}` : "To be agreed"}
+                  {/* Cost breakdown */}
+                  <div className="border border-black/10 bg-white p-4 flex flex-col gap-2">
+                    {!selectedPkg && artist.hourly_rate && (
+                      <>
+                        <div className="flex justify-between text-xs text-black/40 uppercase tracking-widest">
+                          <span>Rate</span>
+                          <span>€{artist.hourly_rate}/hr</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-black/40 uppercase tracking-widest">
+                          <span>{bookingDays} day{bookingDays > 1 ? "s" : ""} × {booking.hours_per_day}h</span>
+                          <span>{totalHours}h</span>
+                        </div>
+                        <div className="border-t border-black/10 pt-2 mt-1" />
+                      </>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold uppercase tracking-widest">Estimated Total</span>
+                      <span className="font-black text-xl text-[#E5000F]">
+                        {estimatedTotal != null ? `€${Math.round(estimatedTotal)}` : "To be agreed"}
                       </span>
                     </div>
                   </div>
@@ -584,8 +782,11 @@ export default function ArtistProfilePage() {
                       Login to Book
                     </Link>
                   ) : (
-                    <button type="submit" disabled={bookingStatus === "sending"}
-                      className="py-4 bg-[#E5000F] text-white text-xs font-bold uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-50">
+                    <button
+                      type="submit"
+                      disabled={bookingStatus === "sending"}
+                      className="py-4 bg-[#E5000F] text-white text-xs font-bold uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-50"
+                    >
                       {bookingStatus === "sending" ? "Sending..." : "Send Booking Request"}
                     </button>
                   )}
@@ -595,8 +796,6 @@ export default function ArtistProfilePage() {
           </div>
         )}
 
-        {/* Comments */}
-        <CommentSection artistId={artist.id} currentUser={currentUser} />
 
       </div>
 

@@ -92,6 +92,7 @@ export default function SetupPage() {
     hourly_rate: "",
     instagram: "",
     website: "",
+    phone_number: "",
     is_available: true,
   });
 
@@ -119,6 +120,7 @@ export default function SetupPage() {
         hourly_rate: profile.hourly_rate?.toString() || "",
         instagram: profile.instagram || "",
         website: profile.website || "",
+        phone_number: profile.phone_number || "",
         is_available: profile.is_available ?? true,
       });
 
@@ -181,6 +183,7 @@ export default function SetupPage() {
           hourly_rate: form.hourly_rate ? parseFloat(form.hourly_rate) : null,
           instagram: form.instagram,
           website: form.website,
+          phone_number: form.phone_number || null,
           is_available: form.is_available,
           avatar_url: avatarUrl || null,
         })
@@ -484,6 +487,19 @@ export default function SetupPage() {
               onChange={handleChange}
               className="w-full border border-black px-4 py-3 bg-white text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest mb-2">Phone Number</label>
+            <input
+              name="phone_number"
+              type="tel"
+              placeholder="+39 333 123 4567"
+              value={form.phone_number}
+              onChange={handleChange}
+              className="w-full border border-black px-4 py-3 bg-white text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
+            />
+            <p className="text-xs text-black/40 mt-1.5">Shared with clients only after a booking is accepted.</p>
           </div>
 
           {/* Availability */}

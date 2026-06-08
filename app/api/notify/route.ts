@@ -7,6 +7,10 @@ type NotifyPayload = {
   clientName?: string;
   date?: string;
   message?: string;
+  packageName?: string;
+  packagePrice?: number;
+  durationHours?: number;
+  otherPhone?: string;
 };
 
 function bookingRequestHtml(artistName: string, clientName: string, date: string, message: string): string {
@@ -71,13 +75,16 @@ function bookingRequestHtml(artistName: string, clientName: string, date: string
 </html>`;
 }
 
-function bookingAcceptedHtml(artistName: string, clientName: string, date: string): string {
+function bookingAcceptedHtml(
+  artistName: string, clientName: string, date: string,
+  packageName?: string, packagePrice?: number, durationHours?: number, otherPhone?: string
+): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Booking Accepted — ArtConnect</title>
+  <title>Booking Confirmed — ArtConnect</title>
 </head>
 <body style="margin:0;padding:0;background:#F2EDE4;font-family:Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F2EDE4;padding:40px 0;">
@@ -89,31 +96,65 @@ function bookingAcceptedHtml(artistName: string, clientName: string, date: strin
               <span style="color:#ffffff;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;">ArtConnect</span>
             </td>
           </tr>
+          <!-- Green confirmation banner -->
+          <tr>
+            <td style="background:#16a34a;padding:20px 32px;">
+              <p style="margin:0;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#ffffff;">✓ Booking Confirmed</p>
+            </td>
+          </tr>
           <tr>
             <td style="padding:40px 32px;">
-              <p style="margin:0 0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#16a34a;">Booking Accepted</p>
-              <h1 style="margin:0 0 32px;font-size:28px;font-weight:900;text-transform:uppercase;color:#000;">Your booking was accepted</h1>
+              <h1 style="margin:0 0 12px;font-size:28px;font-weight:900;text-transform:uppercase;color:#000;">You're all set, ${clientName}!</h1>
+              <p style="margin:0 0 32px;font-size:14px;color:#555;line-height:1.6;">
+                <strong>${artistName}</strong> has accepted your booking. Here's a summary of what was agreed. Reach out through your dashboard to coordinate any final details.
+              </p>
 
+              <!-- Booking details table -->
               <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #000;margin-bottom:32px;">
                 <tr>
-                  <td style="padding:16px;border-bottom:1px solid #e5e5e5;">
+                  <td style="padding:16px;border-bottom:1px solid #e5e5e5;background:#f9f9f9;">
                     <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#666;">Artist</p>
-                    <p style="margin:0;font-size:15px;font-weight:700;color:#000;">${artistName}</p>
+                    <p style="margin:0;font-size:16px;font-weight:900;color:#000;text-transform:uppercase;">${artistName}</p>
                   </td>
                 </tr>
                 ${date ? `<tr>
-                  <td style="padding:16px;">
+                  <td style="padding:16px;border-bottom:1px solid #e5e5e5;">
                     <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#666;">Date</p>
                     <p style="margin:0;font-size:15px;font-weight:700;color:#000;">${date}</p>
                   </td>
                 </tr>` : ""}
+                ${durationHours ? `<tr>
+                  <td style="padding:16px;border-bottom:1px solid #e5e5e5;">
+                    <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#666;">Duration</p>
+                    <p style="margin:0;font-size:15px;font-weight:700;color:#000;">${durationHours} hour${durationHours !== 1 ? "s" : ""}</p>
+                  </td>
+                </tr>` : ""}
+                ${packageName ? `<tr>
+                  <td style="padding:16px;border-bottom:1px solid #e5e5e5;">
+                    <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#666;">Package</p>
+                    <p style="margin:0;font-size:15px;font-weight:700;color:#000;">${packageName}</p>
+                  </td>
+                </tr>` : ""}
+                ${packagePrice ? `<tr>
+                  <td style="padding:16px;background:#000;">
+                    <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#888;">Total</p>
+                    <p style="margin:0;font-size:22px;font-weight:900;color:#E5000F;">€${packagePrice}</p>
+                  </td>
+                </tr>` : ""}
+                ${otherPhone ? `<tr>
+                  <td style="padding:16px;background:#f0fdf4;border-top:2px solid #16a34a;">
+                    <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#16a34a;">📞 Contact Number</p>
+                    <p style="margin:0;font-size:18px;font-weight:900;color:#000;">${otherPhone}</p>
+                    <p style="margin:4px 0 0;font-size:11px;color:#666;">Reach out directly to coordinate your session.</p>
+                  </td>
+                </tr>` : ""}
               </table>
 
-              <p style="margin:0 0 32px;font-size:14px;color:#555;line-height:1.6;">
-                Great news, ${clientName}. ${artistName} has accepted your booking request. You can coordinate further details through your dashboard.
+              <p style="margin:0 0 32px;font-size:13px;color:#888;line-height:1.6;">
+                Questions? Reply to this email or contact ${artistName} directly through your ArtConnect dashboard.
               </p>
 
-              <a href="https://artconnect.vercel.app/dashboard" style="display:inline-block;background:#000;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;padding:14px 28px;text-decoration:none;">View Dashboard</a>
+              <a href="https://goartconnect.com/dashboard" style="display:inline-block;background:#E5000F;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;padding:16px 32px;text-decoration:none;">View My Bookings</a>
             </td>
           </tr>
           <tr>
@@ -190,7 +231,7 @@ function bookingDeclinedHtml(artistName: string, clientName: string, date: strin
 export async function POST(req: NextRequest) {
   try {
     const body: NotifyPayload = await req.json();
-    const { type, to, artistName = "", clientName = "", date = "", message = "" } = body;
+    const { type, to, artistName = "", clientName = "", date = "", message = "", packageName, packagePrice, durationHours, otherPhone } = body;
 
     if (!type || !to) {
       return NextResponse.json({ error: "Missing required fields: type, to" }, { status: 400 });
@@ -208,8 +249,8 @@ export async function POST(req: NextRequest) {
       subject = `New booking request from ${clientName} — ArtConnect`;
       html = bookingRequestHtml(artistName, clientName, date, message);
     } else if (type === "booking_accepted") {
-      subject = `Your booking with ${artistName} was accepted — ArtConnect`;
-      html = bookingAcceptedHtml(artistName, clientName, date);
+      subject = `✓ Booking confirmed with ${artistName} — ArtConnect`;
+      html = bookingAcceptedHtml(artistName, clientName, date, packageName, packagePrice, durationHours, otherPhone);
     } else if (type === "booking_declined") {
       subject = `Update on your booking request — ArtConnect`;
       html = bookingDeclinedHtml(artistName, clientName, date);

@@ -1,7 +1,9 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import GuideButton from "@/app/components/GuideButton";
+import { getSupabase } from "@/lib/supabase";
 
 const categories = [
   { name: "Photography", description: "Portrait, wedding, events, commercial and more." },
@@ -29,21 +31,51 @@ const categories = [
 
 export default function Home() {
   const router = useRouter();
+  const [userName, setUserName] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    async function checkAuth() {
+      const supabase = getSupabase();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
+        setUserName(profile?.full_name || "");
+      }
+      setAuthChecked(true);
+    }
+    checkAuth();
+  }, []);
+
+  async function handleLogout() {
+    await getSupabase().auth.signOut();
+    setUserName(null);
+  }
+
   return (
     <main className="min-h-screen bg-[#F2EDE4] text-black font-sans">
 
-      {/* NAVBAR */}
+      {/* NAVBAR — auth-aware */}
       <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
         <Link href="/" className="text-xl font-black tracking-tight uppercase">
           ArtConnect
         </Link>
         <div className="flex items-center gap-6">
-          <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">
-            Login
-          </Link>
-          <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors">
-            Join Now
-          </Link>
+          {authChecked && userName !== null ? (
+            <>
+              <Link href="/artists" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Browse</Link>
+              <Link href="/dashboard" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Dashboard</Link>
+              <span className="text-xs uppercase tracking-widest text-black/40 hidden md:block">{userName}</span>
+              <button onClick={handleLogout} className="text-sm font-bold uppercase tracking-widest bg-black text-white px-5 py-2 hover:bg-[#E5000F] transition-colors">
+                Logout
+              </button>
+            </>
+          ) : authChecked ? (
+            <>
+              <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
+              <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors">Join Now</Link>
+            </>
+          ) : null}
         </div>
       </nav>
 

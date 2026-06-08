@@ -17,6 +17,7 @@ type Booking = {
   created_at: string;
   other_name: string;
   other_email: string | null;
+  other_phone: string | null;
   other_id: string;
 };
 
@@ -52,7 +53,7 @@ export default function BookingsPage() {
       if (profile.role === "artist") {
         const { data } = await supabase
           .from("bookings")
-          .select("id, event_date, message, status, duration_hours, package_name, package_price, created_at, client:client_id(id, full_name, email)")
+          .select("id, event_date, message, status, duration_hours, package_name, package_price, created_at, client:client_id(id, full_name, email, phone_number)")
           .eq("artist_id", user.id)
           .order("created_at", { ascending: false });
 
@@ -60,12 +61,13 @@ export default function BookingsPage() {
           ...b,
           other_name: b.client?.full_name || "Unknown",
           other_email: b.client?.email || null,
+          other_phone: b.client?.phone_number || null,
           other_id: b.client?.id || "",
         })));
       } else {
         const { data } = await supabase
           .from("bookings")
-          .select("id, event_date, message, status, duration_hours, package_name, package_price, created_at, artist:artist_id(id, full_name, email)")
+          .select("id, event_date, message, status, duration_hours, package_name, package_price, created_at, artist:artist_id(id, full_name, email, phone_number)")
           .eq("client_id", user.id)
           .order("created_at", { ascending: false });
 
@@ -73,6 +75,7 @@ export default function BookingsPage() {
           ...b,
           other_name: b.artist?.full_name || "Unknown",
           other_email: b.artist?.email || null,
+          other_phone: b.artist?.phone_number || null,
           other_id: b.artist?.id || "",
         })));
       }
@@ -104,6 +107,10 @@ export default function BookingsPage() {
             artistName: userName,
             clientName: booking.other_name,
             date: booking.event_date || "",
+            packageName: booking.package_name || undefined,
+            packagePrice: booking.package_price || undefined,
+            durationHours: booking.duration_hours || undefined,
+            otherPhone: booking.other_phone || undefined,
           }),
         }).catch(() => {});
       }
@@ -217,11 +224,23 @@ export default function BookingsPage() {
                       </div>
                     )}
 
-                    {booking.other_email && (
-                      <a href={`mailto:${booking.other_email}`} className="inline-block mt-3 text-xs text-black/40 hover:text-[#E5000F] uppercase tracking-widest transition-colors">
-                        ✉ {booking.other_email}
-                      </a>
-                    )}
+                    <div className="flex flex-wrap gap-4 mt-3">
+                      {booking.other_email && (
+                        <a href={`mailto:${booking.other_email}`} className="text-xs text-black/40 hover:text-[#E5000F] uppercase tracking-widest transition-colors">
+                          ✉ {booking.other_email}
+                        </a>
+                      )}
+                      {booking.status === "accepted" && booking.other_phone && (
+                        <a href={`tel:${booking.other_phone}`} className="inline-flex items-center gap-1.5 text-xs font-bold text-green-700 border border-green-600 bg-green-50 px-3 py-1 hover:bg-green-700 hover:text-white transition-colors uppercase tracking-widest">
+                          📞 {booking.other_phone}
+                        </a>
+                      )}
+                      {booking.status === "accepted" && !booking.other_phone && (
+                        <span className="text-xs text-black/30 uppercase tracking-widest italic">
+                          No phone number on file
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Right: action buttons — only for artist on pending bookings */}

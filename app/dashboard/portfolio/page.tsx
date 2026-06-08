@@ -16,6 +16,13 @@ type PortfolioItem = {
   media_type: MediaType;
 };
 
+type EditState = {
+  id: string;
+  title: string;
+  description: string;
+  media_url: string; // only used for music
+};
+
 function getMusicEmbedUrl(url: string): { type: MediaType; embedUrl: string } | null {
   try {
     const u = new URL(url);
@@ -71,6 +78,10 @@ export default function PortfolioPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Edit state
+  const [editing, setEditing] = useState<EditState | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
 
   // Music embed state
   const [musicUrl, setMusicUrl] = useState("");
@@ -192,6 +203,44 @@ export default function PortfolioPage() {
     setItems(prev => prev.filter(i => i.id !== id));
   }
 
+  async function handleEditSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editing) return;
+    setEditSaving(true);
+    setError("");
+    try {
+      // For music, re-parse URL if it changed
+      const currentItem = items.find(i => i.id === editing.id);
+      let finalMediaUrl = editing.media_url;
+      let finalMediaType: MediaType = currentItem?.media_type ?? "image";
+
+      if (currentItem && currentItem.media_type !== "image" && editing.media_url !== currentItem.media_url) {
+        const parsed = getMusicEmbedUrl(editing.media_url);
+        if (!parsed) { setError("Paste a valid SoundCloud, Spotify, or YouTube link."); setEditSaving(false); return; }
+        finalMediaUrl = parsed.embedUrl;
+        finalMediaType = parsed.type;
+      }
+
+      const supabase = getSupabase();
+      const { error: dbErr } = await supabase
+        .from("portfolio_items")
+        .update({ title: editing.title, description: editing.description, media_url: finalMediaUrl, media_type: finalMediaType })
+        .eq("id", editing.id);
+      if (dbErr) throw dbErr;
+
+      setItems(prev => prev.map(i =>
+        i.id === editing.id
+          ? { ...i, title: editing.title, description: editing.description, media_url: finalMediaUrl, media_type: finalMediaType }
+          : i
+      ));
+      setEditing(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save changes.");
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
   if (loading) return (
     <main className="min-h-screen bg-[#F2EDE4] flex items-center justify-center">
       <p className="text-xs uppercase tracking-widest text-black/40">Loading...</p>
@@ -281,11 +330,48 @@ export default function PortfolioPage() {
                 {imageItems.map(item => (
                   <div key={item.id} className="bg-[#F2EDE4] p-4">
                     <img src={item.media_url} alt={item.title} className="w-full h-48 object-cover mb-3 border border-black/10" />
-                    <h3 className="font-black uppercase text-sm">{item.title}</h3>
-                    {item.description && <p className="text-xs text-black/50 mt-1">{item.description}</p>}
-                    <button onClick={() => handleDelete(item.id)} className="mt-2 text-xs text-[#E5000F] uppercase tracking-widest hover:underline">
-                      Remove
-                    </button>
+
+                    {editing?.id === item.id ? (
+                      <form onSubmit={handleEditSave} className="flex flex-col gap-2 mt-1">
+                        <input
+                          value={editing.title}
+                          onChange={e => setEditing({ ...editing, title: e.target.value })}
+                          required
+                          placeholder="Title *"
+                          className="border border-black px-3 py-2 text-xs outline-none focus:border-[#E5000F] transition-colors"
+                        />
+                        <input
+                          value={editing.description}
+                          onChange={e => setEditing({ ...editing, description: e.target.value })}
+                          placeholder="Description (optional)"
+                          className="border border-black px-3 py-2 text-xs outline-none focus:border-[#E5000F] transition-colors"
+                        />
+                        <div className="flex gap-3 mt-1">
+                          <button type="submit" disabled={editSaving} className="flex-1 py-2 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-50">
+                            {editSaving ? "Saving…" : "Save"}
+                          </button>
+                          <button type="button" onClick={() => setEditing(null)} className="flex-1 py-2 border border-black text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        <h3 className="font-black uppercase text-sm">{item.title}</h3>
+                        {item.description && <p className="text-xs text-black/50 mt-1">{item.description}</p>}
+                        <div className="flex items-center gap-4 mt-2">
+                          <button
+                            onClick={() => setEditing({ id: item.id, title: item.title, description: item.description, media_url: item.media_url })}
+                            className="text-xs text-black/50 uppercase tracking-widest hover:text-black transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button onClick={() => handleDelete(item.id)} className="text-xs text-[#E5000F] uppercase tracking-widest hover:underline">
+                            Remove
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
@@ -340,14 +426,56 @@ export default function PortfolioPage() {
                 {musicItems.map(item => (
                   <div key={item.id} className="border border-black bg-white p-6">
                     <MusicEmbed item={item} />
-                    <h3 className="font-black uppercase text-sm">{item.title}</h3>
-                    {item.description && <p className="text-xs text-black/50 mt-1">{item.description}</p>}
-                    <div className="flex items-center gap-4 mt-2">
-                      <span className="text-xs text-black/30 uppercase tracking-widest">{item.media_type}</span>
-                      <button onClick={() => handleDelete(item.id)} className="text-xs text-[#E5000F] uppercase tracking-widest hover:underline">
-                        Remove
-                      </button>
-                    </div>
+
+                    {editing?.id === item.id ? (
+                      <form onSubmit={handleEditSave} className="flex flex-col gap-2 mt-2">
+                        <input
+                          value={editing.title}
+                          onChange={e => setEditing({ ...editing, title: e.target.value })}
+                          required
+                          placeholder="Title *"
+                          className="border border-black px-3 py-2 text-xs outline-none focus:border-[#E5000F] transition-colors"
+                        />
+                        <input
+                          value={editing.description}
+                          onChange={e => setEditing({ ...editing, description: e.target.value })}
+                          placeholder="Description (optional)"
+                          className="border border-black px-3 py-2 text-xs outline-none focus:border-[#E5000F] transition-colors"
+                        />
+                        <input
+                          value={editing.media_url}
+                          onChange={e => setEditing({ ...editing, media_url: e.target.value })}
+                          placeholder="SoundCloud / Spotify / YouTube URL"
+                          type="url"
+                          className="border border-black px-3 py-2 text-xs outline-none focus:border-[#E5000F] transition-colors"
+                        />
+                        <div className="flex gap-3 mt-1">
+                          <button type="submit" disabled={editSaving} className="flex-1 py-2 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-50">
+                            {editSaving ? "Saving…" : "Save"}
+                          </button>
+                          <button type="button" onClick={() => setEditing(null)} className="flex-1 py-2 border border-black text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        <h3 className="font-black uppercase text-sm">{item.title}</h3>
+                        {item.description && <p className="text-xs text-black/50 mt-1">{item.description}</p>}
+                        <div className="flex items-center gap-4 mt-2">
+                          <span className="text-xs text-black/30 uppercase tracking-widest">{item.media_type}</span>
+                          <button
+                            onClick={() => setEditing({ id: item.id, title: item.title, description: item.description, media_url: item.media_url })}
+                            className="text-xs text-black/50 uppercase tracking-widest hover:text-black transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button onClick={() => handleDelete(item.id)} className="text-xs text-[#E5000F] uppercase tracking-widest hover:underline">
+                            Remove
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
