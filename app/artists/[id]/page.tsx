@@ -182,15 +182,15 @@ export default function ArtistProfilePage() {
 
       {/* ── HERO BANNER ── */}
       <div className="relative w-full h-[65vh] min-h-[420px] overflow-hidden">
-        {/* Full photo — no heavy overlay */}
-        {artist.avatar_url ? (
+        {/* Full photo — avatar first, daily pic as fallback, then gradient */}
+        {(artist.avatar_url || artist.daily_pic_url) ? (
           <img
-            src={artist.avatar_url}
+            src={artist.avatar_url || artist.daily_pic_url!}
             alt={artist.full_name}
             className="absolute inset-0 w-full h-full object-cover object-center"
           />
         ) : (
-          <div className="absolute inset-0 bg-black" />
+          <div className="absolute inset-0 bg-gradient-to-br from-black via-[#1a0000] to-[#E5000F]/30" />
         )}
 
         {/* Thin gradient ONLY at the very bottom so text is readable */}
