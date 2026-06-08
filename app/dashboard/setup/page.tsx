@@ -1,10 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NavbarAuth from "@/app/components/NavbarAuth";
 import { getSupabase } from "@/lib/supabase";
+
+async function uploadToCloudinary(file: File, folder = "avatars"): Promise<string> {
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  if (!cloudName || !preset) throw new Error("Cloudinary not configured.");
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("upload_preset", preset);
+  fd.append("folder", folder);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: "POST", body: fd });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.secure_url as string;
+}
 
 const CATEGORY_GROUPS: { group: string; items: string[] }[] = [
   {
@@ -68,6 +82,9 @@ export default function SetupPage() {
   const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState("");
   const [packages, setPackages] = useState<Package[]>(DEFAULT_PACKAGES);
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     bio: "",
     category: "",
@@ -94,6 +111,7 @@ export default function SetupPage() {
 
       setUserName(profile.full_name || "");
       setUserId(user.id);
+      setAvatarUrl(profile.avatar_url || "");
       setForm({
         bio: profile.bio || "",
         category: profile.category || "",
@@ -164,6 +182,7 @@ export default function SetupPage() {
           instagram: form.instagram,
           website: form.website,
           is_available: form.is_available,
+          avatar_url: avatarUrl || null,
         })
         .eq("id", user.id);
 
@@ -226,6 +245,71 @@ export default function SetupPage() {
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+
+          {/* Profile Photo */}
+          <div className="fade-in-up fade-in-up-2">
+            <label className="block text-xs font-bold uppercase tracking-widest mb-3">Profile Photo</label>
+            <div className="flex items-center gap-6">
+              {/* Avatar preview */}
+              <button
+                type="button"
+                onClick={() => avatarRef.current?.click()}
+                className="relative w-24 h-24 rounded-full border-2 border-black overflow-hidden bg-white hover:border-[#E5000F] transition-colors flex-shrink-0 group"
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-[#F2EDE4]">
+                    <span className="text-2xl font-black text-black/30">{userName ? userName[0].toUpperCase() : "?"}</span>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <span className="text-white text-xs font-bold uppercase">Change</span>
+                </div>
+              </button>
+              {/* Upload info */}
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => avatarRef.current?.click()}
+                  disabled={avatarUploading}
+                  className="px-5 py-2 border border-black text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors disabled:opacity-50"
+                >
+                  {avatarUploading ? "Uploading..." : "Upload Photo"}
+                </button>
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setAvatarUrl("")}
+                    className="text-xs uppercase tracking-widest text-black/40 hover:text-[#E5000F] transition-colors text-left"
+                  >
+                    Remove photo
+                  </button>
+                )}
+                <p className="text-xs text-black/40">JPG or PNG. Square crop looks best.</p>
+              </div>
+            </div>
+            <input
+              ref={avatarRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setAvatarUploading(true);
+                try {
+                  const url = await uploadToCloudinary(file, "avatars");
+                  setAvatarUrl(url);
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : "Failed to upload photo.");
+                } finally {
+                  setAvatarUploading(false);
+                  e.target.value = "";
+                }
+              }}
+            />
+          </div>
 
           {/* Category */}
           <div className="fade-in-up fade-in-up-2">

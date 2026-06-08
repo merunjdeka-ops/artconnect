@@ -59,6 +59,7 @@ type Artist = {
   session_rate: number | null;
   is_available: boolean;
   avg_rating?: number | null;
+  avatar_url?: string | null;
 };
 
 function ArtistsPageInner() {
@@ -89,7 +90,7 @@ function ArtistsPageInner() {
 
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, category, location, bio, hourly_rate, session_rate, is_available")
+        .select("id, full_name, category, location, bio, hourly_rate, session_rate, is_available, avatar_url")
         .eq("role", "artist")
         .eq("is_deactivated", false)
         .not("bio", "is", null)
@@ -453,11 +454,17 @@ function ArtistsPageInner() {
                   href={`/artists/${artist.id}`}
                   className="bg-[#F2EDE4] p-6 hover:bg-black hover:text-white transition-colors group block"
                 >
-                  {/* Avatar placeholder */}
-                  <div className="w-12 h-12 bg-black group-hover:bg-white mb-4 flex items-center justify-center">
-                    <span className="text-white group-hover:text-black font-black text-lg">
-                      {artist.full_name?.[0]?.toUpperCase() || "A"}
-                    </span>
+                  {/* Avatar */}
+                  <div className="w-12 h-12 mb-4 flex-shrink-0 overflow-hidden">
+                    {artist.avatar_url ? (
+                      <img src={artist.avatar_url} alt={artist.full_name} className="w-full h-full object-cover rounded-full border border-black group-hover:border-white transition-colors" />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-black group-hover:bg-white flex items-center justify-center transition-colors">
+                        <span className="text-white group-hover:text-black font-black text-lg transition-colors">
+                          {artist.full_name?.[0]?.toUpperCase() || "A"}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <h3 className="font-black uppercase text-base leading-tight">{artist.full_name}</h3>

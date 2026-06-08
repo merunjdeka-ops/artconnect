@@ -21,6 +21,10 @@ type Artist = {
   website: string | null;
   is_available: boolean;
   email: string | null;
+  avatar_url: string | null;
+  daily_pic_url: string | null;
+  daily_pic_caption: string | null;
+  daily_pic_updated_at: string | null;
 };
 
 type Package = {
@@ -249,10 +253,16 @@ export default function ArtistProfilePage() {
           </div>
 
           {/* Avatar */}
-          <div className="w-32 h-32 bg-black flex items-center justify-center shrink-0">
-            <span className="text-white font-black text-5xl">
-              {artist.full_name?.[0]?.toUpperCase()}
-            </span>
+          <div className="w-32 h-32 shrink-0 overflow-hidden rounded-full border-2 border-black">
+            {artist.avatar_url ? (
+              <img src={artist.avatar_url} alt={artist.full_name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-black flex items-center justify-center">
+                <span className="text-white font-black text-5xl">
+                  {artist.full_name?.[0]?.toUpperCase()}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -327,6 +337,32 @@ export default function ArtistProfilePage() {
                   </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Daily Pic */}
+          {artist.daily_pic_url && (
+            <div className="mb-12">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-black/40">Today&apos;s Photo</h2>
+                {artist.daily_pic_updated_at && (
+                  <span className="text-xs text-black/30 uppercase tracking-widest">
+                    {new Date(artist.daily_pic_updated_at).toLocaleDateString("en-IT", { day: "numeric", month: "short", year: "numeric" })}
+                  </span>
+                )}
+              </div>
+              <div className="border border-black overflow-hidden">
+                <img
+                  src={artist.daily_pic_url}
+                  alt="Daily photo"
+                  className="w-full object-cover max-h-[480px]"
+                />
+                {artist.daily_pic_caption && (
+                  <div className="px-5 py-4 border-t border-black">
+                    <p className="text-sm text-black/70 leading-relaxed">{artist.daily_pic_caption}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
