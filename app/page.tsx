@@ -81,15 +81,15 @@ export default function Home() {
 
       {/* HERO */}
       <section className="px-8 pt-20 pb-16 border-b border-black">
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-6">
+        <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-6 fade-in-up fade-in-up-1">
           For local artists & creatives
         </p>
-        <h1 className="text-[clamp(3rem,10vw,9rem)] font-black uppercase leading-none tracking-tight max-w-6xl">
+        <h1 className="text-[clamp(3rem,10vw,9rem)] font-black uppercase leading-none tracking-tight max-w-6xl fade-in-up fade-in-up-2">
           Where Local<br />
           <span className="text-[#E5000F]">Artists</span><br />
           Get Found.
         </h1>
-        <div className="flex flex-col md:flex-row gap-6 md:gap-16 mt-12 max-w-4xl">
+        <div className="flex flex-col md:flex-row gap-6 md:gap-16 mt-12 max-w-4xl fade-in-up fade-in-up-3">
           <p className="text-base text-black/60 max-w-sm leading-relaxed">
             ArtConnect is a platform for every kind of creative — photographers, musicians,
             makeup artists, painters, and more — to showcase their work, sell, and get booked.
@@ -112,8 +112,8 @@ export default function Home() {
             { num: "01", title: "Create a Profile", body: "Upload your photos, music, or videos. Set your rates — hourly, per session, or sell your work directly." },
             { num: "02", title: "Get Discovered", body: "Clients browse by category and location. Your work speaks for itself." },
             { num: "03", title: "Book & Earn", body: "Accept bookings, sell your art, and grow your local presence — on your terms." },
-          ].map((step) => (
-            <div key={step.num} className="px-8 py-12">
+          ].map((step, i) => (
+            <div key={step.num} className={`px-8 py-12 reveal reveal-delay-${i + 1}`}>
               <span className="text-5xl font-black text-[#E5000F] leading-none">{step.num}</span>
               <h3 className="text-xl font-black uppercase mt-4 mb-3">{step.title}</h3>
               <p className="text-sm text-black/60 leading-relaxed">{step.body}</p>
@@ -124,7 +124,7 @@ export default function Home() {
 
       {/* CATEGORIES */}
       <section className="px-8 py-16 border-b border-black">
-        <div className="flex items-baseline justify-between mb-12">
+        <div className="flex items-baseline justify-between mb-12 reveal">
           <h2 className="text-4xl font-black uppercase">All Categories</h2>
           <span className="text-sm text-black/40 uppercase tracking-widest">{categories.length} disciplines</span>
         </div>
@@ -133,7 +133,7 @@ export default function Home() {
             <button
               key={cat.name}
               onClick={() => router.push(`/artists?category=${encodeURIComponent(cat.name)}`)}
-              className="bg-[#F2EDE4] p-6 hover:bg-[#E5000F] hover:text-white transition-colors cursor-pointer group text-left w-full"
+              className="bg-[#F2EDE4] p-6 hover:bg-[#E5000F] hover:text-white transition-all duration-200 cursor-pointer group text-left w-full"
             >
               <h3 className="text-base font-black uppercase">{cat.name}</h3>
               <p className="mt-2 text-xs leading-relaxed opacity-60 group-hover:opacity-80">{cat.description}</p>
@@ -143,7 +143,7 @@ export default function Home() {
       </section>
 
       {/* ARTIST CTA */}
-      <section className="px-8 py-20 border-b border-black bg-black text-white">
+      <section className="px-8 py-20 border-b border-black bg-black text-white reveal">
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-6">
           Are you a local artist?
         </p>
