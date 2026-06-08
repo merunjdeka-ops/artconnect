@@ -334,7 +334,7 @@ export default function ArtistProfilePage() {
 
       {/* ── ACTION BAR ── */}
       <div className="bg-black border-b border-white/10 px-8 py-4">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           {!isOwnProfile && (
             <button
               onClick={() => bookingRef.current?.scrollIntoView({ behavior: "smooth" })}
@@ -379,10 +379,10 @@ export default function ArtistProfilePage() {
       </div>
 
       {/* ── MAIN CONTENT ── */}
-      <div className="max-w-7xl mx-auto px-8 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
+      <div className="px-8 lg:px-16 py-12 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 xl:gap-20">
 
         {/* Left: Bio + Portfolio + Reviews */}
-        <div className="lg:col-span-2">
+        <div className="min-w-0">
 
           {/* Bio */}
           <div className="mb-12">
@@ -504,14 +504,14 @@ export default function ArtistProfilePage() {
               {portfolio.filter(i => i.media_type === "image").length > 0 && (
                 <>
                   <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-6">Portfolio</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-black border border-black mb-10">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-px bg-black border border-black mb-10">
                     {portfolio.filter(i => i.media_type === "image").map((item, idx) => (
                       <div key={item.id} className="bg-[#F2EDE4] p-4 group">
                         <div
                           className="relative cursor-zoom-in overflow-hidden mb-3"
                           onClick={() => setLightbox({ url: item.media_url, title: item.title, index: idx })}
                         >
-                          <img src={item.media_url} alt={item.title} className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105" />
+                          <img src={item.media_url} alt={item.title} className="w-full h-56 object-cover transition-transform duration-300 group-hover:scale-105" />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                             <span className="text-white text-2xl opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg">⤢</span>
                           </div>
