@@ -379,10 +379,10 @@ export default function ArtistProfilePage() {
       </div>
 
       {/* ── MAIN CONTENT ── */}
-      <div className="px-8 lg:px-16 py-12 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 xl:gap-20">
+      <div className="px-8 lg:px-16 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12 xl:gap-20">
 
         {/* Left: Bio + Portfolio + Reviews */}
-        <div className="min-w-0">
+        <div className="lg:col-span-2 min-w-0">
 
           {/* Bio */}
           <div className="mb-12">
