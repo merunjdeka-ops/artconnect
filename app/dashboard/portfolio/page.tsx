@@ -4,81 +4,81 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NavbarAuth from "@/app/components/NavbarAuth";
-import GuideButton from "@/app/components/GuideButton";
 import { getSupabase } from "@/lib/supabase";
+
+type MediaType = "image" | "soundcloud" | "spotify" | "youtube";
 
 type PortfolioItem = {
   id: string;
   title: string;
   description: string;
   media_url: string;
-  media_type: string;
+  media_type: MediaType;
 };
 
-function getMusicType(url: string): "soundcloud" | "spotify" | "youtube" | null {
-  if (url.includes("soundcloud.com")) return "soundcloud";
-  if (url.includes("spotify.com")) return "spotify";
-  if (url.includes("youtube.com") || url.includes("youtu.be")) return "youtube";
+function getMusicEmbedUrl(url: string): { type: MediaType; embedUrl: string } | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("soundcloud.com")) {
+      return { type: "soundcloud", embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23E5000F&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false` };
+    }
+    if (u.hostname.includes("spotify.com")) {
+      const embedUrl = url.replace("https://open.spotify.com/", "https://open.spotify.com/embed/").replace(/\?.*$/, "");
+      return { type: "spotify", embedUrl };
+    }
+    if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
+      let videoId = "";
+      if (u.hostname.includes("youtu.be")) {
+        videoId = u.pathname.slice(1);
+      } else {
+        videoId = u.searchParams.get("v") || "";
+      }
+      if (!videoId) return null;
+      return { type: "youtube", embedUrl: `https://www.youtube.com/embed/${videoId}` };
+    }
+  } catch {
+    return null;
+  }
   return null;
 }
 
-function getEmbedUrl(url: string, type: string): string {
-  if (type === "soundcloud") {
-    return `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23E5000F&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false`;
+function MusicEmbed({ item }: { item: PortfolioItem }) {
+  if (item.media_type === "soundcloud") {
+    return <iframe width="100%" height="120" scrolling="no" frameBorder="no" allow="autoplay" src={item.media_url} className="mb-3" />;
   }
-  if (type === "spotify") {
-    const match = url.match(/spotify\.com\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/);
-    if (match) return `https://open.spotify.com/embed/${match[1]}/${match[2]}`;
+  if (item.media_type === "spotify") {
+    return <iframe src={item.media_url} width="100%" height="152" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" className="mb-3" />;
   }
-  if (type === "youtube") {
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
-    if (match) return `https://www.youtube.com/embed/${match[1]}`;
+  if (item.media_type === "youtube") {
+    return <iframe width="100%" height="200" src={item.media_url} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="mb-3" />;
   }
-  return url;
-}
-
-async function uploadToCloudinary(file: File): Promise<string> {
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-  if (!cloudName || !preset) throw new Error("Cloudinary not configured. Add env vars.");
-
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", preset);
-
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-    method: "POST",
-    body: formData,
-  });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
-  return data.secure_url;
+  return null;
 }
 
 export default function PortfolioPage() {
   const router = useRouter();
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState("");
-  const [activeTab, setActiveTab] = useState<"images" | "music">("images");
+  const [error, setError] = useState("");
+  const [tab, setTab] = useState<"images" | "music">("images");
 
   // Image upload state
   const [imageTitle, setImageTitle] = useState("");
   const [imageDesc, setImageDesc] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState("");
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [imageError, setImageError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  // Music state
-  const [musicTitle, setMusicTitle] = useState("");
+  // Music embed state
   const [musicUrl, setMusicUrl] = useState("");
+  const [musicTitle, setMusicTitle] = useState("");
   const [musicDesc, setMusicDesc] = useState("");
-  const [addingMusic, setAddingMusic] = useState(false);
-  const [musicError, setMusicError] = useState("");
-  const [musicPreviewType, setMusicPreviewType] = useState<string | null>(null);
+
+  const imageItems = items.filter(i => i.media_type === "image");
+  const musicItems = items.filter(i => ["soundcloud", "spotify", "youtube"].includes(i.media_type));
 
   useEffect(() => {
     async function load() {
@@ -98,96 +98,91 @@ export default function PortfolioPage() {
         .eq("artist_id", user.id)
         .order("created_at", { ascending: false });
 
-      setItems(portfolioItems || []);
+      setItems((portfolioItems as PortfolioItem[]) || []);
       setLoading(false);
     }
     load();
   }, [router]);
 
-  const images = items.filter(i => i.media_type === "image");
-  const music = items.filter(i => ["soundcloud", "spotify", "youtube", "audio"].includes(i.media_type));
+  async function uploadToCloudinary(file: File): Promise<string> {
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+    if (!cloudName || !uploadPreset) throw new Error("Cloudinary is not configured. Add NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET to your environment variables.");
 
-  // Handle file selection
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setImageError("Please select an image file (JPG, PNG, WebP).");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setImageError("Image must be under 10MB.");
-      return;
-    }
-    setImageFile(file);
-    setImageError("");
-    const reader = new FileReader();
-    reader.onload = e => setImagePreview(e.target?.result as string);
-    reader.readAsDataURL(file);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", uploadPreset);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) throw new Error("Image upload failed. Check your Cloudinary settings.");
+    const data = await res.json();
+    return data.secure_url as string;
   }
 
-  async function handleImageUpload(e: React.FormEvent) {
+  async function handleImageAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!imageFile || !imageTitle) return;
-    if (images.length >= 10) {
-      setImageError("Maximum 10 images allowed.");
-      return;
-    }
-    setUploadingImage(true);
-    setImageError("");
+    if (imageItems.length >= 10) { setError("Maximum 10 images allowed."); return; }
+    setSaving(true);
+    setUploadProgress(true);
+    setError("");
 
     try {
-      const url = await uploadToCloudinary(imageFile);
+      const imageUrl = await uploadToCloudinary(imageFile);
       const supabase = getSupabase();
-      const { data, error } = await supabase
+      const { data, error: dbErr } = await supabase
         .from("portfolio_items")
-        .insert({ title: imageTitle, description: imageDesc, media_url: url, media_type: "image", artist_id: userId })
-        .select().single();
-      if (error) throw error;
-      setItems(prev => [data, ...prev]);
+        .insert({ title: imageTitle, description: imageDesc, media_url: imageUrl, media_type: "image", artist_id: userId })
+        .select()
+        .single();
+
+      if (dbErr) throw dbErr;
+      setItems(prev => [data as PortfolioItem, ...prev]);
       setImageTitle("");
       setImageDesc("");
       setImageFile(null);
-      setImagePreview("");
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (fileRef.current) fileRef.current.value = "";
     } catch (err: unknown) {
-      setImageError(err instanceof Error ? err.message : "Upload failed.");
+      setError(err instanceof Error ? err.message : "Failed to upload image.");
     } finally {
-      setUploadingImage(false);
+      setSaving(false);
+      setUploadProgress(false);
     }
   }
 
   async function handleMusicAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!musicUrl || !musicTitle) return;
-    if (music.length >= 10) {
-      setMusicError("Maximum 10 music items allowed.");
-      return;
-    }
-    const type = getMusicType(musicUrl);
-    if (!type) {
-      setMusicError("Please paste a SoundCloud, Spotify, or YouTube link.");
-      return;
-    }
-    setAddingMusic(true);
-    setMusicError("");
+    if (musicItems.length >= 10) { setError("Maximum 10 music tracks allowed."); return; }
+    setError("");
 
+    const parsed = getMusicEmbedUrl(musicUrl);
+    if (!parsed) {
+      setError("Paste a valid SoundCloud, Spotify, or YouTube link.");
+      return;
+    }
+
+    setSaving(true);
     try {
       const supabase = getSupabase();
-      const { data, error } = await supabase
+      const { data, error: dbErr } = await supabase
         .from("portfolio_items")
-        .insert({ title: musicTitle, description: musicDesc, media_url: musicUrl, media_type: type, artist_id: userId })
-        .select().single();
-      if (error) throw error;
-      setItems(prev => [data, ...prev]);
-      setMusicTitle("");
+        .insert({ title: musicTitle, description: musicDesc, media_url: parsed.embedUrl, media_type: parsed.type, artist_id: userId })
+        .select()
+        .single();
+
+      if (dbErr) throw dbErr;
+      setItems(prev => [data as PortfolioItem, ...prev]);
       setMusicUrl("");
+      setMusicTitle("");
       setMusicDesc("");
-      setMusicPreviewType(null);
     } catch (err: unknown) {
-      setMusicError(err instanceof Error ? err.message : "Failed to add music.");
+      setError(err instanceof Error ? err.message : "Failed to add music.");
     } finally {
-      setAddingMusic(false);
+      setSaving(false);
     }
   }
 
@@ -204,71 +199,40 @@ export default function PortfolioPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#F2EDE4] font-sans text-black">
+    <main className="min-h-screen bg-[#F2EDE4] font-sans">
       <NavbarAuth userName={userName} />
 
-      <div className="max-w-5xl mx-auto px-8 py-16">
+      <div className="max-w-4xl mx-auto px-8 py-16">
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-3">Artist Dashboard</p>
         <h1 className="text-5xl font-black uppercase leading-none mb-10">My<br />Portfolio</h1>
 
         {/* Tabs */}
-        <div className="flex border border-black mb-10">
+        <div className="flex border border-black mb-8">
           <button
-            onClick={() => setActiveTab("images")}
-            className={`flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 ${activeTab === "images" ? "bg-black text-white" : "hover:bg-black/5"}`}
+            onClick={() => { setTab("images"); setError(""); }}
+            className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${tab === "images" ? "bg-black text-white" : "bg-transparent text-black hover:bg-black/5"}`}
           >
-            🖼 Images
-            <span className={`text-xs px-2 py-0.5 rounded-full font-black ${activeTab === "images" ? "bg-white text-black" : "bg-black text-white"}`}>
-              {images.length}/10
-            </span>
+            Images ({imageItems.length}/10)
           </button>
           <button
-            onClick={() => setActiveTab("music")}
-            className={`flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-colors border-l border-black flex items-center justify-center gap-2 ${activeTab === "music" ? "bg-black text-white" : "hover:bg-black/5"}`}
+            onClick={() => { setTab("music"); setError(""); }}
+            className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors border-l border-black ${tab === "music" ? "bg-black text-white" : "bg-transparent text-black hover:bg-black/5"}`}
           >
-            🎵 Music
-            <span className={`text-xs px-2 py-0.5 rounded-full font-black ${activeTab === "music" ? "bg-white text-black" : "bg-black text-white"}`}>
-              {music.length}/10
-            </span>
+            Music ({musicItems.length}/10)
           </button>
         </div>
 
-        {/* ── IMAGES TAB ── */}
-        {activeTab === "images" && (
+        {error && (
+          <div className="mb-6 px-4 py-3 border border-[#E5000F] text-[#E5000F] text-xs uppercase tracking-widest">{error}</div>
+        )}
+
+        {/* Images Tab */}
+        {tab === "images" && (
           <>
-            {images.length < 10 && (
-              <div className="border border-black bg-white p-8 mb-10">
-                <h2 className="text-lg font-black uppercase mb-2">Upload Image</h2>
-                <p className="text-xs text-black/40 uppercase tracking-widest mb-6">JPG, PNG or WebP — max 10MB per image</p>
-
-                {imageError && (
-                  <div className="mb-4 px-4 py-3 border border-[#E5000F] text-[#E5000F] text-xs uppercase tracking-widest">{imageError}</div>
-                )}
-
-                <form onSubmit={handleImageUpload} className="flex flex-col gap-4">
-                  {/* Drop zone */}
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-black p-10 text-center cursor-pointer hover:bg-black/5 transition-colors"
-                  >
-                    {imagePreview ? (
-                      <img src={imagePreview} alt="Preview" className="max-h-48 mx-auto object-contain" />
-                    ) : (
-                      <>
-                        <p className="text-3xl mb-2">📷</p>
-                        <p className="text-sm font-bold uppercase">Click to select image</p>
-                        <p className="text-xs text-black/40 mt-1">or drag and drop here</p>
-                      </>
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-                  </div>
-
+            <div className="border border-black bg-white p-8 mb-10">
+              <h2 className="text-lg font-black uppercase mb-6">Upload Image</h2>
+              <form onSubmit={handleImageAdd} className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
                     placeholder="Title *"
                     value={imageTitle}
@@ -277,32 +241,49 @@ export default function PortfolioPage() {
                     className="border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
                   />
                   <input
-                    placeholder="Short description (optional)"
+                    placeholder="Description (optional)"
                     value={imageDesc}
                     onChange={e => setImageDesc(e.target.value)}
                     className="border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
                   />
-                  <button
-                    type="submit"
-                    disabled={uploadingImage || !imageFile || !imageTitle}
-                    className="py-4 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {uploadingImage ? "Uploading..." : "Upload Image"}
-                  </button>
-                </form>
-              </div>
-            )}
+                </div>
+                <div className="border border-dashed border-black p-6 text-center cursor-pointer hover:border-[#E5000F] transition-colors" onClick={() => fileRef.current?.click()}>
+                  {imageFile ? (
+                    <p className="text-sm font-bold">{imageFile.name}</p>
+                  ) : (
+                    <>
+                      <p className="text-sm font-bold uppercase mb-1">Click to choose an image</p>
+                      <p className="text-xs text-black/40">JPG, PNG, WEBP — max 10MB</p>
+                    </>
+                  )}
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => setImageFile(e.target.files?.[0] || null)}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={saving || !imageFile || !imageTitle}
+                  className="py-3 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-50"
+                >
+                  {uploadProgress ? "Uploading..." : "+ Add Image"}
+                </button>
+              </form>
+            </div>
 
-            {images.length === 0 ? (
-              <p className="text-sm text-black/40 text-center py-12 border border-dashed border-black">No images yet. Upload your first one above.</p>
+            {imageItems.length === 0 ? (
+              <p className="text-sm text-black/40 text-center py-12">No images yet. Upload your first photo above.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-black border border-black">
-                {images.map(item => (
+                {imageItems.map(item => (
                   <div key={item.id} className="bg-[#F2EDE4] p-4">
-                    <img src={item.media_url} alt={item.title} className="w-full h-52 object-cover mb-3 border border-black/10" />
+                    <img src={item.media_url} alt={item.title} className="w-full h-48 object-cover mb-3 border border-black/10" />
                     <h3 className="font-black uppercase text-sm">{item.title}</h3>
                     {item.description && <p className="text-xs text-black/50 mt-1">{item.description}</p>}
-                    <button onClick={() => handleDelete(item.id)} className="mt-3 text-xs text-[#E5000F] uppercase tracking-widest hover:underline">
+                    <button onClick={() => handleDelete(item.id)} className="mt-2 text-xs text-[#E5000F] uppercase tracking-widest hover:underline">
                       Remove
                     </button>
                   </div>
@@ -312,104 +293,61 @@ export default function PortfolioPage() {
           </>
         )}
 
-        {/* ── MUSIC TAB ── */}
-        {activeTab === "music" && (
+        {/* Music Tab */}
+        {tab === "music" && (
           <>
-            {music.length < 10 && (
-              <div className="border border-black bg-white p-8 mb-10">
-                <h2 className="text-lg font-black uppercase mb-2">Add Music</h2>
-                <p className="text-xs text-black/40 uppercase tracking-widest mb-1">Paste a link from SoundCloud, Spotify or YouTube</p>
-                <div className="flex gap-4 mb-6 mt-2">
-                  <span className="text-xs border border-black/20 px-3 py-1 rounded-full">🎵 SoundCloud</span>
-                  <span className="text-xs border border-black/20 px-3 py-1 rounded-full">🎧 Spotify</span>
-                  <span className="text-xs border border-black/20 px-3 py-1 rounded-full">▶️ YouTube</span>
-                </div>
-
-                {musicError && (
-                  <div className="mb-4 px-4 py-3 border border-[#E5000F] text-[#E5000F] text-xs uppercase tracking-widest">{musicError}</div>
-                )}
-
-                <form onSubmit={handleMusicAdd} className="flex flex-col gap-4">
+            <div className="border border-black bg-white p-8 mb-10">
+              <h2 className="text-lg font-black uppercase mb-2">Add Music</h2>
+              <p className="text-xs text-black/50 mb-6">Paste a SoundCloud, Spotify, or YouTube link</p>
+              <form onSubmit={handleMusicAdd} className="flex flex-col gap-4">
+                <input
+                  placeholder="SoundCloud / Spotify / YouTube URL *"
+                  value={musicUrl}
+                  onChange={e => setMusicUrl(e.target.value)}
+                  required
+                  type="url"
+                  className="border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
-                    placeholder="Paste SoundCloud / Spotify / YouTube link *"
-                    value={musicUrl}
-                    onChange={e => {
-                      setMusicUrl(e.target.value);
-                      setMusicPreviewType(getMusicType(e.target.value));
-                    }}
-                    type="url"
-                    required
-                    className="border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
-                  />
-
-                  {/* Live preview */}
-                  {musicPreviewType && musicUrl && (
-                    <div className="border border-black/20 overflow-hidden">
-                      <p className="text-xs font-bold uppercase tracking-widest px-3 py-2 bg-black/5 border-b border-black/10">Preview</p>
-                      <iframe
-                        src={getEmbedUrl(musicUrl, musicPreviewType)}
-                        width="100%"
-                        height={musicPreviewType === "soundcloud" ? "120" : "80"}
-                        frameBorder="0"
-                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                        className="block"
-                      />
-                    </div>
-                  )}
-
-                  <input
-                    placeholder="Title * (e.g. 'Summer Mix 2024')"
+                    placeholder="Title *"
                     value={musicTitle}
                     onChange={e => setMusicTitle(e.target.value)}
                     required
                     className="border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
                   />
                   <input
-                    placeholder="Short description (optional)"
+                    placeholder="Description (optional)"
                     value={musicDesc}
                     onChange={e => setMusicDesc(e.target.value)}
                     className="border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
                   />
-                  <button
-                    type="submit"
-                    disabled={addingMusic || !musicUrl || !musicTitle}
-                    className="py-4 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {addingMusic ? "Adding..." : "+ Add Music"}
-                  </button>
-                </form>
-              </div>
-            )}
+                </div>
+                <button
+                  type="submit"
+                  disabled={saving || !musicUrl || !musicTitle}
+                  className="py-3 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-50"
+                >
+                  {saving ? "Adding..." : "+ Add Track"}
+                </button>
+              </form>
+            </div>
 
-            {music.length === 0 ? (
-              <p className="text-sm text-black/40 text-center py-12 border border-dashed border-black">No music yet. Add your first track above.</p>
+            {musicItems.length === 0 ? (
+              <p className="text-sm text-black/40 text-center py-12">No music yet. Paste a link above.</p>
             ) : (
-              <div className="flex flex-col gap-px bg-black border border-black">
-                {music.map(item => (
-                  <div key={item.id} className="bg-[#F2EDE4] p-6">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-black uppercase text-sm">{item.title}</h3>
-                        {item.description && <p className="text-xs text-black/50 mt-0.5">{item.description}</p>}
-                        <p className="text-xs text-black/30 uppercase tracking-widest mt-1">{item.media_type}</p>
-                      </div>
-                      <button onClick={() => handleDelete(item.id)} className="text-xs text-[#E5000F] uppercase tracking-widest hover:underline shrink-0 ml-4">
+              <div className="flex flex-col gap-6">
+                {musicItems.map(item => (
+                  <div key={item.id} className="border border-black bg-white p-6">
+                    <MusicEmbed item={item} />
+                    <h3 className="font-black uppercase text-sm">{item.title}</h3>
+                    {item.description && <p className="text-xs text-black/50 mt-1">{item.description}</p>}
+                    <div className="flex items-center gap-4 mt-2">
+                      <span className="text-xs text-black/30 uppercase tracking-widest">{item.media_type}</span>
+                      <button onClick={() => handleDelete(item.id)} className="text-xs text-[#E5000F] uppercase tracking-widest hover:underline">
                         Remove
                       </button>
                     </div>
-                    {["soundcloud", "spotify", "youtube"].includes(item.media_type) && (
-                      <iframe
-                        src={getEmbedUrl(item.media_url, item.media_type)}
-                        width="100%"
-                        height={item.media_type === "soundcloud" ? "120" : "80"}
-                        frameBorder="0"
-                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                        className="block border border-black/10"
-                      />
-                    )}
-                    {item.media_type === "audio" && (
-                      <audio src={item.media_url} controls className="w-full mt-2" />
-                    )}
                   </div>
                 ))}
               </div>
@@ -417,21 +355,10 @@ export default function PortfolioPage() {
           </>
         )}
 
-        <Link href="/dashboard" className="block text-center text-xs uppercase tracking-widest text-black/40 hover:text-black transition-colors mt-10">
+        <Link href="/dashboard" className="block text-center text-xs uppercase tracking-widest text-black/40 hover:text-black transition-colors mt-12">
           ← Back to Dashboard
         </Link>
       </div>
-
-      <GuideButton
-        title="Portfolio Guide"
-        steps={[
-          { title: "Images Tab", description: "Upload up to 10 photos directly from your computer. Click the upload area or drag and drop. Max 10MB per image." },
-          { title: "Music Tab", description: "Add up to 10 music samples by pasting a SoundCloud, Spotify or YouTube link. A live preview appears before you save." },
-          { title: "Supported Music Links", description: "SoundCloud tracks/playlists, Spotify tracks/albums/playlists, YouTube videos — all show as embedded players on your profile." },
-          { title: "Remove Items", description: "Click 'Remove' under any image or music item to permanently delete it from your portfolio." },
-          { title: "Limits", description: "Maximum 10 images and 10 music items. The counter next to each tab shows how many you've used." },
-        ]}
-      />
     </main>
   );
 }

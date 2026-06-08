@@ -6,38 +6,58 @@ import Link from "next/link";
 import NavbarAuth from "@/app/components/NavbarAuth";
 import { getSupabase } from "@/lib/supabase";
 
-const CATEGORIES = [
-  "Photography", "Music", "Makeup Artist", "Painting", "Illustration",
-  "Videography", "DJ", "Dance", "Hair Styling", "Graphic Design",
-  "Pottery & Ceramics", "Sculpture", "Calligraphy", "Fashion Design",
-  "Tattoo Artist", "Comedy & Stand-Up", "Poetry & Spoken Word",
-  "Acting & Theatre", "Jewelry Making", "Interior Design",
+const CATEGORY_GROUPS: { group: string; items: string[] }[] = [
+  {
+    group: "Visual Arts",
+    items: ["Photography", "Videography", "Painting", "Illustration", "Graphic Design", "Sculpture", "Calligraphy"],
+  },
+  {
+    group: "Handcraft",
+    items: [
+      "Handcraft - Wood",
+      "Handcraft - Paper & Origami",
+      "Handcraft - Textile & Sewing",
+      "Handcraft - Knitting & Crochet",
+      "Handcraft - Embroidery",
+      "Handcraft - Leather",
+      "Handcraft - Ceramics & Clay",
+      "Handcraft - Candles & Soap",
+      "Handcraft - Resin Art",
+      "Handcraft - Glass & Mosaic",
+      "Handcraft - Macramé",
+      "Handcraft - Jewelry Making",
+      "Handcraft - Other",
+    ],
+  },
+  {
+    group: "Music & Performance",
+    items: ["Music", "DJ", "Dance", "Acting & Theatre", "Comedy & Stand-Up", "Poetry & Spoken Word"],
+  },
+  {
+    group: "Beauty & Fashion",
+    items: ["Makeup Artist", "Hair Styling", "Fashion Design", "Tattoo Artist"],
+  },
+  {
+    group: "Design & Other",
+    items: ["Pottery & Ceramics", "Interior Design", "Other"],
+  },
 ];
 
-const PRICING_TYPES = [
-  { value: "hourly",   label: "Per Hour" },
-  { value: "session",  label: "Per Session" },
-  { value: "half_day", label: "Half Day" },
-  { value: "full_day", label: "Full Day" },
-  { value: "event",    label: "Per Event" },
-  { value: "fixed",    label: "Fixed Price" },
-];
-
-const TIER_PRESETS = [
-  ["Essential", "Standard", "Premium"],
-  ["Bronze", "Silver", "Gold"],
-  ["Bronze", "Silver", "Gold", "Platinum"],
-  ["Basic", "Pro", "Elite"],
-];
+const CATEGORIES = CATEGORY_GROUPS.flatMap(g => g.items);
 
 type Package = {
   name: string;
-  pricing_type: string;
   price: string;
   duration: string;
   description: string;
   includes: string;
 };
+
+const DEFAULT_PACKAGES: Package[] = [
+  { name: "Essential", price: "", duration: "", description: "", includes: "" },
+  { name: "Standard", price: "", duration: "", description: "", includes: "" },
+  { name: "Premium",  price: "", duration: "", description: "", includes: "" },
+];
 
 export default function SetupPage() {
   const router = useRouter();
@@ -47,7 +67,7 @@ export default function SetupPage() {
   const [success, setSuccess] = useState(false);
   const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState("");
-  const [packages, setPackages] = useState<Package[]>([]);
+  const [packages, setPackages] = useState<Package[]>(DEFAULT_PACKAGES);
   const [form, setForm] = useState({
     bio: "",
     category: "",
@@ -92,14 +112,18 @@ export default function SetupPage() {
         .order("created_at", { ascending: true });
 
       if (pkgs && pkgs.length > 0) {
-        setPackages(pkgs.map((p: any) => ({
-          name: p.name,
-          pricing_type: p.pricing_type || "session",
-          price: p.price?.toString() || "",
-          duration: p.duration_hours?.toString() || "",
-          description: p.description || "",
-          includes: p.includes || "",
-        })));
+        // Map saved packages back, keeping Essential/Standard/Premium order
+        const mapped = DEFAULT_PACKAGES.map(def => {
+          const saved = pkgs.find((p: any) => p.name === def.name);
+          return saved ? {
+            name: saved.name,
+            price: saved.price?.toString() || "",
+            duration: saved.duration_hours?.toString() || "",
+            description: saved.description || "",
+            includes: saved.includes || "",
+          } : def;
+        });
+        setPackages(mapped);
       }
 
       setLoading(false);
@@ -149,16 +173,14 @@ export default function SetupPage() {
       await supabase.from("packages").delete().eq("artist_id", user.id);
 
       const pkgsToInsert = packages
-        .filter(p => p.price !== "" && p.name !== "")
-        .map((p, i) => ({
+        .filter(p => p.price !== "")
+        .map(p => ({
           artist_id: user.id,
           name: p.name,
-          pricing_type: p.pricing_type || "session",
           price: parseFloat(p.price),
           duration_hours: p.duration ? parseFloat(p.duration) : null,
           description: p.description || null,
           includes: p.includes || null,
-          sort_order: i,
         }));
 
       if (pkgsToInsert.length > 0) {
@@ -216,7 +238,15 @@ export default function SetupPage() {
               className="w-full border border-black px-4 py-3 bg-white text-sm outline-none focus:border-[#E5000F] transition-colors"
             >
               <option value="">Select your discipline</option>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              {CATEGORY_GROUPS.map(group => (
+                <optgroup key={group.group} label={`── ${group.group} ──`}>
+                  {group.items.map(c => (
+                    <option key={c} value={c}>
+                      {c.startsWith("Handcraft - ") ? c.replace("Handcraft - ", "  ↳ ") : c}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
 
@@ -265,120 +295,85 @@ export default function SetupPage() {
 
           {/* PACKAGES */}
           <div className="fade-in-up fade-in-up-4">
-            <div className="border-t border-black pt-8 mb-6">
+            <div className="border-t border-black pt-8 mb-4">
               <h2 className="text-lg font-black uppercase mb-1">Service Packages</h2>
-              <p className="text-xs text-black/50 mb-5">Add the packages you offer. Name them anything — Essential/Standard/Premium, Bronze/Gold/Platinum, or fully custom.</p>
-
-              {/* Quick preset buttons */}
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-black/40 mb-2">Quick add tiers:</p>
-                <div className="flex flex-wrap gap-2">
-                  {TIER_PRESETS.map(preset => (
-                    <button
-                      key={preset.join("/")}
-                      type="button"
-                      onClick={() => setPackages(preset.map(name => ({ name, pricing_type: "session", price: "", duration: "", description: "", includes: "" })))}
-                      className="text-xs border border-black px-3 py-1.5 font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors"
-                    >
-                      {preset.join(" / ")}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <p className="text-xs text-black/50 mb-6">Define what you offer at each tier. Leave price empty to hide a package.</p>
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-6">
               {packages.map((pkg, i) => (
-                <div key={i} className="border border-black bg-white p-6">
-                  {/* Package header */}
-                  <div className="flex items-center justify-between mb-5">
-                    <div className="flex items-center gap-3">
-                      <span className="w-7 h-7 bg-black text-white text-xs flex items-center justify-center font-black shrink-0">{i + 1}</span>
-                      <input
-                        type="text"
-                        placeholder="Package name"
-                        value={pkg.name}
-                        onChange={e => handlePackageChange(i, "name", e.target.value)}
-                        className="border-b-2 border-black bg-transparent text-sm font-black uppercase outline-none focus:border-[#E5000F] transition-colors px-1 py-0.5 w-44 placeholder:text-black/30 placeholder:font-normal placeholder:normal-case"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setPackages(prev => prev.filter((_, idx) => idx !== i))}
-                      className="text-xs text-[#E5000F] font-bold uppercase tracking-widest hover:text-black transition-colors"
-                    >
-                      Remove
-                    </button>
+                <div key={pkg.name} className={`border border-black p-6 ${i === 2 ? "bg-black text-white" : "bg-white"}`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-black uppercase tracking-widest text-sm">{pkg.name}</h3>
+                    {i === 2 && <span className="text-xs text-[#E5000F] font-bold uppercase tracking-widest">Most Complete</span>}
+                    {i === 1 && <span className="text-xs text-black/40 font-bold uppercase tracking-widest">Popular</span>}
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-widest mb-1 text-black/50">Pricing Type</label>
-                      <select
-                        value={pkg.pricing_type}
-                        onChange={e => handlePackageChange(i, "pricing_type", e.target.value)}
-                        className="w-full border border-black px-3 py-2 text-sm bg-[#F2EDE4] outline-none focus:border-[#E5000F] transition-colors"
-                      >
-                        {PRICING_TYPES.map(pt => <option key={pt.value} value={pt.value}>{pt.label}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-widest mb-1 text-black/50">Price (€)</label>
+                      <label className={`block text-xs font-bold uppercase tracking-widest mb-1 ${i === 2 ? "text-white/60" : "text-black/50"}`}>Price (€)</label>
                       <input
-                        type="number" min="0"
-                        placeholder="e.g. 250"
+                        type="number"
+                        min="0"
+                        placeholder="e.g. 150"
                         value={pkg.price}
                         onChange={e => handlePackageChange(i, "price", e.target.value)}
-                        className="w-full border border-black px-3 py-2 text-sm bg-[#F2EDE4] outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
+                        className={`w-full border px-3 py-2 text-sm outline-none transition-colors placeholder:text-black/30 ${
+                          i === 2
+                            ? "border-white/30 bg-white/10 text-white placeholder:text-white/30 focus:border-white"
+                            : "border-black bg-[#F2EDE4] focus:border-[#E5000F]"
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <label className={`block text-xs font-bold uppercase tracking-widest mb-1 ${i === 2 ? "text-white/60" : "text-black/50"}`}>Duration (hours)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        placeholder="e.g. 2"
+                        value={pkg.duration}
+                        onChange={e => handlePackageChange(i, "duration", e.target.value)}
+                        className={`w-full border px-3 py-2 text-sm outline-none transition-colors placeholder:text-black/30 ${
+                          i === 2
+                            ? "border-white/30 bg-white/10 text-white placeholder:text-white/30 focus:border-white"
+                            : "border-black bg-[#F2EDE4] focus:border-[#E5000F]"
+                        }`}
                       />
                     </div>
                   </div>
 
                   <div className="mb-3">
-                    <label className="block text-xs font-bold uppercase tracking-widest mb-1 text-black/50">
-                      {pkg.pricing_type === "hourly" ? "Min. Hours" : "Duration (hours)"}
-                    </label>
-                    <input
-                      type="number" min="0" step="0.5"
-                      placeholder={pkg.pricing_type === "half_day" ? "4" : pkg.pricing_type === "full_day" ? "8" : "e.g. 2"}
-                      value={pkg.duration}
-                      onChange={e => handlePackageChange(i, "duration", e.target.value)}
-                      className="w-full border border-black px-3 py-2 text-sm bg-[#F2EDE4] outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="block text-xs font-bold uppercase tracking-widest mb-1 text-black/50">Short Description</label>
+                    <label className={`block text-xs font-bold uppercase tracking-widest mb-1 ${i === 2 ? "text-white/60" : "text-black/50"}`}>Short Description</label>
                     <input
                       type="text"
-                      placeholder="e.g. Perfect for couples and small events"
+                      placeholder="e.g. Perfect for individuals and small events"
                       value={pkg.description}
                       onChange={e => handlePackageChange(i, "description", e.target.value)}
-                      className="w-full border border-black px-3 py-2 text-sm bg-[#F2EDE4] outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
+                      className={`w-full border px-3 py-2 text-sm outline-none transition-colors ${
+                        i === 2
+                          ? "border-white/30 bg-white/10 text-white placeholder:text-white/30 focus:border-white"
+                          : "border-black bg-[#F2EDE4] focus:border-[#E5000F] placeholder:text-black/30"
+                      }`}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest mb-1 text-black/50">What&apos;s Included</label>
-                    <textarea
-                      rows={4}
-                      placeholder={"One item per line:\n50 edited photos\nOnline gallery\n2 locations\nPrinted album"}
+                    <label className={`block text-xs font-bold uppercase tracking-widest mb-1 ${i === 2 ? "text-white/60" : "text-black/50"}`}>What&apos;s Included</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 20 edited photos, online gallery, 1 location"
                       value={pkg.includes}
                       onChange={e => handlePackageChange(i, "includes", e.target.value)}
-                      className="w-full border border-black px-3 py-2 text-sm bg-[#F2EDE4] outline-none focus:border-[#E5000F] transition-colors resize-none placeholder:text-black/30"
+                      className={`w-full border px-3 py-2 text-sm outline-none transition-colors ${
+                        i === 2
+                          ? "border-white/30 bg-white/10 text-white placeholder:text-white/30 focus:border-white"
+                          : "border-black bg-[#F2EDE4] focus:border-[#E5000F] placeholder:text-black/30"
+                      }`}
                     />
-                    <p className="text-xs text-black/30 mt-1">One item per line — shown as ✓ bullet points on your profile.</p>
                   </div>
                 </div>
               ))}
-
-              <button
-                type="button"
-                onClick={() => setPackages(prev => [...prev, { name: "", pricing_type: "session", price: "", duration: "", description: "", includes: "" }])}
-                className="border border-dashed border-black py-4 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors w-full"
-              >
-                + Add Package
-              </button>
             </div>
           </div>
 
