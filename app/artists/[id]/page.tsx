@@ -361,20 +361,6 @@ export default function ArtistProfilePage() {
               Edit Profile
             </Link>
           )}
-          <div className="ml-auto flex gap-8">
-            {artist.hourly_rate && (
-              <div className="text-right">
-                <p className="text-xs text-white/40 uppercase tracking-widest">Hourly</p>
-                <p className="font-black text-2xl text-white">€{artist.hourly_rate}</p>
-              </div>
-            )}
-            {artist.session_rate && (
-              <div className="text-right">
-                <p className="text-xs text-white/40 uppercase tracking-widest">Session</p>
-                <p className="font-black text-2xl text-white">€{artist.session_rate}</p>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
