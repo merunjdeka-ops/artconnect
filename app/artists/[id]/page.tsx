@@ -368,7 +368,7 @@ export default function ArtistProfilePage() {
       <div className="px-8 lg:px-16 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12 xl:gap-20">
 
         {/* Left: Bio + Portfolio + Reviews */}
-        <div className="lg:col-span-2 min-w-0 overflow-hidden">
+        <div className="lg:col-span-2 min-w-0">
 
           {/* Bio */}
           <div className="mb-12">
@@ -449,7 +449,7 @@ export default function ArtistProfilePage() {
                   </span>
                 )}
               </div>
-              <div className="border border-black overflow-hidden group w-full max-w-full">
+              <div className="border border-black overflow-hidden group">
                 {isVideo(artist.daily_pic_url!) ? (
                   /* Video story — click to open fullscreen */
                   <div className="relative cursor-pointer" onClick={() => setStoryOpen(true)}>
@@ -585,9 +585,9 @@ export default function ArtistProfilePage() {
         </div>
 
         {/* Right: Booking form OR own-profile panel */}
-        <div ref={bookingRef} className="sticky top-6 self-start">
+        <div ref={bookingRef}>
         {isOwnProfile ? (
-          <div className="flex flex-col gap-4">
+          <div className="sticky top-6 flex flex-col gap-4">
             {/* Profile summary card */}
             <div className="border border-black bg-white p-6">
               <p className="text-xs font-bold uppercase tracking-widest text-black/40 mb-4">Your Profile</p>
@@ -655,7 +655,7 @@ export default function ArtistProfilePage() {
           </div>
         ) : (
           <div>
-            <div className="border border-black bg-white p-6">
+            <div className="border border-black bg-white p-6 sticky top-6">
               <h2 className="text-lg font-black uppercase mb-5">Book {artist.full_name?.split(" ")[0]}</h2>
 
               {bookingStatus === "sent" ? (
