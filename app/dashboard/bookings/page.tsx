@@ -199,130 +199,129 @@ export default function BookingsPage() {
             {filtered.map(booking => {
               const expired = isExpired(booking);
               const displayStatus = expired ? "expired" : booking.status;
+              const cancelSubject = encodeURIComponent(`Cancellation Request — Booking #${booking.id.slice(0, 8).toUpperCase()}`);
+              const cancelBody = encodeURIComponent(
+                `Hello ArtConnect Support,\n\nI would like to request a cancellation for the following booking:\n\n` +
+                `Booking ID: ${booking.id}\n` +
+                `${role === "artist" ? "Client" : "Artist"}: ${booking.other_name}\n` +
+                `Date: ${booking.event_date ? new Date(booking.event_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "TBD"}\n` +
+                (booking.package_name ? `Package: ${booking.package_name}\n` : "") +
+                (booking.package_price ? `Price: €${booking.package_price}\n` : "") +
+                `\nReason for cancellation:\n[Please describe your reason here]\n\nThank you.`
+              );
               return (
-              <div key={booking.id} className={`bg-[#F2EDE4] p-6 ${expired ? "opacity-60" : ""}`}>
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  {/* Left: booking info */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3 flex-wrap">
-                      <h3 className="font-black uppercase text-base">{booking.other_name}</h3>
-                      <span className={`text-xs font-bold uppercase border px-2 py-0.5 tracking-widest ${STATUS_STYLE[displayStatus]}`}>
-                        {displayStatus}
-                      </span>
-                      {expired && (
-                        <span className="text-xs text-black/40 uppercase tracking-widest">— request lapsed</span>
-                      )}
-                      {booking.package_name && (
-                        <span className="text-xs bg-black text-white px-2 py-0.5 font-bold uppercase tracking-widest">
-                          {booking.package_name}
+                <div key={booking.id} className={`bg-[#F2EDE4] p-6 ${expired ? "opacity-60" : ""}`}>
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                    {/* Left: booking info */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3 flex-wrap">
+                        <h3 className="font-black uppercase text-base">{booking.other_name}</h3>
+                        <span className={`text-xs font-bold uppercase border px-2 py-0.5 tracking-widest ${STATUS_STYLE[displayStatus]}`}>
+                          {displayStatus}
                         </span>
-                      )}
-                    </div>
+                        {expired && (
+                          <span className="text-xs text-black/40 uppercase tracking-widest">— request lapsed</span>
+                        )}
+                        {booking.package_name && (
+                          <span className="text-xs bg-black text-white px-2 py-0.5 font-bold uppercase tracking-widest">
+                            {booking.package_name}
+                          </span>
+                        )}
+                      </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                      <div>
-                        <p className="text-xs text-black/40 uppercase tracking-widest">Date</p>
-                        <p className="text-sm font-bold mt-0.5">
-                          {booking.event_date ? new Date(booking.event_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "TBD"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-black/40 uppercase tracking-widest">Duration</p>
-                        <p className="text-sm font-bold mt-0.5">{booking.duration_hours ? `${booking.duration_hours}h` : "—"}</p>
-                      </div>
-                      {booking.package_price && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                         <div>
-                          <p className="text-xs text-black/40 uppercase tracking-widest">Price</p>
-                          <p className="text-sm font-bold mt-0.5 text-[#E5000F]">€{booking.package_price}</p>
+                          <p className="text-xs text-black/40 uppercase tracking-widest">Date</p>
+                          <p className="text-sm font-bold mt-0.5">
+                            {booking.event_date ? new Date(booking.event_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "TBD"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-black/40 uppercase tracking-widest">Duration</p>
+                          <p className="text-sm font-bold mt-0.5">{booking.duration_hours ? `${booking.duration_hours}h` : "—"}</p>
+                        </div>
+                        {booking.package_price && (
+                          <div>
+                            <p className="text-xs text-black/40 uppercase tracking-widest">Price</p>
+                            <p className="text-sm font-bold mt-0.5 text-[#E5000F]">€{booking.package_price}</p>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-xs text-black/40 uppercase tracking-widest">Received</p>
+                          <p className="text-sm font-bold mt-0.5">{new Date(booking.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
+                        </div>
+                      </div>
+
+                      {booking.message && (
+                        <div className="border-l-2 border-[#E5000F] pl-4">
+                          <p className="text-xs text-black/40 uppercase tracking-widest mb-1">Message</p>
+                          <p className="text-sm text-black/70 leading-relaxed">{booking.message}</p>
                         </div>
                       )}
-                      <div>
-                        <p className="text-xs text-black/40 uppercase tracking-widest">Received</p>
-                        <p className="text-sm font-bold mt-0.5">{new Date(booking.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
+
+                      <div className="flex flex-wrap gap-4 mt-3">
+                        {booking.other_email && (
+                          <a href={`mailto:${booking.other_email}`} className="text-xs text-black/40 hover:text-[#E5000F] uppercase tracking-widest transition-colors">
+                            ✉ {booking.other_email}
+                          </a>
+                        )}
+                        {booking.status === "accepted" && booking.other_phone && (
+                          <a href={`tel:${booking.other_phone}`} className="inline-flex items-center gap-1.5 text-xs font-bold text-green-700 border border-green-600 bg-green-50 px-3 py-1 hover:bg-green-700 hover:text-white transition-colors uppercase tracking-widest">
+                            📞 {booking.other_phone}
+                          </a>
+                        )}
+                        {booking.status === "accepted" && !booking.other_phone && (
+                          <span className="text-xs text-black/30 uppercase tracking-widest italic">
+                            No phone number on file
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    {booking.message && (
-                      <div className="border-l-2 border-[#E5000F] pl-4">
-                        <p className="text-xs text-black/40 uppercase tracking-widest mb-1">Message</p>
-                        <p className="text-sm text-black/70 leading-relaxed">{booking.message}</p>
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-4 mt-3">
-                      {booking.other_email && (
-                        <a href={`mailto:${booking.other_email}`} className="text-xs text-black/40 hover:text-[#E5000F] uppercase tracking-widest transition-colors">
-                          ✉ {booking.other_email}
-                        </a>
+                    {/* Right: action buttons */}
+                    <div className="flex md:flex-col gap-3 shrink-0">
+                      {/* Artist: accept / decline pending (not shown if expired) */}
+                      {role === "artist" && booking.status === "pending" && !expired && (
+                        <>
+                          <button
+                            onClick={() => updateStatus(booking.id, "accepted", booking)}
+                            disabled={acting === booking.id}
+                            className="px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-green-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+                          >
+                            {acting === booking.id ? "..." : "✓ Accept"}
+                          </button>
+                          <button
+                            onClick={() => updateStatus(booking.id, "declined", booking)}
+                            disabled={acting === booking.id}
+                            className="px-6 py-3 border border-black text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] hover:text-white hover:border-[#E5000F] transition-colors disabled:opacity-50 whitespace-nowrap"
+                          >
+                            {acting === booking.id ? "..." : "✕ Decline"}
+                          </button>
+                        </>
                       )}
-                      {booking.status === "accepted" && booking.other_phone && (
-                        <a href={`tel:${booking.other_phone}`} className="inline-flex items-center gap-1.5 text-xs font-bold text-green-700 border border-green-600 bg-green-50 px-3 py-1 hover:bg-green-700 hover:text-white transition-colors uppercase tracking-widest">
-                          📞 {booking.other_phone}
-                        </a>
-                      )}
-                      {booking.status === "accepted" && !booking.other_phone && (
-                        <span className="text-xs text-black/30 uppercase tracking-widest italic">
-                          No phone number on file
-                        </span>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Right: action buttons */}
-                  <div className="flex md:flex-col gap-3 shrink-0">
-                    {/* Artist: accept / decline pending (not shown if expired) */}
-                    {role === "artist" && booking.status === "pending" && !expired && (
-                      <>
-                        <button
-                          onClick={() => updateStatus(booking.id, "accepted", booking)}
-                          disabled={acting === booking.id}
-                          className="px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-green-700 transition-colors disabled:opacity-50 whitespace-nowrap"
-                        >
-                          {acting === booking.id ? "..." : "✓ Accept"}
-                        </button>
-                        <button
-                          onClick={() => updateStatus(booking.id, "declined", booking)}
-                          disabled={acting === booking.id}
-                          className="px-6 py-3 border border-black text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] hover:text-white hover:border-[#E5000F] transition-colors disabled:opacity-50 whitespace-nowrap"
-                        >
-                          {acting === booking.id ? "..." : "✕ Decline"}
-                        </button>
-                      </>
-                    )}
-
-                    {/* Both parties: cancellation request on accepted bookings */}
-                    {booking.status === "accepted" && (() => {
-                      const subject = encodeURIComponent(`Cancellation Request — Booking #${booking.id.slice(0, 8).toUpperCase()}`);
-                      const body = encodeURIComponent(
-                        `Hello ArtConnect Support,\n\nI would like to request a cancellation for the following booking:\n\n` +
-                        `Booking ID: ${booking.id}\n` +
-                        `${role === "artist" ? "Client" : "Artist"}: ${booking.other_name}\n` +
-                        `Date: ${booking.event_date ? new Date(booking.event_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "TBD"}\n` +
-                        (booking.package_name ? `Package: ${booking.package_name}\n` : "") +
-                        (booking.package_price ? `Price: €${booking.package_price}\n` : "") +
-                        `\nReason for cancellation:\n[Please describe your reason here]\n\nThank you.`
-                      );
-                      return (
+                      {/* Both parties: cancellation request on accepted bookings */}
+                      {booking.status === "accepted" && (
                         <a
-                          href={`mailto:help@goartconnect.com?subject=${subject}&body=${body}`}
+                          href={`mailto:help@goartconnect.com?subject=${cancelSubject}&body=${cancelBody}`}
                           className="px-5 py-3 border border-black/30 text-xs font-bold uppercase tracking-widest text-black/50 hover:border-[#E5000F] hover:text-[#E5000F] transition-colors whitespace-nowrap text-center"
                         >
                           Request Cancellation
                         </a>
-                      );
-                    })()}
+                      )}
 
-                    {/* Client: link to artist profile */}
-                    {role === "client" && (
-                      <Link
-                        href={`/artists/${booking.other_id}`}
-                        className="shrink-0 text-xs font-bold uppercase tracking-widest border border-black px-5 py-3 hover:bg-black hover:text-white transition-colors text-center"
-                      >
-                        View Artist →
-                      </Link>
-                    )}
+                      {/* Client: link to artist profile */}
+                      {role === "client" && (
+                        <Link
+                          href={`/artists/${booking.other_id}`}
+                          className="shrink-0 text-xs font-bold uppercase tracking-widest border border-black px-5 py-3 hover:bg-black hover:text-white transition-colors text-center"
+                        >
+                          View Artist →
+                        </Link>
+                      )}
+                    </div>
                   </div>
-              </div>
+                </div>
               );
             })}
           </div>
