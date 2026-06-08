@@ -11,11 +11,18 @@ async function uploadToCloudinary(file: File, folder = "daily_pics"): Promise<st
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
   if (!cloudName || !preset) throw new Error("Cloudinary not configured.");
+  const isVideo = file.type.startsWith("video/");
   const fd = new FormData();
   fd.append("file", file);
   fd.append("upload_preset", preset);
   fd.append("folder", folder);
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: "POST", body: fd });
+  // For videos: request good quality compressed output (720p max, quality auto)
+  if (isVideo) {
+    fd.append("resource_type", "video");
+    fd.append("eager", "c_limit,h_720,q_auto:good,vc_auto");
+  }
+  const resourceType = isVideo ? "video" : "image";
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`, { method: "POST", body: fd });
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
   return data.secure_url as string;
@@ -351,7 +358,11 @@ export default function DashboardPage() {
                 const expired = age >= 24 * 3600 * 1000;
                 return expired ? null : (
                   <div className="border border-black overflow-hidden">
-                    <img src={profile.daily_pic_url!} alt="Daily pic" className="w-full h-48 object-cover" />
+                    {profile.daily_pic_url!.match(/\.(mp4|mov|webm|m4v)$/i) || profile.daily_pic_url!.includes("/video/upload/") ? (
+                      <video src={profile.daily_pic_url!} className="w-full h-48 object-cover" muted playsInline controls />
+                    ) : (
+                      <img src={profile.daily_pic_url!} alt="Daily story" className="w-full h-48 object-cover" />
+                    )}
                     <div className="p-3 border-t border-black flex justify-between items-center">
                       <span className="text-xs text-black/50 uppercase tracking-widest">Live on profile</span>
                       <button
@@ -383,15 +394,21 @@ export default function DashboardPage() {
               <input
                 ref={dailyRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,video/mp4,video/quicktime,video/webm,video/x-m4v"
                 className="hidden"
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
+                  // Validate video size (max 100MB)
+                  if (file.type.startsWith("video/") && file.size > 100 * 1024 * 1024) {
+                    setDailyError("Video must be under 100MB.");
+                    e.target.value = "";
+                    return;
+                  }
                   setDailyUploading(true);
                   setDailyError("");
                   try {
-                    const url = await uploadToCloudinary(file, "daily_pics");
+                    const url = await uploadToCloudinary(file, "daily_stories");
                     await saveDailyCaption(url, dailyCaption);
                   } catch (err) {
                     setDailyError(err instanceof Error ? err.message : "Upload failed.");
@@ -402,13 +419,23 @@ export default function DashboardPage() {
                 }}
               />
 
-              <button
-                onClick={() => dailyRef.current?.click()}
-                disabled={dailyUploading || dailySaving}
-                className="px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-50 self-start"
-              >
-                {dailyUploading ? "Uploading..." : "Post Story"}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => dailyRef.current?.click()}
+                  disabled={dailyUploading || dailySaving}
+                  className="px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-50"
+                >
+                  {dailyUploading ? "Uploading..." : "📷 Photo"}
+                </button>
+                <button
+                  onClick={() => { if (dailyRef.current) { dailyRef.current.accept = "video/mp4,video/quicktime,video/webm,video/x-m4v"; dailyRef.current.click(); setTimeout(() => { if (dailyRef.current) dailyRef.current.accept = "image/*,video/mp4,video/quicktime,video/webm,video/x-m4v"; }, 500); } }}
+                  disabled={dailyUploading || dailySaving}
+                  className="px-6 py-3 border border-black text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors disabled:opacity-50"
+                >
+                  {dailyUploading ? "Uploading..." : "🎬 Video"}
+                </button>
+              </div>
+              <p className="text-xs text-black/40">Photos (any size) · Videos up to 100MB — compressed automatically</p>
 
               {profile?.daily_pic_url && (
                 <>

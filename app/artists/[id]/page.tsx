@@ -63,6 +63,11 @@ export default function ArtistProfilePage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
   const [lightbox, setLightbox] = useState<{ url: string; title: string; index: number } | null>(null);
+  const [storyOpen, setStoryOpen] = useState(false);
+
+  function isVideo(url: string) {
+    return url.match(/\.(mp4|mov|webm|m4v)$/i) !== null || url.includes("/video/upload/");
+  }
 
   useEffect(() => {
     if (!lightbox) return;
@@ -370,19 +375,45 @@ export default function ArtistProfilePage() {
             </div>
           )}
 
-          {/* Daily Pic — only shown within 24h of upload */}
+          {/* Daily Story — only shown within 24h of upload */}
           {dailyPicActive && (
             <div className="mb-12">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-black/40">Today&apos;s Photo</h2>
+                <h2 className="text-xs font-bold uppercase tracking-widest text-black/40">
+                  {isVideo(artist.daily_pic_url!) ? "Today's Video" : "Today's Photo"}
+                </h2>
                 {artist.daily_pic_updated_at && (
                   <span className="text-xs text-black/30 uppercase tracking-widest">
                     {new Date(artist.daily_pic_updated_at).toLocaleDateString("en-IT", { day: "numeric", month: "short", year: "numeric" })}
                   </span>
                 )}
               </div>
-              <div className="border border-black overflow-hidden">
-                <img src={artist.daily_pic_url!} alt="Daily photo" className="w-full object-cover max-h-[480px]" />
+              <div className="border border-black overflow-hidden group">
+                {isVideo(artist.daily_pic_url!) ? (
+                  /* Video story — click to open fullscreen */
+                  <div className="relative cursor-pointer" onClick={() => setStoryOpen(true)}>
+                    <video
+                      src={artist.daily_pic_url!}
+                      className="w-full object-cover max-h-[480px]"
+                      muted playsInline
+                      onMouseEnter={e => (e.currentTarget as HTMLVideoElement).play()}
+                      onMouseLeave={e => { (e.currentTarget as HTMLVideoElement).pause(); (e.currentTarget as HTMLVideoElement).currentTime = 0; }}
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                      <div className="w-16 h-16 rounded-full bg-black/60 group-hover:bg-[#E5000F] flex items-center justify-center transition-colors">
+                        <span className="text-white text-2xl ml-1">▶</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Photo story — click to open fullscreen */
+                  <div className="relative cursor-zoom-in" onClick={() => setStoryOpen(true)}>
+                    <img src={artist.daily_pic_url!} alt="Daily story" className="w-full object-cover max-h-[480px] transition-transform duration-300 group-hover:scale-[1.02]" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-end justify-end p-4">
+                      <span className="text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg">⤢</span>
+                    </div>
+                  </div>
+                )}
                 {artist.daily_pic_caption && (
                   <div className="px-5 py-4 border-t border-black bg-white">
                     <p className="text-sm text-black/70 leading-relaxed">{artist.daily_pic_caption}</p>
@@ -577,6 +608,26 @@ export default function ArtistProfilePage() {
           <Link href="/dmca" className="hover:text-black transition-colors">DMCA</Link>
         </div>
       </footer>
+
+      {/* ── STORY FULLSCREEN ── */}
+      {storyOpen && dailyPicActive && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          onClick={() => setStoryOpen(false)}
+        >
+          <button onClick={() => setStoryOpen(false)} className="absolute top-5 right-6 text-white/60 hover:text-white text-3xl font-black leading-none transition-colors z-10">✕</button>
+          <div className="max-w-4xl max-h-[90vh] mx-8 flex flex-col items-center gap-4" onClick={e => e.stopPropagation()}>
+            {isVideo(artist.daily_pic_url!) ? (
+              <video src={artist.daily_pic_url!} controls autoPlay className="max-h-[80vh] max-w-full" />
+            ) : (
+              <img src={artist.daily_pic_url!} alt="Story" className="max-h-[80vh] max-w-full object-contain" />
+            )}
+            {artist.daily_pic_caption && (
+              <p className="text-white/70 text-sm text-center max-w-xl">{artist.daily_pic_caption}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── LIGHTBOX ── */}
       {lightbox && (() => {
