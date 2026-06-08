@@ -62,6 +62,19 @@ export default function ArtistProfilePage() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
+  const [lightbox, setLightbox] = useState<{ url: string; title: string; index: number } | null>(null);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const images = portfolio.filter(i => i.media_type === "image");
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setLightbox(null);
+      if (e.key === "ArrowRight") setLightbox(lb => lb ? { url: images[(lb.index + 1) % images.length].media_url, title: images[(lb.index + 1) % images.length].title, index: (lb.index + 1) % images.length } : null);
+      if (e.key === "ArrowLeft") setLightbox(lb => lb ? { url: images[(lb.index - 1 + images.length) % images.length].media_url, title: images[(lb.index - 1 + images.length) % images.length].title, index: (lb.index - 1 + images.length) % images.length } : null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox, portfolio]);
   const [loading, setLoading] = useState(true);
   const [selectedPkg, setSelectedPkg] = useState<Package | null>(null);
   const [booking, setBooking] = useState({ event_date: "", duration_hours: "1", message: "" });
@@ -386,9 +399,17 @@ export default function ArtistProfilePage() {
                 <>
                   <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-6">Portfolio</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-black border border-black mb-10">
-                    {portfolio.filter(i => i.media_type === "image").map(item => (
-                      <div key={item.id} className="bg-[#F2EDE4] p-4">
-                        <img src={item.media_url} alt={item.title} className="w-full h-48 object-cover mb-3" />
+                    {portfolio.filter(i => i.media_type === "image").map((item, idx) => (
+                      <div key={item.id} className="bg-[#F2EDE4] p-4 group">
+                        <div
+                          className="relative cursor-zoom-in overflow-hidden mb-3"
+                          onClick={() => setLightbox({ url: item.media_url, title: item.title, index: idx })}
+                        >
+                          <img src={item.media_url} alt={item.title} className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105" />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                            <span className="text-white text-2xl opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg">⤢</span>
+                          </div>
+                        </div>
                         <h3 className="font-black uppercase text-sm">{item.title}</h3>
                         {item.description && <p className="text-xs text-black/50 mt-1">{item.description}</p>}
                       </div>
@@ -556,6 +577,62 @@ export default function ArtistProfilePage() {
           <Link href="/dmca" className="hover:text-black transition-colors">DMCA</Link>
         </div>
       </footer>
+
+      {/* ── LIGHTBOX ── */}
+      {lightbox && (() => {
+        const images = portfolio.filter(i => i.media_type === "image");
+        const prev = () => setLightbox({ url: images[(lightbox.index - 1 + images.length) % images.length].media_url, title: images[(lightbox.index - 1 + images.length) % images.length].title, index: (lightbox.index - 1 + images.length) % images.length });
+        const next = () => setLightbox({ url: images[(lightbox.index + 1) % images.length].media_url, title: images[(lightbox.index + 1) % images.length].title, index: (lightbox.index + 1) % images.length });
+        return (
+          <div
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+            onClick={() => setLightbox(null)}
+          >
+            {/* Close */}
+            <button
+              onClick={() => setLightbox(null)}
+              className="absolute top-5 right-6 text-white/60 hover:text-white text-3xl font-black leading-none transition-colors z-10"
+            >
+              ✕
+            </button>
+
+            {/* Prev */}
+            {images.length > 1 && (
+              <button
+                onClick={e => { e.stopPropagation(); prev(); }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white text-4xl font-black transition-colors z-10 px-4 py-2"
+              >
+                ‹
+              </button>
+            )}
+
+            {/* Image */}
+            <div className="max-w-5xl max-h-[90vh] mx-12 flex flex-col items-center gap-4" onClick={e => e.stopPropagation()}>
+              <img
+                src={lightbox.url}
+                alt={lightbox.title}
+                className="max-h-[80vh] max-w-full object-contain"
+              />
+              <div className="flex items-center gap-4">
+                <p className="text-white font-black uppercase text-sm tracking-widest">{lightbox.title}</p>
+                {images.length > 1 && (
+                  <span className="text-white/30 text-xs uppercase tracking-widest">{lightbox.index + 1} / {images.length}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Next */}
+            {images.length > 1 && (
+              <button
+                onClick={e => { e.stopPropagation(); next(); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white text-4xl font-black transition-colors z-10 px-4 py-2"
+              >
+                ›
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       <GuideButton
         title="Artist Profile Guide"
