@@ -24,6 +24,7 @@ const categories = [
   { name: "Acting & Theatre", description: "Actors, directors and theatre performers." },
   { name: "Jewelry Making", description: "Handcrafted custom jewelry and accessories." },
   { name: "Interior Design", description: "Artistic interior styling and space transformation." },
+  { name: "Handcraft", description: "Wood, paper, textile, ceramics, leather, resin and more." },
 ];
 
 export default function Home() {
