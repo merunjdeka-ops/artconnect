@@ -322,7 +322,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-1">Daily Photo — Story</h2>
-              <p className="text-sm text-black/60">Visible on your profile for <strong>24 hours</strong> after upload, then it disappears automatically — like an Instagram story.</p>
+              <p className="text-sm text-black/60">Visible on your profile for <strong>24 hours</strong> after upload, then it disappears automatically.</p>
             </div>
             {profile?.daily_pic_updated_at && (() => {
               const age = Date.now() - new Date(profile.daily_pic_updated_at!).getTime();
