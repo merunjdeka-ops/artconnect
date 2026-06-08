@@ -36,6 +36,17 @@ const SORT_OPTIONS = [
   { value: "price_asc", label: "Price: Low to High" },
   { value: "price_desc", label: "Price: High to Low" },
   { value: "name_az", label: "Name A-Z" },
+  { value: "rating", label: "Top Rated" },
+];
+
+const PRICING_TYPES = [
+  { value: "all", label: "All Types" },
+  { value: "hourly", label: "Per Hour" },
+  { value: "session", label: "Per Session" },
+  { value: "half_day", label: "Half Day" },
+  { value: "full_day", label: "Full Day" },
+  { value: "event", label: "Per Event" },
+  { value: "fixed", label: "Fixed Price" },
 ];
 
 type Artist = {
@@ -47,6 +58,7 @@ type Artist = {
   hourly_rate: number | null;
   session_rate: number | null;
   is_available: boolean;
+  avg_rating?: number | null;
 };
 
 function ArtistsPageInner() {
@@ -63,6 +75,9 @@ function ArtistsPageInner() {
   const [maxPrice, setMaxPrice] = useState("");
   const [availableOnly, setAvailableOnly] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
+  const [pricingType, setPricingType] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [minRating, setMinRating] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -90,15 +105,16 @@ function ArtistsPageInner() {
   const filtered = useMemo(() => {
     let result = [...artists];
 
+    // Category filter
     if (activeCategory !== "All") {
       if (activeCategory === "Handcraft") {
-        // Show all handcraft subcategories
         result = result.filter(a => a.category?.startsWith("Handcraft"));
       } else {
         result = result.filter(a => a.category === activeCategory);
       }
     }
 
+    // Text search (name, location, bio)
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(a =>
@@ -108,15 +124,34 @@ function ArtistsPageInner() {
       );
     }
 
+    // Location filter
+    if (locationFilter.trim()) {
+      const q = locationFilter.toLowerCase();
+      result = result.filter(a => a.location?.toLowerCase().includes(q));
+    }
+
+    // Availability
     if (availableOnly) {
       result = result.filter(a => a.is_available);
     }
 
+    // Pricing type filter
+    if (pricingType === "hourly") {
+      result = result.filter(a => a.hourly_rate !== null);
+    } else if (pricingType === "session") {
+      result = result.filter(a => a.session_rate !== null);
+    }
+
+    // Price range (works across hourly + session)
     const min = minPrice !== "" ? parseFloat(minPrice) : null;
     const max = maxPrice !== "" ? parseFloat(maxPrice) : null;
     if (min !== null || max !== null) {
       result = result.filter(a => {
-        const rate = a.hourly_rate ?? a.session_rate ?? null;
+        const rate = pricingType === "session"
+          ? (a.session_rate ?? null)
+          : pricingType === "hourly"
+          ? (a.hourly_rate ?? null)
+          : (a.hourly_rate ?? a.session_rate ?? null);
         if (rate === null) return false;
         if (min !== null && rate < min) return false;
         if (max !== null && rate > max) return false;
@@ -124,6 +159,13 @@ function ArtistsPageInner() {
       });
     }
 
+    // Min rating filter
+    const minR = minRating !== "" ? parseFloat(minRating) : null;
+    if (minR !== null) {
+      result = result.filter(a => (a.avg_rating ?? 0) >= minR);
+    }
+
+    // Sort
     if (sortBy === "price_asc") {
       result = [...result].sort((a, b) => {
         const ra = a.hourly_rate ?? a.session_rate ?? Infinity;
@@ -140,29 +182,23 @@ function ArtistsPageInner() {
       result = [...result].sort((a, b) =>
         (a.full_name || "").localeCompare(b.full_name || "")
       );
+    } else if (sortBy === "rating") {
+      result = [...result].sort((a, b) => (b.avg_rating ?? 0) - (a.avg_rating ?? 0));
     }
 
     return result;
-  }, [artists, activeCategory, search, availableOnly, minPrice, maxPrice, sortBy]);
+  }, [artists, activeCategory, search, availableOnly, minPrice, maxPrice, sortBy, pricingType, locationFilter, minRating]);
 
-  // Build active filter chips (search shown inline in header, not as chip)
+  // Build active filter chips
   const activeFilters: { label: string; clear: () => void }[] = [];
-  if (activeCategory !== "All") {
-    activeFilters.push({ label: activeCategory, clear: () => setActiveCategory("All") });
-  }
-  if (availableOnly) {
-    activeFilters.push({ label: "Available Only", clear: () => setAvailableOnly(false) });
-  }
-  if (minPrice !== "") {
-    activeFilters.push({ label: `Min €${minPrice}`, clear: () => setMinPrice("") });
-  }
-  if (maxPrice !== "") {
-    activeFilters.push({ label: `Max €${maxPrice}`, clear: () => setMaxPrice("") });
-  }
-  if (sortBy !== "newest") {
-    const label = SORT_OPTIONS.find(o => o.value === sortBy)?.label || sortBy;
-    activeFilters.push({ label, clear: () => setSortBy("newest") });
-  }
+  if (activeCategory !== "All") activeFilters.push({ label: activeCategory, clear: () => setActiveCategory("All") });
+  if (availableOnly) activeFilters.push({ label: "Available Only", clear: () => setAvailableOnly(false) });
+  if (pricingType !== "all") activeFilters.push({ label: PRICING_TYPES.find(p => p.value === pricingType)?.label || pricingType, clear: () => setPricingType("all") });
+  if (minPrice !== "") activeFilters.push({ label: `Min €${minPrice}`, clear: () => setMinPrice("") });
+  if (maxPrice !== "") activeFilters.push({ label: `Max €${maxPrice}`, clear: () => setMaxPrice("") });
+  if (locationFilter !== "") activeFilters.push({ label: `📍 ${locationFilter}`, clear: () => setLocationFilter("") });
+  if (minRating !== "") activeFilters.push({ label: `★ ${minRating}+`, clear: () => setMinRating("") });
+  if (sortBy !== "newest") activeFilters.push({ label: SORT_OPTIONS.find(o => o.value === sortBy)?.label || sortBy, clear: () => setSortBy("newest") });
 
   const hasActiveFilters = activeFilters.length > 0 || search.trim() !== "";
 
@@ -173,6 +209,9 @@ function ArtistsPageInner() {
     setMaxPrice("");
     setAvailableOnly(false);
     setSortBy("newest");
+    setPricingType("all");
+    setLocationFilter("");
+    setMinRating("");
   }
 
   return (
@@ -277,61 +316,105 @@ function ArtistsPageInner() {
       </section>
 
       {/* ADVANCED FILTERS ROW */}
-      <section className="px-8 py-5 border-b border-black flex flex-wrap gap-6 items-end">
-        {/* Price range */}
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-bold uppercase tracking-widest text-black/50">Hourly Rate (&euro;)</span>
-          <div className="flex items-center gap-2">
+      <section className="px-8 py-5 border-b border-black">
+        <div className="flex flex-wrap gap-x-8 gap-y-4 items-end">
+
+          {/* Pricing Type */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-bold uppercase tracking-widest text-black/50">Pricing Type</span>
+            <div className="relative">
+              <select
+                value={pricingType}
+                onChange={e => setPricingType(e.target.value)}
+                className="border border-black px-3 py-2 pr-8 bg-white text-xs font-bold uppercase tracking-widest outline-none focus:border-[#E5000F] transition-colors cursor-pointer appearance-none"
+              >
+                {PRICING_TYPES.map(p => (
+                  <option key={p.value} value={p.value}>{p.label}</option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-black text-xs">&#9660;</span>
+            </div>
+          </div>
+
+          {/* Price range */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-bold uppercase tracking-widest text-black/50">
+              Price Range (&euro;) {pricingType !== "all" && `— ${PRICING_TYPES.find(p => p.value === pricingType)?.label}`}
+            </span>
+            <div className="flex items-center gap-2">
+              <input
+                type="number" min="0" placeholder="Min"
+                value={minPrice} onChange={e => setMinPrice(e.target.value)}
+                className="border border-black w-20 px-3 py-2 bg-white text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
+              />
+              <span className="text-xs font-bold text-black/40">to</span>
+              <input
+                type="number" min="0" placeholder="Max"
+                value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
+                className="border border-black w-20 px-3 py-2 bg-white text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
+              />
+            </div>
+          </div>
+
+          {/* Location filter */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-bold uppercase tracking-widest text-black/50">City / Location</span>
             <input
-              type="number"
-              min="0"
-              placeholder="Min"
-              value={minPrice}
-              onChange={e => setMinPrice(e.target.value)}
-              className="border border-black w-20 px-3 py-2 bg-white text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
-            />
-            <span className="text-xs font-bold text-black/40">to</span>
-            <input
-              type="number"
-              min="0"
-              placeholder="Max"
-              value={maxPrice}
-              onChange={e => setMaxPrice(e.target.value)}
-              className="border border-black w-20 px-3 py-2 bg-white text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30"
+              type="text" placeholder="e.g. Florence, Milan…"
+              value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
+              className="border border-black px-3 py-2 bg-white text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30 w-44"
             />
           </div>
-        </div>
 
-        {/* Availability toggle */}
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-bold uppercase tracking-widest text-black/50">Availability</span>
-          <button
-            onClick={() => setAvailableOnly(v => !v)}
-            className={`px-4 py-2 text-xs font-bold uppercase tracking-widest border transition-colors whitespace-nowrap ${
-              availableOnly
-                ? "bg-[#E5000F] text-white border-[#E5000F]"
-                : "border-black text-black hover:bg-black hover:text-white"
-            }`}
-          >
-            Available Only
-          </button>
-        </div>
-
-        {/* Sort — pushed to right */}
-        <div className="flex flex-col gap-1 ml-auto">
-          <span className="text-xs font-bold uppercase tracking-widest text-black/50">Sort By</span>
-          <div className="relative">
-            <select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value)}
-              className="border border-black px-3 py-2 pr-8 bg-white text-xs font-bold uppercase tracking-widest outline-none focus:border-[#E5000F] transition-colors cursor-pointer appearance-none"
-            >
-              {SORT_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+          {/* Min rating */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-bold uppercase tracking-widest text-black/50">Min Rating</span>
+            <div className="flex gap-1">
+              {["", "3", "4", "4.5"].map(r => (
+                <button
+                  key={r}
+                  onClick={() => setMinRating(r)}
+                  className={`px-3 py-2 text-xs font-bold border transition-colors ${
+                    minRating === r
+                      ? "bg-black text-white border-black"
+                      : "border-black/40 text-black/60 hover:border-black hover:text-black"
+                  }`}
+                >
+                  {r === "" ? "Any" : `★ ${r}+`}
+                </button>
               ))}
-            </select>
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-black text-xs">&#9660;</span>
+            </div>
           </div>
+
+          {/* Availability */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-bold uppercase tracking-widest text-black/50">Availability</span>
+            <button
+              onClick={() => setAvailableOnly(v => !v)}
+              className={`px-4 py-2 text-xs font-bold uppercase tracking-widest border transition-colors whitespace-nowrap ${
+                availableOnly ? "bg-[#E5000F] text-white border-[#E5000F]" : "border-black text-black hover:bg-black hover:text-white"
+              }`}
+            >
+              {availableOnly ? "✓ Available Only" : "Available Only"}
+            </button>
+          </div>
+
+          {/* Sort — pushed to right */}
+          <div className="flex flex-col gap-1 ml-auto">
+            <span className="text-xs font-bold uppercase tracking-widest text-black/50">Sort By</span>
+            <div className="relative">
+              <select
+                value={sortBy} onChange={e => setSortBy(e.target.value)}
+                className="border border-black px-3 py-2 pr-8 bg-white text-xs font-bold uppercase tracking-widest outline-none focus:border-[#E5000F] transition-colors cursor-pointer appearance-none"
+              >
+                {SORT_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-black text-xs">&#9660;</span>
+            </div>
+          </div>
+
         </div>
       </section>
 
