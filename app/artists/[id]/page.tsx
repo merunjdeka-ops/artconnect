@@ -21,6 +21,37 @@ type AvailabilityPeriod = {
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+// Event types tailored to each artist category
+const CATEGORY_EVENT_TYPES: Record<string, string[]> = {
+  "Photography": ["Wedding", "Portrait Session", "Corporate Event", "Concert / Live Event", "Fashion / Editorial", "Product Photography", "Real Estate", "Birthday / Party", "Documentary", "Other"],
+  "Videography": ["Wedding", "Corporate Event", "Concert / Live Event", "Fashion / Editorial", "Product Video", "Real Estate Tour", "Birthday / Party", "Documentary", "Short Film", "Music Video", "Other"],
+  "Music": ["Wedding", "Birthday / Party", "Corporate Event", "Concert / Live Event", "Private Event", "Festival", "Club / Bar Night", "Ceremony", "Other"],
+  "DJ": ["Wedding", "Birthday / Party", "Corporate Event", "Club / Bar Night", "Festival", "Private Event", "Concert / Live Event", "Other"],
+  "Dance": ["Wedding", "Corporate Event", "Festival", "Birthday / Party", "Theatre Performance", "Private Event", "Workshop", "Other"],
+  "Makeup Artist": ["Wedding", "Fashion / Editorial", "Film / TV Production", "Birthday / Party", "Corporate Event", "Special Effects", "Portrait Session", "Other"],
+  "Hair Styling": ["Wedding", "Fashion / Editorial", "Film / TV Production", "Birthday / Party", "Portrait Session", "Corporate Event", "Other"],
+  "Painting": ["Commission — Portrait", "Commission — Landscape", "Commission — Abstract", "Live Event Painting", "Mural", "Workshop", "Corporate Art", "Other"],
+  "Illustration": ["Book / Editorial", "Commission — Portrait", "Commission — Custom", "Corporate Branding", "Children's Art", "Product Illustration", "Other"],
+  "Graphic Design": ["Logo & Branding", "Poster / Print", "Social Media Content", "Packaging Design", "Web Design", "Event Branding", "Other"],
+  "Pottery & Ceramics": ["Custom Commission", "Workshop", "Home Décor", "Gift Set", "Corporate Gift", "Other"],
+  "Sculpture": ["Custom Commission", "Public Art", "Home Décor", "Corporate Art", "Workshop", "Other"],
+  "Calligraphy": ["Wedding Invitations", "Event Signage", "Corporate Stationery", "Custom Lettering", "Workshop", "Other"],
+  "Fashion Design": ["Custom Garment", "Alterations", "Costume Design", "Wedding Attire", "Event Styling", "Other"],
+  "Tattoo Artist": ["Custom Tattoo", "Cover-Up", "Touch-Up", "Flash Design", "Other"],
+  "Comedy & Stand-Up": ["Corporate Event", "Birthday / Party", "Private Event", "Festival", "Club / Bar Night", "Wedding", "Other"],
+  "Poetry & Spoken Word": ["Wedding", "Corporate Event", "Festival", "Private Event", "Workshop", "Commission", "Other"],
+  "Acting & Theatre": ["Theatre Performance", "Corporate Event", "Private Event", "Film / TV", "Workshop", "Other"],
+  "Jewelry Making": ["Custom Commission", "Wedding Jewelry", "Corporate Gift", "Workshop", "Other"],
+  "Interior Design": ["Home Styling", "Commercial Space", "Event Décor", "Consultation", "Other"],
+  "Handcraft": ["Custom Commission", "Workshop", "Home Décor", "Corporate Gift", "Wedding Décor", "Other"],
+};
+
+const DEFAULT_EVENT_TYPES = ["Private Event", "Corporate Event", "Wedding", "Birthday / Party", "Festival", "Workshop", "Commission", "Other"];
+
+function getEventTypes(category: string): string[] {
+  return CATEGORY_EVENT_TYPES[category] ?? DEFAULT_EVENT_TYPES;
+}
+
 type Artist = {
   id: string;
   full_name: string;
@@ -636,16 +667,9 @@ export default function ArtistProfilePage() {
                       className="w-full border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors bg-white appearance-none cursor-pointer"
                     >
                       <option value="">— Select type —</option>
-                      <option value="Wedding">Wedding</option>
-                      <option value="Portrait Session">Portrait Session</option>
-                      <option value="Corporate Event">Corporate Event</option>
-                      <option value="Concert / Live Event">Concert / Live Event</option>
-                      <option value="Fashion / Editorial">Fashion / Editorial</option>
-                      <option value="Product Photography">Product Photography</option>
-                      <option value="Real Estate">Real Estate</option>
-                      <option value="Birthday / Party">Birthday / Party</option>
-                      <option value="Documentary">Documentary</option>
-                      <option value="Other">Other</option>
+                      {getEventTypes(artist.category).map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
                     </select>
                   </div>
 
