@@ -334,7 +334,7 @@ export default function ArtistProfilePage() {
 
       {/* ── ACTION BAR ── */}
       <div className="bg-black border-b border-white/10 px-8 py-4">
-        <div className="max-w-5xl mx-auto flex flex-wrap items-center gap-4">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-4">
           {!isOwnProfile && (
             <button
               onClick={() => bookingRef.current?.scrollIntoView({ behavior: "smooth" })}
@@ -379,7 +379,7 @@ export default function ArtistProfilePage() {
       </div>
 
       {/* ── MAIN CONTENT ── */}
-      <div className="max-w-5xl mx-auto px-8 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
+      <div className="max-w-7xl mx-auto px-8 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
 
         {/* Left: Bio + Portfolio + Reviews */}
         <div className="lg:col-span-2">
