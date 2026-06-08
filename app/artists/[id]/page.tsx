@@ -585,9 +585,9 @@ export default function ArtistProfilePage() {
         </div>
 
         {/* Right: Booking form OR own-profile panel */}
-        <div ref={bookingRef} className="sticky top-6 self-start">
+        <div ref={bookingRef} className="h-fit">
         {isOwnProfile ? (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 sticky top-6">
             {/* Profile summary card */}
             <div className="border border-black bg-white p-6">
               <p className="text-xs font-bold uppercase tracking-widest text-black/40 mb-4">Your Profile</p>
@@ -654,7 +654,7 @@ export default function ArtistProfilePage() {
             </div>
           </div>
         ) : (
-          <div>
+          <div className="sticky top-6">
             <div className="border border-black bg-white p-6">
               <h2 className="text-lg font-black uppercase mb-5">Book {artist.full_name?.split(" ")[0]}</h2>
 
