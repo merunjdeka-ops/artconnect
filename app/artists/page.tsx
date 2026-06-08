@@ -366,25 +366,6 @@ function ArtistsPageInner() {
             />
           </div>
 
-          {/* Min rating */}
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-bold uppercase tracking-widest text-black/50">Min Rating</span>
-            <div className="flex gap-1">
-              {["", "3", "4", "4.5"].map(r => (
-                <button
-                  key={r}
-                  onClick={() => setMinRating(r)}
-                  className={`px-3 py-2 text-xs font-bold border transition-colors ${
-                    minRating === r
-                      ? "bg-black text-white border-black"
-                      : "border-black/40 text-black/60 hover:border-black hover:text-black"
-                  }`}
-                >
-                  {r === "" ? "Any" : `★ ${r}+`}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Availability */}
           <div className="flex flex-col gap-1">
