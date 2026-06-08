@@ -444,53 +444,75 @@ function ArtistsPageInner() {
           </div>
         ) : (
           <>
-            <p className="text-xs uppercase tracking-widest text-black/40 mb-8">
+            <p className="text-xs uppercase tracking-widest text-black/40 mb-6">
               {filtered.length} artist{filtered.length !== 1 ? "s" : ""} found
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px bg-black border border-black">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filtered.map(artist => (
                 <Link
                   key={artist.id}
                   href={`/artists/${artist.id}`}
-                  className="bg-[#F2EDE4] p-6 hover:bg-black hover:text-white transition-colors group block"
+                  className="group block"
                 >
-                  {/* Avatar */}
-                  <div className="w-12 h-12 mb-4 flex-shrink-0 overflow-hidden">
+                  {/* Cover image */}
+                  <div className="relative overflow-hidden bg-black aspect-[4/3] mb-3">
                     {artist.avatar_url ? (
-                      <img src={artist.avatar_url} alt={artist.full_name} className="w-full h-full object-cover rounded-full border border-black group-hover:border-white transition-colors" />
+                      <img
+                        src={artist.avatar_url}
+                        alt={artist.full_name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
                     ) : (
-                      <div className="w-full h-full rounded-full bg-black group-hover:bg-white flex items-center justify-center transition-colors">
-                        <span className="text-white group-hover:text-black font-black text-lg transition-colors">
+                      <div className="w-full h-full flex items-center justify-center bg-black">
+                        <span className="text-white font-black text-6xl opacity-20">
                           {artist.full_name?.[0]?.toUpperCase() || "A"}
+                        </span>
+                      </div>
+                    )}
+                    {/* Overlay on hover */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300" />
+                    {/* Availability dot */}
+                    {artist.is_available && (
+                      <div className="absolute top-3 left-3">
+                        <span className="flex items-center gap-1.5 bg-black/70 text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 backdrop-blur-sm">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                          Available
+                        </span>
+                      </div>
+                    )}
+                    {/* Rate badge */}
+                    {(artist.hourly_rate || artist.session_rate) && (
+                      <div className="absolute top-3 right-3">
+                        <span className="bg-[#E5000F] text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1">
+                          {artist.hourly_rate ? `€${artist.hourly_rate}/hr` : `€${artist.session_rate}/session`}
                         </span>
                       </div>
                     )}
                   </div>
 
-                  <h3 className="font-black uppercase text-base leading-tight">{artist.full_name}</h3>
-                  <p className="text-xs text-[#E5000F] group-hover:text-white font-bold uppercase tracking-widest mt-1">
-                    {artist.category}
-                  </p>
-                  <p className="text-xs text-black/50 group-hover:text-white/60 mt-1 uppercase tracking-widest">
-                    {artist.location}
-                  </p>
-
-                  {artist.bio && (
-                    <p className="text-xs mt-3 text-black/60 group-hover:text-white/70 leading-relaxed line-clamp-2">
-                      {artist.bio}
-                    </p>
-                  )}
-
-                  <div className="mt-4 flex items-center justify-between">
-                    {artist.hourly_rate ? (
-                      <span className="text-xs font-bold uppercase">&euro;{artist.hourly_rate}/hr</span>
-                    ) : artist.session_rate ? (
-                      <span className="text-xs font-bold uppercase">&euro;{artist.session_rate}/session</span>
-                    ) : (
-                      <span className="text-xs text-black/30 group-hover:text-white/30 uppercase">Rate on request</span>
-                    )}
-                    <span className={`text-xs font-bold uppercase ${artist.is_available ? "text-green-700 group-hover:text-green-300" : "text-black/30 group-hover:text-white/30"}`}>
-                      {artist.is_available ? "Available" : "Busy"}
+                  {/* Card footer: avatar + name / category + location */}
+                  <div className="flex items-center justify-between gap-3 px-0.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {/* Small avatar */}
+                      <div className="w-8 h-8 flex-shrink-0 overflow-hidden rounded-full border border-black/20">
+                        {artist.avatar_url ? (
+                          <img src={artist.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-black flex items-center justify-center">
+                            <span className="text-white font-black text-xs">
+                              {artist.full_name?.[0]?.toUpperCase() || "A"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-black uppercase text-sm leading-tight truncate">{artist.full_name}</p>
+                        <p className="text-xs text-black/50 uppercase tracking-widest truncate">{artist.location}</p>
+                      </div>
+                    </div>
+                    {/* Category tag */}
+                    <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-widest border border-black/30 px-2 py-0.5 text-black/50 group-hover:border-[#E5000F] group-hover:text-[#E5000F] transition-colors whitespace-nowrap">
+                      {artist.category?.split(" ")[0]}
                     </span>
                   </div>
                 </Link>
