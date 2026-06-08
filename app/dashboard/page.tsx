@@ -236,6 +236,9 @@ export default function DashboardPage() {
                   <Link href="/dashboard/portfolio" className="block border border-black px-5 py-3 text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
                     Manage Portfolio
                   </Link>
+                  <Link href="/dashboard/bookings" className="block bg-[#E5000F] text-white px-5 py-3 text-sm font-bold uppercase tracking-widest hover:bg-black transition-colors text-center">
+                    Manage Bookings →
+                  </Link>
                   <Link href="/artists" className="block border border-black px-5 py-3 text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
                     Browse Other Artists
                   </Link>
@@ -244,6 +247,9 @@ export default function DashboardPage() {
                 <>
                   <Link href="/artists" className="block bg-black text-white px-5 py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors text-center">
                     Browse Artists
+                  </Link>
+                  <Link href="/dashboard/bookings" className="block border border-[#E5000F] text-[#E5000F] px-5 py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#E5000F] hover:text-white transition-colors text-center">
+                    My Bookings →
                   </Link>
                   <Link href="/artists?category=Photography" className="block border border-black px-5 py-3 text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors text-center">
                     Browse by Category →
@@ -299,22 +305,35 @@ export default function DashboardPage() {
 
           {/* Recent Bookings */}
           <div className="bg-[#F2EDE4] p-8">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-6">
-              {isArtist ? "Recent Bookings" : "My Bookings"}
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xs font-bold uppercase tracking-widest text-black/40">
+                {isArtist ? "Recent Bookings" : "My Bookings"}
+              </h2>
+              <Link href="/dashboard/bookings" className="text-xs font-bold uppercase tracking-widest text-[#E5000F] hover:text-black transition-colors">
+                View All →
+              </Link>
+            </div>
             {bookings.length === 0 ? (
               <p className="text-sm text-black/40">No bookings yet.</p>
             ) : (
               <div className="flex flex-col gap-4">
                 {bookings.map((b) => (
-                  <div key={b.id} className="border-b border-black/10 pb-4">
+                  <div key={b.id} className="border-b border-black/10 pb-4 last:border-0 last:pb-0">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-sm font-bold uppercase">{b.other_name || "User"}</p>
                       <span className={`text-xs font-bold uppercase border px-2 py-0.5 ${statusColor[b.status] || ""}`}>
                         {b.status}
                       </span>
                     </div>
-                    <p className="text-xs text-black/40">{b.event_date ? new Date(b.event_date).toLocaleDateString("en-GB") : "Date TBD"} · {b.duration_hours}h</p>
+                    <p className="text-xs text-black/40 mb-2">{b.event_date ? new Date(b.event_date).toLocaleDateString("en-GB") : "Date TBD"} · {b.duration_hours}h</p>
+                    {isArtist && b.status === "pending" && (
+                      <Link
+                        href="/dashboard/bookings"
+                        className="inline-block text-xs font-bold uppercase tracking-widest bg-black text-white px-3 py-1.5 hover:bg-[#E5000F] transition-colors"
+                      >
+                        Respond →
+                      </Link>
+                    )}
                   </div>
                 ))}
               </div>
