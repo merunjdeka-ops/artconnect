@@ -7,6 +7,7 @@ import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 import StarRating from "@/app/components/StarRating";
 import ReviewForm from "@/app/components/ReviewForm";
+import CommentSection from "@/app/components/CommentSection";
 
 type Artist = {
   id: string;
@@ -557,6 +558,10 @@ export default function ArtistProfilePage() {
             </div>
           </div>
         )}
+
+          {/* Comments */}
+          <CommentSection artistId={artist.id} currentUser={currentUser} />
+
       </div>
 
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black">
