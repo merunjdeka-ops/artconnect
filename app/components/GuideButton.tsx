@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export type GuideStep = {
   title: string;
@@ -14,15 +14,88 @@ type Props = {
 
 export default function GuideButton({ title, steps }: Props) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 }); // offset from default bottom-right
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
+  const didDrag = useRef(false);
+
+  // Mouse drag
+  function onMouseDown(e: React.MouseEvent) {
+    e.preventDefault();
+    didDrag.current = false;
+    dragStart.current = { mx: e.clientX, my: e.clientY, px: pos.x, py: pos.y };
+    setDragging(true);
+  }
+
+  useEffect(() => {
+    function onMouseMove(e: MouseEvent) {
+      if (!dragStart.current) return;
+      const dx = e.clientX - dragStart.current.mx;
+      const dy = e.clientY - dragStart.current.my;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag.current = true;
+      setPos({ x: dragStart.current.px + dx, y: dragStart.current.py + dy });
+    }
+    function onMouseUp() {
+      dragStart.current = null;
+      setDragging(false);
+    }
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
+
+  // Touch drag
+  function onTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    didDrag.current = false;
+    dragStart.current = { mx: t.clientX, my: t.clientY, px: pos.x, py: pos.y };
+    setDragging(true);
+  }
+
+  useEffect(() => {
+    function onTouchMove(e: TouchEvent) {
+      if (!dragStart.current) return;
+      const t = e.touches[0];
+      const dx = t.clientX - dragStart.current.mx;
+      const dy = t.clientY - dragStart.current.my;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag.current = true;
+      setPos({ x: dragStart.current.px + dx, y: dragStart.current.py + dy });
+    }
+    function onTouchEnd() {
+      dragStart.current = null;
+      setDragging(false);
+    }
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd);
+    return () => {
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, []);
+
+  function handleClick() {
+    if (!didDrag.current) setOpen(true);
+  }
 
   return (
     <>
-      {/* Floating trigger button */}
+      {/* Floating draggable button */}
       <button
-        onClick={() => setOpen(true)}
+        onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
+        onClick={handleClick}
         aria-label="Open page guide"
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-[#FFE600] text-black font-black text-xl shadow-lg hover:scale-110 hover:bg-[#FFD000] transition-all flex items-center justify-center border-2 border-black"
-        style={{ boxShadow: "3px 3px 0px #000" }}
+        className={`fixed z-40 w-14 h-14 rounded-full bg-[#FFE600] text-black font-black text-xl flex items-center justify-center border-2 border-black select-none ${
+          dragging ? "cursor-grabbing scale-110" : "cursor-grab hover:scale-110 hover:bg-[#FFD000]"
+        } transition-transform`}
+        style={{
+          boxShadow: "3px 3px 0px #000",
+          bottom: `calc(1.5rem - ${pos.y}px)`,
+          right: `calc(1.5rem - ${pos.x}px)`,
+        }}
       >
         ?
       </button>
