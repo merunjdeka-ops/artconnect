@@ -240,7 +240,7 @@ export default function ArtistProfilePage() {
       </div>
 
       {/* ── ACTION BAR ── */}
-      <div className="bg-black border-b-4 border-[#E5000F] px-8 py-4">
+      <div className="bg-black border-b border-white/10 px-8 py-4">
         <div className="max-w-5xl mx-auto flex flex-wrap items-center gap-4">
           {!isOwnProfile && (
             <button
