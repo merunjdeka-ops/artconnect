@@ -137,6 +137,7 @@ export default function Home() {
           <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>
           <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
           <Link href="/dmca" className="hover:text-black transition-colors">DMCA</Link>
+          <Link href="/contact" className="hover:text-black transition-colors">Contact</Link>
         </div>
         <span className="text-xs text-black/40 uppercase tracking-widest">© 2026. Built for local artists.</span>
       </footer>
