@@ -303,7 +303,7 @@ export default function BookingsPage() {
                       {/* Both parties: cancellation request on accepted bookings */}
                       {booking.status === "accepted" && (
                         <a
-                          href={`mailto:help@goartconnect.com?subject=${cancelSubject}&body=${cancelBody}`}
+                          href={`mailto:goartconnect@gmail.com?subject=${cancelSubject}&body=${cancelBody}`}
                           className="px-5 py-3 border border-black/30 text-xs font-bold uppercase tracking-widest text-black/50 hover:border-[#E5000F] hover:text-[#E5000F] transition-colors whitespace-nowrap text-center"
                         >
                           Request Cancellation
