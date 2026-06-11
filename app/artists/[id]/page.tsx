@@ -5,6 +5,7 @@ import GuideButton from "@/app/components/GuideButton";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
+import { sanitizeCaption } from "@/lib/sanitize";
 import StarRating from "@/app/components/StarRating";
 import ReviewForm from "@/app/components/ReviewForm";
 import CommentSection from "@/app/components/CommentSection";
@@ -502,7 +503,7 @@ export default function ArtistProfilePage() {
                 )}
                 {artist.daily_pic_caption && (
                   <div className="px-5 py-4 border-t border-black bg-white">
-                    <div className="text-sm text-black/70 leading-relaxed rich-caption" dangerouslySetInnerHTML={{ __html: artist.daily_pic_caption }} />
+                    <div className="text-sm text-black/70 leading-relaxed rich-caption" dangerouslySetInnerHTML={{ __html: sanitizeCaption(artist.daily_pic_caption) }} />
                   </div>
                 )}
               </div>
@@ -928,7 +929,7 @@ export default function ArtistProfilePage() {
               <img src={artist.daily_pic_url!} alt="Story" className="max-h-[80vh] max-w-full object-contain" />
             )}
             {artist.daily_pic_caption && (
-              <div className="text-white/70 text-sm text-center max-w-xl rich-caption" dangerouslySetInnerHTML={{ __html: artist.daily_pic_caption }} />
+              <div className="text-white/70 text-sm text-center max-w-xl rich-caption" dangerouslySetInnerHTML={{ __html: sanitizeCaption(artist.daily_pic_caption) }} />
             )}
           </div>
         </div>

@@ -64,7 +64,7 @@ function bookingRequestHtml(artistName: string, clientName: string, date: string
                 ${message ? `<tr>
                   <td style="padding:16px;">
                     <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:#666;">Message</p>
-                    <p style="margin:0;font-size:14px;color:#333;line-height:1.6;">${message}</p>
+                    <p style="margin:0;font-size:14px;color:#333;line-height:1.6;white-space:pre-wrap;">${message}</p>
                   </td>
                 </tr>` : ""}
               </table>
@@ -271,6 +271,9 @@ export async function POST(req: NextRequest) {
 
     if (!type || !to) {
       return NextResponse.json({ error: "Missing required fields: type, to" }, { status: 400 });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(to)) || String(to).length > 254) {
+      return NextResponse.json({ error: "Invalid recipient address" }, { status: 400 });
     }
 
     const apiKey = process.env.RESEND_API_KEY;

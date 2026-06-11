@@ -26,7 +26,7 @@ export default function CookieBanner() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[9998] bg-black text-white px-6 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-t-2 border-[#E5000F]">
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-black text-white px-6 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-t-2 border-[#E5000F]">
       <p className="text-xs leading-relaxed text-white/80 max-w-2xl">
         We use cookies that are essential for the platform to work (login sessions, security).
         We do not use advertising or third-party tracking cookies. Read more in our{" "}
