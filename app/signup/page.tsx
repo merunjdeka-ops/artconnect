@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
+import SocialAuthButtons from "@/app/components/SocialAuthButtons";
 
 type Tab = "email" | "phone";
 type PhoneStep = "enter" | "verify";
@@ -191,6 +192,14 @@ function SignupForm() {
               </button>
             </div>
           )}
+
+          {/* Social sign-up — joins with the role selected above */}
+          <SocialAuthButtons role={role} />
+          <div className="flex items-center gap-4 my-7">
+            <span className="flex-1 h-px bg-black/20" />
+            <span className="text-xs uppercase tracking-widest text-black/40">or</span>
+            <span className="flex-1 h-px bg-black/20" />
+          </div>
 
           {/* Method tabs */}
           <div className="flex border border-black mb-8">

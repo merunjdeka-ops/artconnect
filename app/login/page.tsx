@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
+import SocialAuthButtons from "@/app/components/SocialAuthButtons";
 
 type Tab = "email" | "phone";
 type PhoneStep = "enter" | "verify";
@@ -99,6 +100,14 @@ export default function LoginPage() {
 
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-3">Welcome back</p>
           <h2 className="text-4xl font-black uppercase leading-none mb-8">Log<br />In</h2>
+
+          {/* Social sign-in */}
+          <SocialAuthButtons />
+          <div className="flex items-center gap-4 my-7">
+            <span className="flex-1 h-px bg-black/20" />
+            <span className="text-xs uppercase tracking-widest text-black/40">or</span>
+            <span className="flex-1 h-px bg-black/20" />
+          </div>
 
           {/* Method tabs */}
           <div className="flex border border-black mb-8">
