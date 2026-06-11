@@ -5,19 +5,27 @@ type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const fallback: Metadata = { title: "Artist — goArtConnect" };
 
-  const { data: artist } = await supabase
-    .from("profiles")
-    .select("full_name, category, location, bio, avatar_url")
-    .eq("id", id)
-    .single();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Metadata must never take the page down — fall back to a generic title
+  if (!url || !key) return fallback;
+
+  let artist;
+  try {
+    const supabase = createClient(url, key);
+    ({ data: artist } = await supabase
+      .from("profiles")
+      .select("full_name, category, location, bio, avatar_url")
+      .eq("id", id)
+      .single());
+  } catch {
+    return fallback;
+  }
 
   if (!artist) {
-    return { title: "Artist — goArtConnect" };
+    return fallback;
   }
 
   const name = artist.full_name ?? "Artist";
