@@ -48,6 +48,9 @@ export default function BookingsPage() {
   const [userId, setUserId] = useState("");
   const [acting, setActing] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "pending" | "accepted" | "declined" | "expired">("all");
+  const [cancelModal, setCancelModal] = useState<Booking | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelStatus, setCancelStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   useEffect(() => {
     async function load() {
@@ -136,6 +139,33 @@ export default function BookingsPage() {
     }
   }
 
+  async function submitCancelRequest() {
+    if (!cancelModal || !cancelReason.trim()) return;
+    setCancelStatus("sending");
+    try {
+      const supabase = getSupabase();
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/cancel-request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ bookingId: cancelModal.id, reason: cancelReason.trim() }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      setCancelStatus("sent");
+    } catch {
+      setCancelStatus("error");
+    }
+  }
+
+  function openCancelModal(booking: Booking) {
+    setCancelModal(booking);
+    setCancelReason("");
+    setCancelStatus("idle");
+  }
+
   const filtered = filter === "all"
     ? bookings
     : filter === "expired"
@@ -202,16 +232,6 @@ export default function BookingsPage() {
             {filtered.map(booking => {
               const expired = isExpired(booking);
               const displayStatus = expired ? "expired" : booking.status;
-              const cancelSubject = encodeURIComponent(`Cancellation Request — Booking #${booking.id.slice(0, 8).toUpperCase()}`);
-              const cancelBody = encodeURIComponent(
-                `Hello goArtConnect Support,\n\nI would like to request a cancellation for the following booking:\n\n` +
-                `Booking ID: ${booking.id}\n` +
-                `${role === "artist" ? "Client" : "Artist"}: ${booking.other_name}\n` +
-                `Date: ${booking.event_date ? new Date(booking.event_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "TBD"}\n` +
-                (booking.package_name ? `Package: ${booking.package_name}\n` : "") +
-                (booking.package_price ? `Price: €${booking.package_price}\n` : "") +
-                `\nReason for cancellation:\n[Please describe your reason here]\n\nThank you.`
-              );
               return (
                 <div key={booking.id} className={`bg-[#F2EDE4] p-6 ${expired ? "opacity-60" : ""}`}>
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -305,12 +325,12 @@ export default function BookingsPage() {
 
                       {/* Both parties: cancellation request on accepted bookings */}
                       {booking.status === "accepted" && (
-                        <a
-                          href={`mailto:goartconnect@gmail.com?subject=${cancelSubject}&body=${cancelBody}`}
+                        <button
+                          onClick={() => openCancelModal(booking)}
                           className="px-5 py-3 border border-black/30 text-xs font-bold uppercase tracking-widest text-black/50 hover:border-[#E5000F] hover:text-[#E5000F] transition-colors whitespace-nowrap text-center"
                         >
                           Request Cancellation
-                        </a>
+                        </button>
                       )}
 
                       {/* Client: link to artist profile */}
@@ -330,6 +350,72 @@ export default function BookingsPage() {
           </div>
         )}
       </div>
+
+      {/* Cancellation request modal */}
+      {cancelModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-4"
+          onClick={() => cancelStatus !== "sending" && setCancelModal(null)}
+        >
+          <div className="bg-[#F2EDE4] border border-black max-w-md w-full p-8" onClick={e => e.stopPropagation()}>
+            {cancelStatus === "sent" ? (
+              <div className="text-center py-4">
+                <p className="font-black uppercase text-green-700 text-lg mb-2">Request Sent</p>
+                <p className="text-sm text-black/60 mb-6">Our team will review your cancellation request and get back to you by email.</p>
+                <button
+                  onClick={() => setCancelModal(null)}
+                  className="px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-2">Cancellation Request</p>
+                <h3 className="text-2xl font-black uppercase leading-none mb-4">
+                  Booking #{cancelModal.id.slice(0, 8).toUpperCase()}
+                </h3>
+                <p className="text-sm text-black/60 mb-1">
+                  {role === "artist" ? "Client" : "Artist"}: <strong>{cancelModal.other_name}</strong>
+                </p>
+                <p className="text-sm text-black/60 mb-5">
+                  Date: <strong>{cancelModal.event_date ? new Date(cancelModal.event_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "TBD"}</strong>
+                </p>
+                <label className="block text-xs font-bold uppercase tracking-widest text-black/50 mb-2">
+                  Reason for cancellation *
+                </label>
+                <textarea
+                  value={cancelReason}
+                  onChange={e => setCancelReason(e.target.value)}
+                  maxLength={2000}
+                  rows={4}
+                  placeholder="Please describe why you need to cancel this booking..."
+                  className="w-full border border-black bg-white px-4 py-3 text-sm focus:border-[#E5000F] mb-2 resize-none"
+                />
+                {cancelStatus === "error" && (
+                  <p className="text-xs text-[#E5000F] uppercase tracking-widest mb-2">Failed to send. Please try again.</p>
+                )}
+                <div className="flex gap-3 mt-3">
+                  <button
+                    onClick={submitCancelRequest}
+                    disabled={cancelStatus === "sending" || !cancelReason.trim()}
+                    className="flex-1 px-6 py-3 bg-[#E5000F] text-white text-xs font-bold uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-50"
+                  >
+                    {cancelStatus === "sending" ? "Sending..." : "Send Request"}
+                  </button>
+                  <button
+                    onClick={() => setCancelModal(null)}
+                    disabled={cancelStatus === "sending"}
+                    className="px-6 py-3 border border-black text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <footer className="px-8 py-6 flex items-center justify-between border-t border-black mt-12">
         <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span></span>
