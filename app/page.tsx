@@ -58,7 +58,7 @@ export default function Home() {
       {/* NAVBAR — auth-aware */}
       <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
         <Link href="/" className="text-xl font-black tracking-tight leading-none">
-          <span className="text-[#E5000F]" style={{fontFamily:"Downtown,Georgia,serif", fontWeight:"normal", fontStyle:"italic"}}>go</span><span className="uppercase">ARTCONNECT</span>
+          <span className="text-[#E5000F]" style={{fontFamily:"Downtown,Georgia,serif", fontWeight:"bold", fontStyle:"italic"}}>go</span><span className="uppercase">ARTCONNECT</span>
         </Link>
         <div className="flex items-center gap-6">
           {authChecked && userName !== null ? (
@@ -164,7 +164,7 @@ export default function Home() {
 
       {/* FOOTER */}
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black">
-        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"Downtown,Georgia,serif", fontWeight:"normal", fontStyle:"italic"}}>go</span><span className="uppercase">ARTCONNECT</span></span>
+        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"Downtown,Georgia,serif", fontWeight:"bold", fontStyle:"italic"}}>go</span><span className="uppercase">ARTCONNECT</span></span>
         <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
           <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>
           <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
@@ -187,6 +187,7 @@ export default function Home() {
     </main>
   );
 }
+
 
 
 
