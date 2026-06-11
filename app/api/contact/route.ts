@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "The Local Art Hub <onboarding@resend.dev>",
+        from: "The Local Art Hub <noreply@thelocalarthub.com>",
         to: ["goartconnect@gmail.com"],
         reply_to: raw.email,
         subject: `[Contact] ${raw.subject || "New message from " + raw.name}`,
@@ -104,6 +104,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Server error." }, { status: 500 });
   }
 }
+
 
 
 

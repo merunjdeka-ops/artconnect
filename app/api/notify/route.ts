@@ -304,7 +304,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "The Local Art Hub <onboarding@resend.dev>",
+        from: "The Local Art Hub <noreply@thelocalarthub.com>",
         to: [to],
         subject,
         html,
@@ -323,6 +323,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
 
 
 

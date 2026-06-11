@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "The Local Art Hub <onboarding@resend.dev>",
+        from: "The Local Art Hub <noreply@thelocalarthub.com>",
         to: ["goartconnect@gmail.com"],
         reply_to: user.email,
         subject: `Cancellation Request — Booking #${String(booking.id).slice(0, 8).toUpperCase()}`,
@@ -142,4 +142,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
+
 
