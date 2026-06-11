@@ -8,6 +8,7 @@ export const PRIVACY_EMAIL = "goartconnect@gmail.com";
 export const LEGAL_EMAIL   = "goartconnect@gmail.com";
 export const DMCA_EMAIL    = "goartconnect@gmail.com";
 
-export const SITE_URL = "https://www.goartconnect.com";
+export const SITE_URL = "https://www.thelocalarthub.com";
+
 
 

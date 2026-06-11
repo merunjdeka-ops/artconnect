@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title,
       description,
-      url: `https://goartconnect.com/artists/${id}`,
+      url: `https://thelocalarthub.com/artists/${id}`,
       siteName: "The Local Art Hub",
       images: artist.avatar_url ? [{ url: artist.avatar_url }] : [],
       type: "profile",

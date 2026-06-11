@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     template: "%s | The Local Art Hub",
   },
   description: "Discover and book local artists in Italy — photographers, musicians, makeup artists, painters and more. Find the perfect artist for your event on The Local Art Hub.",
-  metadataBase: new URL("https://goartconnect.com"),
+  metadataBase: new URL("https://thelocalarthub.com"),
   openGraph: {
     siteName: "The Local Art Hub",
     locale: "en_US",
@@ -55,5 +55,6 @@ export default function RootLayout({
     </html>
   );
 }
+
 
 

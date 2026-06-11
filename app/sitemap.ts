@@ -5,8 +5,8 @@ import { createClient } from "@supabase/supabase-js";
 export const revalidate = 3600;
 
 const BASE_URLS: MetadataRoute.Sitemap = [
-  { url: "https://goartconnect.com", lastModified: new Date(), changeFrequency: "daily", priority: 1 },
-  { url: "https://goartconnect.com/artists", lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
+  { url: "https://thelocalarthub.com", lastModified: new Date(), changeFrequency: "daily", priority: 1 },
+  { url: "https://thelocalarthub.com/artists", lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -24,7 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .eq("is_deactivated", false);
 
     const artistUrls: MetadataRoute.Sitemap = (artists ?? []).map((a) => ({
-      url: `https://goartconnect.com/artists/${a.id}`,
+      url: `https://thelocalarthub.com/artists/${a.id}`,
       lastModified: new Date(a.updated_at ?? Date.now()),
       changeFrequency: "weekly",
       priority: 0.8,
@@ -35,3 +35,4 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return BASE_URLS;
   }
 }
+

@@ -71,7 +71,7 @@ function bookingRequestHtml(artistName: string, clientName: string, date: string
 
               <p style="margin:0 0 32px;font-size:14px;color:#555;line-height:1.6;">Log in to your dashboard on The Local Art Hub to review and respond to this booking request.</p>
 
-              <a href="https://goartconnect.com/dashboard" style="display:inline-block;background:#000;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;padding:14px 28px;text-decoration:none;">View Dashboard</a>
+              <a href="https://thelocalarthub.com/dashboard" style="display:inline-block;background:#000;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;padding:14px 28px;text-decoration:none;">View Dashboard</a>
             </td>
           </tr>
           <tr>
@@ -166,7 +166,7 @@ function bookingAcceptedHtml(
                 Questions? Reply to this email or contact ${artistName} directly through your dashboard on The Local Art Hub.
               </p>
 
-              <a href="https://goartconnect.com/dashboard" style="display:inline-block;background:#E5000F;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;padding:16px 32px;text-decoration:none;">View My Bookings</a>
+              <a href="https://thelocalarthub.com/dashboard" style="display:inline-block;background:#E5000F;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;padding:16px 32px;text-decoration:none;">View My Bookings</a>
             </td>
           </tr>
           <tr>
@@ -224,7 +224,7 @@ function bookingDeclinedHtml(artistName: string, clientName: string, date: strin
                 Unfortunately, ${artistName} is unable to take your booking at this time. Browse other talented artists on The Local Art Hub and find the perfect match for your project.
               </p>
 
-              <a href="https://goartconnect.com/artists" style="display:inline-block;background:#000;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;padding:14px 28px;text-decoration:none;">Browse Artists</a>
+              <a href="https://thelocalarthub.com/artists" style="display:inline-block;background:#000;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;padding:14px 28px;text-decoration:none;">Browse Artists</a>
             </td>
           </tr>
           <tr>
@@ -323,5 +323,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
 
 

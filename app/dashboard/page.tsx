@@ -357,11 +357,11 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-2 shrink-0">
           <div className="flex items-center border border-black bg-white overflow-hidden">
             <span className="px-4 py-3 text-xs text-black/40 font-mono border-r border-black select-all whitespace-nowrap">
-              goartconnect.com/artists
+              thelocalarthub.com/artists
             </span>
             <button
               onClick={() => {
-                navigator.clipboard.writeText("https://goartconnect.com/artists").then(() => {
+                navigator.clipboard.writeText("https://thelocalarthub.com/artists").then(() => {
                   setInviteCopied(true);
                   setTimeout(() => setInviteCopied(false), 2500);
                 });
@@ -372,7 +372,7 @@ export default function DashboardPage() {
             </button>
           </div>
           <a
-            href={`mailto:?subject=Join me on The Local Art Hub&body=Hey! I found this platform for local artists in Italy — you can sign up and get bookings from clients. Check it out: https://goartconnect.com`}
+            href={`mailto:?subject=Join me on The Local Art Hub&body=Hey! I found this platform for local artists in Italy — you can sign up and get bookings from clients. Check it out: https://thelocalarthub.com`}
             className="text-center text-xs font-bold uppercase tracking-widest border border-black px-5 py-3 hover:bg-black hover:text-white transition-colors"
           >
             ✉ Invite via Email
@@ -541,6 +541,7 @@ export default function DashboardPage() {
     </main>
   );
 }
+
 
 
 

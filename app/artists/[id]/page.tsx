@@ -112,7 +112,7 @@ export default function ArtistProfilePage() {
   const [shareCopied, setShareCopied] = useState(false);
 
   function handleShare() {
-    const url = `https://goartconnect.com/artists/${id}`;
+    const url = `https://thelocalarthub.com/artists/${id}`;
     if (typeof navigator !== "undefined" && navigator.share) {
       navigator.share({ title: artist?.full_name ?? "Artist", url }).catch(() => {});
     } else {

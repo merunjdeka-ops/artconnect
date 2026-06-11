@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
           </tr>
           <tr>
             <td style="background:#000;padding:16px 32px;text-align:center;">
-              <span style="color:#666;font-size:11px;text-transform:uppercase;letter-spacing:0.15em;">goartconnect.com</span>
+              <span style="color:#666;font-size:11px;text-transform:uppercase;letter-spacing:0.15em;">thelocalarthub.com</span>
             </td>
           </tr>
         </table>
@@ -104,6 +104,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Server error." }, { status: 500 });
   }
 }
+
 
 
 
