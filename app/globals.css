@@ -233,3 +233,12 @@ input:focus, textarea:focus, select:focus {
   font-style: normal;
   font-display: swap;
 }
+
+
+@font-face {
+  font-family: "Downtown";
+  src: url("/fonts/Downtown.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
