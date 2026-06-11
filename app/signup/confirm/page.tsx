@@ -4,7 +4,7 @@ export default function ConfirmPage() {
   return (
     <main className="min-h-screen bg-[#F2EDE4] text-black font-sans flex flex-col">
       <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
-        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F] italic">go</span><span className="uppercase">ARTCONNECT</span></Link>
+        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F]">go</span><span className="uppercase">ARTCONNECT</span></Link>
       </nav>
 
       <div className="flex flex-1 items-center justify-center px-6 py-16">
@@ -26,4 +26,5 @@ export default function ConfirmPage() {
     </main>
   );
 }
+
 
