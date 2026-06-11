@@ -224,3 +224,12 @@ input:focus, textarea:focus, select:focus {
   outline: 2px solid var(--red);
   outline-offset: 2px;
 }
+
+
+@font-face {
+  font-family: "Mallia";
+  src: url("/fonts/Mallia.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
