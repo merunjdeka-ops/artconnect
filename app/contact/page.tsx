@@ -46,7 +46,7 @@ export default function ContactPage() {
     <main className="min-h-screen bg-[#F2EDE4] font-sans text-black">
       {/* Navbar */}
       <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
-        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F] font-normal italic">go</span><span className="uppercase">ARTCONNECT</span></Link>
+        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"Priestacy,Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span></Link>
         <div className="flex items-center gap-6">
           <Link href="/artists" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Browse Artists</Link>
           <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
@@ -166,7 +166,7 @@ export default function ContactPage() {
 
       {/* Footer */}
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black mt-10">
-        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F] font-normal italic">go</span><span className="uppercase">ARTCONNECT</span></span>
+        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"Priestacy,Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span></span>
         <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
           <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>
           <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
@@ -177,6 +177,7 @@ export default function ContactPage() {
     </main>
   );
 }
+
 
 
 

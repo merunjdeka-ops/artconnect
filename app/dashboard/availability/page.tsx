@@ -232,7 +232,7 @@ export default function AvailabilityPage() {
       </div>
 
       <footer className="px-8 py-6 flex items-center justify-between border-t border-black mt-12">
-        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F] font-normal italic">go</span><span className="uppercase">ARTCONNECT</span></span>
+        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"Priestacy,Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span></span>
         <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
           <Link href="/terms" className="hover:text-black">Terms</Link>
           <Link href="/privacy" className="hover:text-black">Privacy</Link>
@@ -384,6 +384,7 @@ function EditForm({
     </div>
   );
 }
+
 
 
 
