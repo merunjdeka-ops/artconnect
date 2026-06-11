@@ -109,10 +109,13 @@ export default function BookingsPage() {
 
       // Send email notification to client
       if (booking.other_email) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
         fetch("/api/notify", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
           body: JSON.stringify({
             type: status === "accepted" ? "booking_accepted" : "booking_declined",
             to: booking.other_email,
@@ -329,7 +332,7 @@ export default function BookingsPage() {
       </div>
 
       <footer className="px-8 py-6 flex items-center justify-between border-t border-black mt-12">
-        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"Downtown,Georgia,serif", fontWeight:"bold", fontStyle:"italic"}}>go</span><span className="uppercase">ARTCONNECT</span></span>
+        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span></span>
         <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
           <Link href="/terms" className="hover:text-black">Terms</Link>
           <Link href="/privacy" className="hover:text-black">Privacy</Link>
@@ -338,6 +341,7 @@ export default function BookingsPage() {
     </main>
   );
 }
+
 
 
 

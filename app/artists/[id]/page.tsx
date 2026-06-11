@@ -248,9 +248,13 @@ export default function ArtistProfilePage() {
 
       // Fire-and-forget email notification to artist
       if (artist?.email) {
+        const { data: { session } } = await supabase.auth.getSession();
         fetch("/api/notify", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
           body: JSON.stringify({
             type: "booking_request",
             to: artist.email,
@@ -312,7 +316,7 @@ export default function ArtistProfilePage() {
         {/* Floating navbar */}
         <nav className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-8 py-5 bg-gradient-to-b from-black/60 to-transparent">
           <Link href="/" className="text-xl font-black tracking-tight leading-none text-white drop-shadow">
-            <span className="text-[#E5000F]" style={{fontFamily:"Purgatory,Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span>
+            <span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span>
           </Link>
           <div className="flex items-center gap-6">
             <Link href="/artists" className="text-sm font-medium uppercase tracking-widest text-white/80 hover:text-white transition-colors drop-shadow">← All Artists</Link>
@@ -901,7 +905,7 @@ export default function ArtistProfilePage() {
 
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black">
         <span className="text-sm font-black tracking-tight leading-none">
-          <span className="text-[#E5000F]" style={{fontFamily:"Purgatory,Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span>
+          <span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span>
         </span>
         <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
           <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>

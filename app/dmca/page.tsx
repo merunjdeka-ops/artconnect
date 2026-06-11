@@ -10,7 +10,7 @@ export default function DmcaPage() {
   return (
     <main className="min-h-screen bg-[#F2EDE4] text-black font-sans">
       <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
-        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"Downtown,Georgia,serif", fontWeight:"bold", fontStyle:"italic"}}>go</span><span className="uppercase">ARTCONNECT</span></Link>
+        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span></Link>
         <div className="flex items-center gap-6">
           <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
           <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors">Join Now</Link>
@@ -20,13 +20,14 @@ export default function DmcaPage() {
       <div className="max-w-3xl mx-auto px-8 py-20">
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-4">Legal</p>
         <h1 className="text-5xl font-black uppercase leading-none mb-4">DMCA<br />Policy</h1>
-        <p className="text-sm text-black/50 mb-12">Last updated: June 6, 2026</p>
+        <p className="text-sm text-black/50 mb-12">Last updated: June 11, 2026</p>
 
         <div className="flex flex-col gap-10 text-sm leading-relaxed text-black/80">
 
           <section>
             <h2 className="text-lg font-black uppercase mb-3 text-black">Overview</h2>
-            <p>goArtConnect respects the intellectual property rights of others and expects all users of our Platform to do the same. In accordance with the Digital Millennium Copyright Act of 1998 ("DMCA"), we will respond promptly to claims of copyright infringement that are reported to our designated copyright agent.</p>
+            <p className="mb-3">goArtConnect respects the intellectual property rights of others and expects all users of our Platform to do the same. We will respond promptly to claims of copyright infringement that are reported to our designated copyright agent.</p>
+            <p>As a platform operated in the European Union, copyright complaints are handled in accordance with <strong>EU Directive 2019/790 on Copyright in the Digital Single Market</strong> and the <strong>Italian Copyright Law (Law no. 633/1941)</strong>. We additionally honor takedown notices that follow the format of the U.S. Digital Millennium Copyright Act ("DMCA"), described below, as it provides a clear and widely understood procedure for rights holders anywhere in the world.</p>
           </section>
 
           <section>
@@ -101,7 +102,7 @@ export default function DmcaPage() {
       </div>
 
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black mt-10">
-        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"Downtown,Georgia,serif", fontWeight:"bold", fontStyle:"italic"}}>go</span><span className="uppercase">ARTCONNECT</span></span>
+        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span></span>
         <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
           <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>
           <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
@@ -112,6 +113,7 @@ export default function DmcaPage() {
     </main>
   );
 }
+
 
 
 

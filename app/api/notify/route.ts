@@ -1,4 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+// Escape user-supplied values before interpolating into email HTML (prevents HTML/script injection)
+function esc(value: string | number | undefined | null): string {
+  if (value === undefined || value === null) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 type NotifyPayload = {
   type: "booking_request" | "booking_accepted" | "booking_declined";
@@ -230,8 +242,32 @@ function bookingDeclinedHtml(artistName: string, clientName: string, date: strin
 
 export async function POST(req: NextRequest) {
   try {
+    // Require a valid logged-in Supabase session — prevents anonymous abuse of this endpoint
+    const authHeader = req.headers.get("authorization");
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body: NotifyPayload = await req.json();
-    const { type, to, artistName = "", clientName = "", date = "", message = "", packageName, packagePrice, durationHours, otherPhone } = body;
+    const { type, to } = body;
+    // Escape all user-supplied values before they reach the HTML templates
+    const artistName = esc(body.artistName);
+    const clientName = esc(body.clientName);
+    const date = esc(body.date);
+    const message = esc(body.message);
+    const packageName = body.packageName ? esc(body.packageName) : undefined;
+    const packagePrice = body.packagePrice;
+    const durationHours = body.durationHours;
+    const otherPhone = body.otherPhone ? esc(body.otherPhone) : undefined;
 
     if (!type || !to) {
       return NextResponse.json({ error: "Missing required fields: type, to" }, { status: 400 });
@@ -246,10 +282,10 @@ export async function POST(req: NextRequest) {
     let html: string;
 
     if (type === "booking_request") {
-      subject = `New booking request from ${clientName} — goArtConnect`;
+      subject = `New booking request from ${body.clientName || "a client"} — goArtConnect`;
       html = bookingRequestHtml(artistName, clientName, date, message);
     } else if (type === "booking_accepted") {
-      subject = `✓ Booking confirmed with ${artistName} — goArtConnect`;
+      subject = `✓ Booking confirmed with ${body.artistName || "your artist"} — goArtConnect`;
       html = bookingAcceptedHtml(artistName, clientName, date, packageName, packagePrice, durationHours, otherPhone);
     } else if (type === "booking_declined") {
       subject = `Update on your booking request — goArtConnect`;

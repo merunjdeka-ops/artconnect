@@ -1,12 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Escape user-supplied values before interpolating into email HTML (prevents HTML/script injection)
+function esc(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, subject, message } = await req.json();
+    const raw = await req.json();
 
-    if (!name || !email || !message) {
+    if (!raw.name || !raw.email || !raw.message) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
+    if (!EMAIL_RE.test(String(raw.email)) || String(raw.email).length > 254) {
+      return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
+    }
+    if (String(raw.name).length > 100 || String(raw.message).length > 5000 || String(raw.subject || "").length > 200) {
+      return NextResponse.json({ error: "Input too long." }, { status: 400 });
+    }
+
+    const name = esc(raw.name);
+    const email = esc(raw.email);
+    const subject = esc(raw.subject);
+    const message = esc(raw.message);
 
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
@@ -64,8 +88,8 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         from: "goArtConnect <onboarding@resend.dev>",
         to: ["goartconnect@gmail.com"],
-        reply_to: email,
-        subject: `[Contact] ${subject || "New message from " + name}`,
+        reply_to: raw.email,
+        subject: `[Contact] ${raw.subject || "New message from " + raw.name}`,
         html,
       }),
     });

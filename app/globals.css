@@ -1,21 +1,5 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "Priestacy";
-  src: url("/fonts/Priestacy.otf") format("opentype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Purgatory";
-  src: url("/fonts/Purgatory.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
 :root {
   --background: #F2EDE4;
   --foreground: #000000;
@@ -226,19 +210,3 @@ input:focus, textarea:focus, select:focus {
 }
 
 
-@font-face {
-  font-family: "Mallia";
-  src: url("/fonts/Mallia.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-
-@font-face {
-  font-family: "Downtown";
-  src: url("/fonts/Downtown.otf") format("opentype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}

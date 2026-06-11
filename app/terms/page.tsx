@@ -10,7 +10,7 @@ export default function TermsPage() {
   return (
     <main className="min-h-screen bg-[#F2EDE4] text-black font-sans">
       <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
-        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"Downtown,Georgia,serif", fontWeight:"bold", fontStyle:"italic"}}>go</span><span className="uppercase">ARTCONNECT</span></Link>
+        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span></Link>
         <div className="flex items-center gap-6">
           <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
           <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors">Join Now</Link>
@@ -20,7 +20,7 @@ export default function TermsPage() {
       <div className="max-w-3xl mx-auto px-8 py-20">
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-4">Legal</p>
         <h1 className="text-5xl font-black uppercase leading-none mb-4">Terms of<br />Service</h1>
-        <p className="text-sm text-black/50 mb-12">Last updated: June 6, 2026</p>
+        <p className="text-sm text-black/50 mb-12">Last updated: June 11, 2026</p>
 
         <div className="flex flex-col gap-10 text-sm leading-relaxed text-black/80">
 
@@ -80,11 +80,22 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-black uppercase mb-3 text-black">7. Payments and Fees</h2>
-            <p>goArtConnect may charge fees for use of certain features or for transactions completed through the Platform. All applicable fees will be clearly disclosed before you incur them. We reserve the right to modify our fee structure at any time with reasonable notice to users. All transactions are subject to our payment processor's terms and conditions.</p>
+            <p className="mb-3">Use of the Platform is currently <strong>free of charge</strong> for both artists and clients. The Platform does not process payments: any payment for an artist's services is agreed and settled directly between the client and the artist, and the Platform is not a party to that transaction.</p>
+            <p>If we introduce paid features or transaction fees in the future, all applicable fees will be clearly disclosed before you incur them, and we will give registered users reasonable advance notice.</p>
           </section>
 
           <section>
-            <h2 className="text-lg font-black uppercase mb-3 text-black">8. Prohibited Conduct</h2>
+            <h2 className="text-lg font-black uppercase mb-3 text-black">8. Bookings and Cancellations</h2>
+            <p className="mb-3">A booking request becomes a confirmed booking only when the artist accepts it. Pending requests expire automatically one day after the requested event date has passed.</p>
+            <ul className="list-disc pl-5 flex flex-col gap-2">
+              <li>Either party may request the cancellation of a confirmed booking by contacting us through the "Request Cancellation" option or by email.</li>
+              <li>Because payment is settled directly between client and artist, any refund of amounts already paid is a matter between those parties. We encourage both sides to agree cancellation terms in advance.</li>
+              <li>Consumers in the EU retain all rights granted by the EU Consumer Rights Directive (2011/83/EU) and the Italian Consumer Code (Legislative Decree 206/2005) in their dealings with artists acting in the course of business.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-black uppercase mb-3 text-black">9. Prohibited Conduct</h2>
             <p className="mb-3">You agree not to:</p>
             <ul className="list-disc pl-5 flex flex-col gap-2">
               <li>Use the Platform for any illegal purpose</li>
@@ -99,27 +110,32 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-black uppercase mb-3 text-black">9. Disclaimers</h2>
+            <h2 className="text-lg font-black uppercase mb-3 text-black">10. Disclaimers</h2>
             <p>goArtConnect is provided on an "as is" and "as available" basis. We make no warranties, expressed or implied, regarding the Platform's reliability, availability, or fitness for a particular purpose. We do not guarantee the quality, safety, or legality of any artist's services, or the accuracy of any listing. Any disputes between clients and artists are solely between those parties.</p>
           </section>
 
           <section>
-            <h2 className="text-lg font-black uppercase mb-3 text-black">10. Limitation of Liability</h2>
+            <h2 className="text-lg font-black uppercase mb-3 text-black">11. Limitation of Liability</h2>
             <p>To the fullest extent permitted by law, goArtConnect shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Platform, including but not limited to loss of profits, data, or goodwill. Our total liability to you for any claim shall not exceed the amount you paid to goArtConnect in the three months preceding the claim.</p>
           </section>
 
           <section>
-            <h2 className="text-lg font-black uppercase mb-3 text-black">11. Termination</h2>
+            <h2 className="text-lg font-black uppercase mb-3 text-black">12. Termination</h2>
             <p>We reserve the right to suspend or terminate your account at any time, with or without notice, for conduct that we believe violates these Terms or is harmful to other users, us, third parties, or the public. You may delete your account at any time by contacting us.</p>
           </section>
 
           <section>
-            <h2 className="text-lg font-black uppercase mb-3 text-black">12. Changes to Terms</h2>
+            <h2 className="text-lg font-black uppercase mb-3 text-black">13. Changes to Terms</h2>
             <p>We may update these Terms from time to time. We will notify registered users of significant changes by email or by posting a notice on the Platform. Your continued use of the Platform after changes take effect constitutes your acceptance of the revised Terms.</p>
           </section>
 
           <section>
-            <h2 className="text-lg font-black uppercase mb-3 text-black">13. Contact</h2>
+            <h2 className="text-lg font-black uppercase mb-3 text-black">14. Governing Law and Jurisdiction</h2>
+            <p>These Terms are governed by Italian law. Any dispute arising out of or in connection with these Terms or the use of the Platform shall be subject to the jurisdiction of the Italian courts. If you are a consumer habitually resident in the European Union, you also enjoy the protection of the mandatory provisions of the law of your country of residence, and you may bring proceedings in the courts of that country. The European Commission's Online Dispute Resolution platform is available at <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="underline">ec.europa.eu/consumers/odr</a>.</p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-black uppercase mb-3 text-black">15. Contact</h2>
             <p>If you have any questions about these Terms, please contact us at <span className="text-black font-bold">{LEGAL_EMAIL}</span>.</p>
           </section>
 
@@ -127,7 +143,7 @@ export default function TermsPage() {
       </div>
 
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black mt-10">
-        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"Downtown,Georgia,serif", fontWeight:"bold", fontStyle:"italic"}}>go</span><span className="uppercase">ARTCONNECT</span></span>
+        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span></span>
         <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
           <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>
           <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
@@ -138,6 +154,7 @@ export default function TermsPage() {
     </main>
   );
 }
+
 
 
 
