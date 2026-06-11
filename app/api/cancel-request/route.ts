@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border:1px solid #000;background:#fff;">
         <tr><td style="background:#000;padding:24px 32px;">
-          <span style="color:#fff;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;">goArtConnect</span>
+          <span style="color:#fff;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;">The Local Art Hub</span>
         </td></tr>
         <tr><td style="background:#E5000F;padding:16px 32px;">
           <p style="margin:0;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:#fff;">Cancellation Request</p>
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "goArtConnect <onboarding@resend.dev>",
+        from: "The Local Art Hub <onboarding@resend.dev>",
         to: ["goartconnect@gmail.com"],
         reply_to: user.email,
         subject: `Cancellation Request — Booking #${String(booking.id).slice(0, 8).toUpperCase()}`,
@@ -142,3 +142,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
+

@@ -107,7 +107,7 @@ function CallbackInner() {
       {status === "choose-role" && (
         <div className="border border-black bg-white p-10 max-w-md w-full">
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-3">Almost there</p>
-          <h1 className="text-3xl font-black uppercase leading-none mb-2">How will you<br />use goArtConnect?</h1>
+          <h1 className="text-3xl font-black uppercase leading-none mb-2">How will you<br />use The Local Art Hub?</h1>
           <p className="text-sm text-black/50 mb-8">You can&apos;t change this later, so pick the one that fits.</p>
           <div className="flex flex-col gap-3">
             <button
@@ -145,3 +145,4 @@ export default function AuthCallbackPage() {
     </Suspense>
   );
 }
+

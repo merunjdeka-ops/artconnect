@@ -31,7 +31,7 @@ function bookingRequestHtml(artistName: string, clientName: string, date: string
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>New Booking Request — goArtConnect</title>
+  <title>New Booking Request — The Local Art Hub</title>
 </head>
 <body style="margin:0;padding:0;background:#F2EDE4;font-family:Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F2EDE4;padding:40px 0;">
@@ -40,7 +40,7 @@ function bookingRequestHtml(artistName: string, clientName: string, date: string
         <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border:1px solid #000;background:#ffffff;">
           <tr>
             <td style="background:#000;padding:24px 32px;">
-              <span style="color:#ffffff;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;">goArtConnect</span>
+              <span style="color:#ffffff;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;">The Local Art Hub</span>
             </td>
           </tr>
           <tr>
@@ -69,14 +69,14 @@ function bookingRequestHtml(artistName: string, clientName: string, date: string
                 </tr>` : ""}
               </table>
 
-              <p style="margin:0 0 32px;font-size:14px;color:#555;line-height:1.6;">Log in to your goArtConnect dashboard to review and respond to this booking request.</p>
+              <p style="margin:0 0 32px;font-size:14px;color:#555;line-height:1.6;">Log in to your dashboard on The Local Art Hub to review and respond to this booking request.</p>
 
               <a href="https://goartconnect.com/dashboard" style="display:inline-block;background:#000;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;padding:14px 28px;text-decoration:none;">View Dashboard</a>
             </td>
           </tr>
           <tr>
             <td style="padding:20px 32px;border-top:1px solid #000;background:#F2EDE4;">
-              <p style="margin:0;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.15em;">goArtConnect — Connecting Artists with the World</p>
+              <p style="margin:0;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.15em;">The Local Art Hub — Connecting Artists with the World</p>
             </td>
           </tr>
         </table>
@@ -96,7 +96,7 @@ function bookingAcceptedHtml(
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Booking Confirmed — goArtConnect</title>
+  <title>Booking Confirmed — The Local Art Hub</title>
 </head>
 <body style="margin:0;padding:0;background:#F2EDE4;font-family:Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F2EDE4;padding:40px 0;">
@@ -105,7 +105,7 @@ function bookingAcceptedHtml(
         <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border:1px solid #000;background:#ffffff;">
           <tr>
             <td style="background:#000;padding:24px 32px;">
-              <span style="color:#ffffff;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;">goArtConnect</span>
+              <span style="color:#ffffff;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;">The Local Art Hub</span>
             </td>
           </tr>
           <!-- Green confirmation banner -->
@@ -163,7 +163,7 @@ function bookingAcceptedHtml(
               </table>
 
               <p style="margin:0 0 32px;font-size:13px;color:#888;line-height:1.6;">
-                Questions? Reply to this email or contact ${artistName} directly through your goArtConnect dashboard.
+                Questions? Reply to this email or contact ${artistName} directly through your dashboard on The Local Art Hub.
               </p>
 
               <a href="https://goartconnect.com/dashboard" style="display:inline-block;background:#E5000F;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;padding:16px 32px;text-decoration:none;">View My Bookings</a>
@@ -171,7 +171,7 @@ function bookingAcceptedHtml(
           </tr>
           <tr>
             <td style="padding:20px 32px;border-top:1px solid #000;background:#F2EDE4;">
-              <p style="margin:0;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.15em;">goArtConnect — Connecting Artists with the World</p>
+              <p style="margin:0;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.15em;">The Local Art Hub — Connecting Artists with the World</p>
             </td>
           </tr>
         </table>
@@ -188,7 +188,7 @@ function bookingDeclinedHtml(artistName: string, clientName: string, date: strin
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Booking Declined — goArtConnect</title>
+  <title>Booking Declined — The Local Art Hub</title>
 </head>
 <body style="margin:0;padding:0;background:#F2EDE4;font-family:Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F2EDE4;padding:40px 0;">
@@ -197,7 +197,7 @@ function bookingDeclinedHtml(artistName: string, clientName: string, date: strin
         <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border:1px solid #000;background:#ffffff;">
           <tr>
             <td style="background:#000;padding:24px 32px;">
-              <span style="color:#ffffff;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;">goArtConnect</span>
+              <span style="color:#ffffff;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;">The Local Art Hub</span>
             </td>
           </tr>
           <tr>
@@ -221,7 +221,7 @@ function bookingDeclinedHtml(artistName: string, clientName: string, date: strin
               </table>
 
               <p style="margin:0 0 32px;font-size:14px;color:#555;line-height:1.6;">
-                Unfortunately, ${artistName} is unable to take your booking at this time. Browse other talented artists on goArtConnect and find the perfect match for your project.
+                Unfortunately, ${artistName} is unable to take your booking at this time. Browse other talented artists on The Local Art Hub and find the perfect match for your project.
               </p>
 
               <a href="https://goartconnect.com/artists" style="display:inline-block;background:#000;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;padding:14px 28px;text-decoration:none;">Browse Artists</a>
@@ -229,7 +229,7 @@ function bookingDeclinedHtml(artistName: string, clientName: string, date: strin
           </tr>
           <tr>
             <td style="padding:20px 32px;border-top:1px solid #000;background:#F2EDE4;">
-              <p style="margin:0;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.15em;">goArtConnect — Connecting Artists with the World</p>
+              <p style="margin:0;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.15em;">The Local Art Hub — Connecting Artists with the World</p>
             </td>
           </tr>
         </table>
@@ -285,13 +285,13 @@ export async function POST(req: NextRequest) {
     let html: string;
 
     if (type === "booking_request") {
-      subject = `New booking request from ${body.clientName || "a client"} — goArtConnect`;
+      subject = `New booking request from ${body.clientName || "a client"} — The Local Art Hub`;
       html = bookingRequestHtml(artistName, clientName, date, message);
     } else if (type === "booking_accepted") {
-      subject = `✓ Booking confirmed with ${body.artistName || "your artist"} — goArtConnect`;
+      subject = `✓ Booking confirmed with ${body.artistName || "your artist"} — The Local Art Hub`;
       html = bookingAcceptedHtml(artistName, clientName, date, packageName, packagePrice, durationHours, otherPhone);
     } else if (type === "booking_declined") {
-      subject = `Update on your booking request — goArtConnect`;
+      subject = `Update on your booking request — The Local Art Hub`;
       html = bookingDeclinedHtml(artistName, clientName, date);
     } else {
       return NextResponse.json({ error: "Invalid notification type" }, { status: 400 });
@@ -304,7 +304,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "goArtConnect <onboarding@resend.dev>",
+        from: "The Local Art Hub <onboarding@resend.dev>",
         to: [to],
         subject,
         html,
@@ -323,4 +323,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
 

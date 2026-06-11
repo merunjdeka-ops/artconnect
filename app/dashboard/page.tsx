@@ -352,7 +352,7 @@ export default function DashboardPage() {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-1">Grow the Community</p>
           <h2 className="text-xl font-black uppercase leading-tight mb-1">Invite an Artist</h2>
-          <p className="text-sm text-black/50">Share goArtConnect with a fellow artist — help them get discovered by clients across Italy.</p>
+          <p className="text-sm text-black/50">Share The Local Art Hub with a fellow artist — help them get discovered by clients across Italy.</p>
         </div>
         <div className="flex flex-col gap-2 shrink-0">
           <div className="flex items-center border border-black bg-white overflow-hidden">
@@ -372,7 +372,7 @@ export default function DashboardPage() {
             </button>
           </div>
           <a
-            href={`mailto:?subject=Join me on goArtConnect&body=Hey! I found this platform for local artists in Italy — you can sign up and get bookings from clients. Check it out: https://goartconnect.com`}
+            href={`mailto:?subject=Join me on The Local Art Hub&body=Hey! I found this platform for local artists in Italy — you can sign up and get bookings from clients. Check it out: https://goartconnect.com`}
             className="text-center text-xs font-bold uppercase tracking-widest border border-black px-5 py-3 hover:bg-black hover:text-white transition-colors"
           >
             ✉ Invite via Email
@@ -519,7 +519,7 @@ export default function DashboardPage() {
       )}
 
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black mt-10">
-        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span></span>
+        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>the</span><span className="uppercase"> Local Art Hub</span></span>
         <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
           <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>
           <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
@@ -541,6 +541,7 @@ export default function DashboardPage() {
     </main>
   );
 }
+
 
 
 

@@ -5,7 +5,7 @@ type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const fallback: Metadata = { title: "Artist — goArtConnect" };
+  const fallback: Metadata = { title: "Artist — The Local Art Hub" };
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -31,10 +31,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const name = artist.full_name ?? "Artist";
   const cat = artist.category ?? "Artist";
   const loc = artist.location ?? "Italy";
-  const title = `${name} — ${cat} in ${loc} | goArtConnect`;
+  const title = `${name} — ${cat} in ${loc} | The Local Art Hub`;
   const description =
     artist.bio?.replace(/<[^>]+>/g, "").slice(0, 155) ||
-    `Book ${name}, a ${cat} based in ${loc}. View portfolio and request a booking on goArtConnect.`;
+    `Book ${name}, a ${cat} based in ${loc}. View portfolio and request a booking on The Local Art Hub.`;
 
   return {
     title,
@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       url: `https://goartconnect.com/artists/${id}`,
-      siteName: "goArtConnect",
+      siteName: "The Local Art Hub",
       images: artist.avatar_url ? [{ url: artist.avatar_url }] : [],
       type: "profile",
     },

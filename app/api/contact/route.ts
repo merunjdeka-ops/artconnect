@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border:1px solid #000;background:#fff;">
           <tr>
             <td style="background:#000;padding:24px 32px;">
-              <span style="color:#fff;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;">goArtConnect</span>
+              <span style="color:#fff;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;">The Local Art Hub</span>
             </td>
           </tr>
           <tr>
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "goArtConnect <onboarding@resend.dev>",
+        from: "The Local Art Hub <onboarding@resend.dev>",
         to: ["goartconnect@gmail.com"],
         reply_to: raw.email,
         subject: `[Contact] ${raw.subject || "New message from " + raw.name}`,
@@ -104,5 +104,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Server error." }, { status: 500 });
   }
 }
+
 
 

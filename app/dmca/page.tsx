@@ -2,15 +2,15 @@ import Link from "next/link";
 import { DMCA_EMAIL } from "@/lib/config";
 
 export const metadata = {
-  title: "DMCA Policy — goArtConnect",
-  description: "DMCA Copyright Policy for goArtConnect platform.",
+  title: "DMCA Policy — The Local Art Hub",
+  description: "DMCA Copyright Policy for The Local Art Hub platform.",
 };
 
 export default function DmcaPage() {
   return (
     <main className="min-h-screen bg-[#F2EDE4] text-black font-sans">
       <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
-        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span></Link>
+        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>the</span><span className="uppercase"> Local Art Hub</span></Link>
         <div className="flex items-center gap-6">
           <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
           <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors">Join Now</Link>
@@ -26,13 +26,13 @@ export default function DmcaPage() {
 
           <section>
             <h2 className="text-lg font-black uppercase mb-3 text-black">Overview</h2>
-            <p className="mb-3">goArtConnect respects the intellectual property rights of others and expects all users of our Platform to do the same. We will respond promptly to claims of copyright infringement that are reported to our designated copyright agent.</p>
+            <p className="mb-3">The Local Art Hub respects the intellectual property rights of others and expects all users of our Platform to do the same. We will respond promptly to claims of copyright infringement that are reported to our designated copyright agent.</p>
             <p>As a platform operated in the European Union, copyright complaints are handled in accordance with <strong>EU Directive 2019/790 on Copyright in the Digital Single Market</strong> and the <strong>Italian Copyright Law (Law no. 633/1941)</strong>. We additionally honor takedown notices that follow the format of the U.S. Digital Millennium Copyright Act ("DMCA"), described below, as it provides a clear and widely understood procedure for rights holders anywhere in the world.</p>
           </section>
 
           <section>
             <h2 className="text-lg font-black uppercase mb-3 text-black">1. Reporting Copyright Infringement</h2>
-            <p className="mb-3">If you believe that content hosted on goArtConnect infringes your copyright, please submit a written notice to our DMCA Agent containing all of the following information:</p>
+            <p className="mb-3">If you believe that content hosted on The Local Art Hub infringes your copyright, please submit a written notice to our DMCA Agent containing all of the following information:</p>
             <ul className="list-disc pl-5 flex flex-col gap-2">
               <li><strong>Your full legal name</strong> and contact information (email address, mailing address, and telephone number)</li>
               <li><strong>A description of the copyrighted work</strong> you claim has been infringed. If multiple works are covered by a single notification, provide a representative list.</li>
@@ -47,7 +47,7 @@ export default function DmcaPage() {
             <h2 className="text-lg font-black uppercase mb-3 text-black">2. Where to Send Notices</h2>
             <p className="mb-3">Send your DMCA notice to our designated agent:</p>
             <div className="border border-black p-6 bg-white">
-              <p className="font-bold uppercase tracking-widest text-xs mb-3">DMCA Agent — goArtConnect</p>
+              <p className="font-bold uppercase tracking-widest text-xs mb-3">DMCA Agent — The Local Art Hub</p>
               <p>Email: <span className="font-bold">{DMCA_EMAIL}</span></p>
               <p className="mt-1 text-black/50 text-xs">Please use the subject line: "DMCA Takedown Notice"</p>
             </div>
@@ -56,7 +56,7 @@ export default function DmcaPage() {
 
           <section>
             <h2 className="text-lg font-black uppercase mb-3 text-black">3. Our Response to Valid Notices</h2>
-            <p className="mb-3">Upon receipt of a valid DMCA takedown notice, goArtConnect will:</p>
+            <p className="mb-3">Upon receipt of a valid DMCA takedown notice, The Local Art Hub will:</p>
             <ul className="list-disc pl-5 flex flex-col gap-2">
               <li>Remove or disable access to the allegedly infringing content promptly</li>
               <li>Notify the user who uploaded the content that it has been removed</li>
@@ -72,7 +72,7 @@ export default function DmcaPage() {
               <li>Your full legal name, email address, mailing address, and telephone number</li>
               <li>Identification of the content that was removed and its location before removal</li>
               <li>A statement under penalty of perjury that you have a good faith belief the content was removed as a result of mistake or misidentification</li>
-              <li>A statement that you consent to the jurisdiction of the Federal District Court for the judicial district in which your address is located, or if outside the United States, any judicial district in which goArtConnect may be found</li>
+              <li>A statement that you consent to the jurisdiction of the Federal District Court for the judicial district in which your address is located, or if outside the United States, any judicial district in which The Local Art Hub may be found</li>
               <li>Your physical or electronic signature</li>
             </ul>
             <p className="mt-3">Upon receipt of a valid counter-notification, we will forward it to the original complainant. If we do not receive notice within 10 business days that the complainant has filed a court action, we may restore the removed content.</p>
@@ -80,7 +80,7 @@ export default function DmcaPage() {
 
           <section>
             <h2 className="text-lg font-black uppercase mb-3 text-black">5. Repeat Infringers</h2>
-            <p>goArtConnect has a strict policy against repeat copyright infringers. Users who are found to have repeatedly infringed on the intellectual property rights of others will have their accounts terminated. We reserve the right to terminate accounts of users who are subject to even a single DMCA notice in cases of egregious infringement.</p>
+            <p>The Local Art Hub has a strict policy against repeat copyright infringers. Users who are found to have repeatedly infringed on the intellectual property rights of others will have their accounts terminated. We reserve the right to terminate accounts of users who are subject to even a single DMCA notice in cases of egregious infringement.</p>
           </section>
 
           <section>
@@ -90,7 +90,7 @@ export default function DmcaPage() {
 
           <section>
             <h2 className="text-lg font-black uppercase mb-3 text-black">7. Music and Cover Songs</h2>
-            <p>goArtConnect is aware that musicians may wish to upload cover versions of copyrighted songs. Please note that performing or recording a cover song does not automatically grant you the right to distribute it. If you upload a cover song, you are responsible for ensuring you have obtained all necessary licenses (such as a mechanical license or synchronization license). goArtConnect does not provide licensing assistance and is not liable for unlicensed cover song uploads.</p>
+            <p>The Local Art Hub is aware that musicians may wish to upload cover versions of copyrighted songs. Please note that performing or recording a cover song does not automatically grant you the right to distribute it. If you upload a cover song, you are responsible for ensuring you have obtained all necessary licenses (such as a mechanical license or synchronization license). The Local Art Hub does not provide licensing assistance and is not liable for unlicensed cover song uploads.</p>
           </section>
 
           <section>
@@ -102,17 +102,18 @@ export default function DmcaPage() {
       </div>
 
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black mt-10">
-        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>go</span><span className="uppercase">ARTCONNECT</span></span>
+        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>the</span><span className="uppercase"> Local Art Hub</span></span>
         <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
           <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>
           <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
           <Link href="/dmca" className="hover:text-black transition-colors">DMCA</Link>
         </div>
-        <span className="text-xs text-black/40 uppercase tracking-widest">© 2026 goArtConnect.</span>
+        <span className="text-xs text-black/40 uppercase tracking-widest">© 2026 The Local Art Hub.</span>
       </footer>
     </main>
   );
 }
+
 
 
 

@@ -23,13 +23,13 @@ const mrDafoe = Mr_Dafoe({
 
 export const metadata: Metadata = {
   title: {
-    default: "goArtConnect — Book Local Artists in Italy",
-    template: "%s | goArtConnect",
+    default: "The Local Art Hub — Book Local Artists in Italy",
+    template: "%s | The Local Art Hub",
   },
-  description: "Discover and book local artists in Italy — photographers, musicians, makeup artists, painters and more. Find the perfect artist for your event on goArtConnect.",
+  description: "Discover and book local artists in Italy — photographers, musicians, makeup artists, painters and more. Find the perfect artist for your event on The Local Art Hub.",
   metadataBase: new URL("https://goartconnect.com"),
   openGraph: {
-    siteName: "goArtConnect",
+    siteName: "The Local Art Hub",
     locale: "en_US",
     type: "website",
   },
@@ -55,4 +55,5 @@ export default function RootLayout({
     </html>
   );
 }
+
 
