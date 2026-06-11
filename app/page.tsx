@@ -57,8 +57,8 @@ export default function Home() {
 
       {/* NAVBAR — auth-aware */}
       <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
-        <Link href="/" className="text-xl font-black tracking-tight uppercase">
-          ArtConnect
+        <Link href="/" className="text-xl font-black tracking-tight leading-none">
+          <span className="text-[#E5000F] italic">go</span><span className="uppercase">ARTCONNECT</span>
         </Link>
         <div className="flex items-center gap-6">
           {authChecked && userName !== null ? (
@@ -91,7 +91,7 @@ export default function Home() {
         </h1>
         <div className="flex flex-col md:flex-row gap-6 md:gap-16 mt-12 max-w-4xl fade-in-up fade-in-up-3">
           <p className="text-base text-black/60 max-w-sm leading-relaxed">
-            ArtConnect is a platform for every kind of creative — photographers, musicians,
+            goArtConnect is a platform for every kind of creative — photographers, musicians,
             makeup artists, painters, and more — to showcase their work, sell, and get booked.
           </p>
           <div className="flex gap-4 items-start">
@@ -164,7 +164,7 @@ export default function Home() {
 
       {/* FOOTER */}
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black">
-        <span className="text-sm font-black uppercase tracking-tight">ArtConnect</span>
+        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F] italic">go</span><span className="uppercase">ARTCONNECT</span></span>
         <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
           <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>
           <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
@@ -175,7 +175,7 @@ export default function Home() {
       </footer>
 
       <GuideButton
-        title="How ArtConnect Works"
+        title="How goArtConnect Works"
         steps={[
           { title: "Find an Artist", description: "Browse by category using the grid below, or click 'Browse All Artists' to see everyone on the platform." },
           { title: "Filter by Category", description: "Click any category card (Photography, Music, Makeup Artist, etc.) to jump straight to artists in that field." },
@@ -187,3 +187,4 @@ export default function Home() {
     </main>
   );
 }
+

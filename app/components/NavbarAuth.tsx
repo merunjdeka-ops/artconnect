@@ -26,7 +26,9 @@ export default function NavbarAuth({ userName }: { userName?: string }) {
 
   return (
     <nav className="flex items-center justify-between px-8 py-5 border-b border-black bg-[#F2EDE4]">
-      <Link href="/" className="text-xl font-black tracking-tight uppercase">ArtConnect</Link>
+      <Link href="/" className="text-xl font-black tracking-tight leading-none">
+        <span className="text-[#E5000F] italic">go</span><span className="uppercase">ARTCONNECT</span>
+      </Link>
       <div className="flex items-center gap-6">
         {navLink("/artists", "Browse")}
         {navLink("/dashboard", "Dashboard")}

@@ -14,8 +14,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ArtConnect",
-  description: "Discover and book local artists — photographers, musicians, makeup artists, painters and more.",
+  title: {
+    default: "goArtConnect — Book Local Artists in Italy",
+    template: "%s | goArtConnect",
+  },
+  description: "Discover and book local artists in Italy — photographers, musicians, makeup artists, painters and more. Find the perfect artist for your event on goArtConnect.",
+  metadataBase: new URL("https://goartconnect.com"),
+  openGraph: {
+    siteName: "goArtConnect",
+    locale: "en_US",
+    type: "website",
+  },
+  // Add your Google Search Console verification code below (get it from search.google.com/search-console)
+  // verification: { google: "YOUR_VERIFICATION_CODE_HERE" },
 };
 
 export default function RootLayout({
@@ -35,3 +46,4 @@ export default function RootLayout({
     </html>
   );
 }
+

@@ -6,6 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 import GuideButton from "@/app/components/GuideButton";
 
+function optimizeCloudinaryUrl(url: string, width: number): string {
+  if (!url || !url.includes("res.cloudinary.com")) return url;
+  return url.replace("/upload/", `/upload/w_${width},q_auto,f_auto,c_fill/`);
+}
+
 const HANDCRAFT_SUBCATEGORIES = [
   "Handcraft - Wood",
   "Handcraft - Paper & Origami",
@@ -219,7 +224,7 @@ function ArtistsPageInner() {
     <main className="min-h-screen bg-[#F2EDE4] font-sans">
       {/* NAVBAR */}
       <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
-        <Link href="/" className="text-xl font-black tracking-tight uppercase">ArtConnect</Link>
+        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F] italic">go</span><span className="uppercase">ARTCONNECT</span></Link>
         <div className="flex items-center gap-6">
           {loggedIn ? (
             <>
@@ -458,8 +463,9 @@ function ArtistsPageInner() {
                   <div className="relative overflow-hidden bg-black aspect-[4/3] mb-3">
                     {artist.avatar_url ? (
                       <img
-                        src={artist.avatar_url}
+                        src={optimizeCloudinaryUrl(artist.avatar_url, 600)}
                         alt={artist.full_name}
+                        loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     ) : (
@@ -496,7 +502,7 @@ function ArtistsPageInner() {
                       {/* Small avatar */}
                       <div className="w-8 h-8 flex-shrink-0 overflow-hidden rounded-full border border-black/20">
                         {artist.avatar_url ? (
-                          <img src={artist.avatar_url} alt="" className="w-full h-full object-cover" />
+                          <img src={optimizeCloudinaryUrl(artist.avatar_url, 64)} alt="" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full bg-black flex items-center justify-center">
                             <span className="text-white font-black text-xs">
@@ -523,7 +529,7 @@ function ArtistsPageInner() {
       </section>
 
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black mt-10">
-        <span className="text-sm font-black uppercase tracking-tight">ArtConnect</span>
+        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F] italic">go</span><span className="uppercase">ARTCONNECT</span></span>
         <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
           <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>
           <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
@@ -557,3 +563,5 @@ export default function ArtistsPage() {
     </Suspense>
   );
 }
+
+

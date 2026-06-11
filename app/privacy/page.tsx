@@ -2,15 +2,15 @@ import Link from "next/link";
 import { PRIVACY_EMAIL } from "@/lib/config";
 
 export const metadata = {
-  title: "Privacy Policy — ArtConnect",
-  description: "Privacy Policy for ArtConnect platform.",
+  title: "Privacy Policy — goArtConnect",
+  description: "Privacy Policy for goArtConnect platform.",
 };
 
 export default function PrivacyPage() {
   return (
     <main className="min-h-screen bg-[#F2EDE4] text-black font-sans">
       <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
-        <Link href="/" className="text-xl font-black tracking-tight uppercase">ArtConnect</Link>
+        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F] italic">go</span><span className="uppercase">ARTCONNECT</span></Link>
         <div className="flex items-center gap-6">
           <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
           <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors">Join Now</Link>
@@ -26,7 +26,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-black uppercase mb-3 text-black">1. Introduction</h2>
-            <p>ArtConnect ("we", "us", "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform. Please read this policy carefully. If you do not agree with its terms, please discontinue use of the Platform.</p>
+            <p>goArtConnect ("we", "us", "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform. Please read this policy carefully. If you do not agree with its terms, please discontinue use of the Platform.</p>
           </section>
 
           <section>
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-5 flex flex-col gap-2">
               <li><strong>With other users:</strong> Artist profile information is publicly visible. Booking details are shared between the relevant artist and client.</li>
               <li><strong>With service providers:</strong> We use third-party providers (such as Supabase for authentication and database, and payment processors) who process data on our behalf under strict confidentiality agreements.</li>
-              <li><strong>Legal requirements:</strong> We may disclose your information if required by law, court order, or to protect the rights and safety of ArtConnect or others.</li>
+              <li><strong>Legal requirements:</strong> We may disclose your information if required by law, court order, or to protect the rights and safety of goArtConnect or others.</li>
               <li><strong>Business transfers:</strong> In the event of a merger, acquisition, or sale of assets, your information may be transferred to the acquiring entity.</li>
             </ul>
           </section>
@@ -104,7 +104,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-black uppercase mb-3 text-black">9. Children's Privacy</h2>
-            <p>ArtConnect is not directed to individuals under the age of 18. We do not knowingly collect personal information from minors. If we become aware that a minor has provided us with personal information, we will delete it promptly.</p>
+            <p>goArtConnect is not directed to individuals under the age of 18. We do not knowingly collect personal information from minors. If we become aware that a minor has provided us with personal information, we will delete it promptly.</p>
           </section>
 
           <section>
@@ -121,14 +121,16 @@ export default function PrivacyPage() {
       </div>
 
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black mt-10">
-        <span className="text-sm font-black uppercase tracking-tight">ArtConnect</span>
+        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F] italic">go</span><span className="uppercase">ARTCONNECT</span></span>
         <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
           <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>
           <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
           <Link href="/dmca" className="hover:text-black transition-colors">DMCA</Link>
         </div>
-        <span className="text-xs text-black/40 uppercase tracking-widest">© 2026 ArtConnect.</span>
+        <span className="text-xs text-black/40 uppercase tracking-widest">© 2026 goArtConnect.</span>
       </footer>
     </main>
   );
 }
+
+
