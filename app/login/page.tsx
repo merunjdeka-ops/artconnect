@@ -87,7 +87,7 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-[#F2EDE4] text-black font-sans flex flex-col">
       <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
-        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F]">go</span><span className="uppercase">ARTCONNECT</span></Link>
+        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F] font-normal italic">go</span><span className="uppercase">ARTCONNECT</span></Link>
         <div className="flex items-center gap-6">
           <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
           <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2">Join Now</Link>
@@ -204,5 +204,6 @@ export default function LoginPage() {
     </main>
   );
 }
+
 
 

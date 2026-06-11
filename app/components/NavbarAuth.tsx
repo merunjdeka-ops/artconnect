@@ -27,7 +27,7 @@ export default function NavbarAuth({ userName }: { userName?: string }) {
   return (
     <nav className="flex items-center justify-between px-8 py-5 border-b border-black bg-[#F2EDE4]">
       <Link href="/" className="text-xl font-black tracking-tight leading-none">
-        <span className="text-[#E5000F]">go</span><span className="uppercase">ARTCONNECT</span>
+        <span className="text-[#E5000F] font-normal italic">go</span><span className="uppercase">ARTCONNECT</span>
       </Link>
       <div className="flex items-center gap-6">
         {navLink("/artists", "Browse")}
@@ -46,4 +46,5 @@ export default function NavbarAuth({ userName }: { userName?: string }) {
     </nav>
   );
 }
+
 
