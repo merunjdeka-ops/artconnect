@@ -8,7 +8,6 @@ import { getSupabase } from "@/lib/supabase";
 import { sanitizeCaption } from "@/lib/sanitize";
 import StarRating from "@/app/components/StarRating";
 import ReviewForm from "@/app/components/ReviewForm";
-import CommentSection from "@/app/components/CommentSection";
 
 type AvailabilityPeriod = {
   id: string;
@@ -96,6 +95,8 @@ type Review = {
   rating: number;
   comment: string | null;
   created_at: string;
+  artist_reply: string | null;
+  artist_reply_at: string | null;
   profiles: { full_name: string } | { full_name: string }[] | null;
 };
 
@@ -110,6 +111,10 @@ export default function ArtistProfilePage() {
   const [lightbox, setLightbox] = useState<{ url: string; title: string; index: number } | null>(null);
   const [storyOpen, setStoryOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [replySubmitting, setReplySubmitting] = useState(false);
+  const [replyError, setReplyError] = useState("");
 
   function handleShare() {
     const url = `https://thelocalarthub.com/artists/${id}`;
@@ -170,11 +175,32 @@ export default function ArtistProfilePage() {
     const supabase = getSupabase();
     const { data } = await supabase
       .from("reviews")
-      .select("id, client_id, rating, comment, created_at, profiles(full_name)")
+      .select("id, client_id, rating, comment, created_at, artist_reply, artist_reply_at, profiles(full_name)")
       .eq("artist_id", id)
       .order("created_at", { ascending: false });
     setReviews((data as Review[]) || []);
   }, [id]);
+
+  async function handleReply(reviewId: string) {
+    if (!replyText.trim()) return;
+    setReplySubmitting(true);
+    setReplyError("");
+    try {
+      const supabase = getSupabase();
+      const { error } = await supabase
+        .from("reviews")
+        .update({ artist_reply: replyText.trim(), artist_reply_at: new Date().toISOString() })
+        .eq("id", reviewId);
+      if (error) throw error;
+      setReplyingTo(null);
+      setReplyText("");
+      await fetchReviews();
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : "Failed to post reply.");
+    } finally {
+      setReplySubmitting(false);
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -581,22 +607,99 @@ export default function ArtistProfilePage() {
               <p className="text-sm text-black/40 uppercase tracking-widest">No reviews yet.</p>
             ) : (
               <div className="flex flex-col gap-px bg-black border border-black">
-                {reviews.map(review => (
-                  <div key={review.id} className="bg-[#F2EDE4] p-5">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <StarRating rating={review.rating} size="sm" />
-                        <span className="text-xs font-bold uppercase tracking-widest">
-                          {(Array.isArray(review.profiles) ? review.profiles[0]?.full_name : review.profiles?.full_name) ?? "Anonymous"}
-                        </span>
+                {reviews.map(review => {
+                  const clientName = (Array.isArray(review.profiles) ? review.profiles[0]?.full_name : review.profiles?.full_name) ?? "Anonymous";
+                  const isReplying = replyingTo === review.id;
+                  return (
+                    <div key={review.id} className="bg-[#F2EDE4]">
+                      {/* Review body */}
+                      <div className="p-5">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <StarRating rating={review.rating} size="sm" />
+                            <span className="text-xs font-bold uppercase tracking-widest">{clientName}</span>
+                          </div>
+                          <span className="text-xs text-black/30 uppercase tracking-widest">
+                            {new Date(review.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                          </span>
+                        </div>
+                        {review.comment && <p className="text-sm text-black/70 leading-relaxed mt-2">{review.comment}</p>}
+
+                        {/* Artist reply — show existing reply */}
+                        {review.artist_reply && !isReplying && (
+                          <div className="mt-4 ml-4 border-l-2 border-black pl-4">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-black uppercase tracking-widest">
+                                {artist.full_name?.split(" ")[0]} <span className="text-black/30 font-normal normal-case tracking-normal">replied</span>
+                              </span>
+                              <div className="flex items-center gap-3">
+                                {review.artist_reply_at && (
+                                  <span className="text-xs text-black/30 uppercase tracking-widest">
+                                    {new Date(review.artist_reply_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                                  </span>
+                                )}
+                                {isOwnProfile && (
+                                  <button
+                                    onClick={() => { setReplyingTo(review.id); setReplyText(review.artist_reply ?? ""); setReplyError(""); }}
+                                    className="text-xs text-black/40 uppercase tracking-widest hover:text-black transition-colors"
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-sm text-black/70 leading-relaxed">{review.artist_reply}</p>
+                          </div>
+                        )}
+
+                        {/* Artist reply button — only when viewing own profile and no reply yet */}
+                        {isOwnProfile && !review.artist_reply && !isReplying && (
+                          <button
+                            onClick={() => { setReplyingTo(review.id); setReplyText(""); setReplyError(""); }}
+                            className="mt-3 text-xs font-bold uppercase tracking-widest text-black/40 hover:text-black border border-black/20 hover:border-black px-4 py-1.5 transition-colors"
+                          >
+                            Reply →
+                          </button>
+                        )}
                       </div>
-                      <span className="text-xs text-black/30 uppercase tracking-widest">
-                        {new Date(review.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                      </span>
+
+                      {/* Inline reply form */}
+                      {isOwnProfile && isReplying && (
+                        <div className="border-t border-black/10 bg-white px-5 py-4">
+                          <p className="text-xs font-bold uppercase tracking-widest text-black/40 mb-3">
+                            Your reply to {clientName}
+                          </p>
+                          <textarea
+                            rows={3}
+                            placeholder="Write your reply…"
+                            value={replyText}
+                            onChange={e => setReplyText(e.target.value)}
+                            autoFocus
+                            className="w-full border border-black px-4 py-3 text-sm outline-none focus:border-[#E5000F] transition-colors resize-none placeholder:text-black/30 bg-transparent mb-3"
+                          />
+                          {replyError && (
+                            <p className="text-xs text-[#E5000F] uppercase tracking-widest mb-2">{replyError}</p>
+                          )}
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleReply(review.id)}
+                              disabled={replySubmitting || !replyText.trim()}
+                              className="px-6 py-2 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-50"
+                            >
+                              {replySubmitting ? "Posting…" : "Post Reply"}
+                            </button>
+                            <button
+                              onClick={() => { setReplyingTo(null); setReplyText(""); setReplyError(""); }}
+                              className="px-6 py-2 border border-black text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    {review.comment && <p className="text-sm text-black/70 leading-relaxed mt-2">{review.comment}</p>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -604,9 +707,6 @@ export default function ArtistProfilePage() {
           {currentUser && !isOwnProfile && (
             <ReviewForm artistId={artist.id} clientId={currentUser.id} onReviewSubmitted={fetchReviews} />
           )}
-
-          {/* Comments — always public; hide form on own profile */}
-          <CommentSection artistId={artist.id} currentUser={isOwnProfile ? null : currentUser} />
 
         </div>
 
