@@ -73,7 +73,8 @@ function SignupForm() {
     e.preventDefault();
     resetErrors();
     if (!phoneName.trim()) { setError("Please enter your full name."); return; }
-    if (!phone.match(/^\+?[1-9]\d{6,14}$/)) {
+    const cleanPhone = phone.replace(/[\s()-]/g, "");
+    if (!cleanPhone.match(/^\+?[1-9]\d{6,14}$/)) {
       setError("Enter a valid phone number with country code (e.g. +39 333 1234567).");
       return;
     }
@@ -83,7 +84,7 @@ function SignupForm() {
       const { data: existing } = await supabase
         .from("profiles")
         .select("id")
-        .eq("phone_number", phone)
+        .eq("phone_number", cleanPhone)
         .maybeSingle();
 
       if (existing) {
@@ -93,7 +94,7 @@ function SignupForm() {
       }
 
       const { error } = await supabase.auth.signInWithOtp({
-        phone,
+        phone: cleanPhone,
         options: { data: { full_name: phoneName, role } },
       });
       if (error) { setError(error.message); return; }
@@ -111,8 +112,9 @@ function SignupForm() {
     setLoading(true);
     try {
       const supabase = getSupabase();
+      const cleanPhone = phone.replace(/[\s()-]/g, "");
       const { data, error } = await supabase.auth.verifyOtp({
-        phone,
+        phone: cleanPhone,
         token: otp,
         type: "sms",
       });
@@ -134,7 +136,7 @@ function SignupForm() {
           id: data.user.id,
           full_name: phoneName,
           role,
-          phone_number: phone,
+          phone_number: cleanPhone,
         }, { onConflict: "id" });
       }
 
