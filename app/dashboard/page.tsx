@@ -71,6 +71,7 @@ export default function DashboardPage() {
   const [dailySuccess, setDailySuccess] = useState(false);
   const dailyRef = useRef<HTMLInputElement>(null);
   const [inviteCopied, setInviteCopied] = useState(false);
+  const [referralCount, setReferralCount] = useState<number | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -90,13 +91,20 @@ export default function DashboardPage() {
 
       if (prof?.role === "artist") {
         // Fetch all bookings for artists so stats and pending panel are complete
-        const { data: bks } = await supabase
-          .from("bookings")
-          .select("id, event_date, message, status, duration_hours, client:client_id(full_name)")
-          .eq("artist_id", user.id)
-          .order("created_at", { ascending: false });
+        const [{ data: bks }, { count }] = await Promise.all([
+          supabase
+            .from("bookings")
+            .select("id, event_date, message, status, duration_hours, client:client_id(full_name)")
+            .eq("artist_id", user.id)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("profiles")
+            .select("id", { count: "exact", head: true })
+            .eq("referred_by", user.id),
+        ]);
 
         setBookings((bks || []).map((b: any) => ({ ...b, other_name: b.client?.full_name })));
+        setReferralCount(count ?? 0);
       } else {
         const { data: bks } = await supabase
           .from("bookings")
@@ -533,36 +541,74 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Invite */}
-          <div className="mt-8 border border-black bg-[#F2EDE4] p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-1">Grow the Community</p>
-              <h2 className="text-xl font-black uppercase leading-tight mb-1">Invite an Artist</h2>
-              <p className="text-sm text-black/50">Share The Local Art Hub with a fellow artist — help them get discovered by clients across Italy.</p>
-            </div>
-            <div className="flex flex-col gap-2 shrink-0">
-              <div className="flex items-center border border-black bg-white overflow-hidden">
-                <span className="px-4 py-3 text-xs text-black/40 font-mono border-r border-black select-all whitespace-nowrap">
-                  thelocalarthub.com/artists
-                </span>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText("https://thelocalarthub.com/artists").then(() => {
-                      setInviteCopied(true);
-                      setTimeout(() => setInviteCopied(false), 2500);
-                    });
-                  }}
-                  className="px-5 py-3 text-xs font-bold uppercase tracking-widest bg-black text-white hover:bg-[#E5000F] transition-colors whitespace-nowrap"
-                >
-                  {inviteCopied ? "✓ Copied!" : "Copy Link"}
-                </button>
+          {/* Referral / Invite */}
+          <div className="mt-8 border border-black bg-[#F2EDE4]">
+            <div className="p-8 flex flex-col md:flex-row md:items-start justify-between gap-8">
+              <div className="flex-1">
+                <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-1">Your Referral Link</p>
+                <h2 className="text-xl font-black uppercase leading-tight mb-2">Invite Artists. Track Who Joins.</h2>
+                <p className="text-sm text-black/50 mb-6 max-w-md">
+                  Share your personal invite link. Anyone who signs up via your link is tracked — so you can see exactly how many artists you&apos;ve brought to the platform.
+                </p>
+
+                {/* Referral count badge */}
+                {referralCount !== null && (
+                  <div className="inline-flex items-center gap-3 border border-black bg-white px-5 py-3 mb-6">
+                    <span className="text-3xl font-black text-[#E5000F]">{referralCount}</span>
+                    <span className="text-xs uppercase tracking-widest text-black/50">
+                      {referralCount === 1 ? "artist joined" : "artists joined"} via your link
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2 max-w-md">
+                  {/* Artist invite link */}
+                  <div>
+                    <p className="text-xs text-black/40 uppercase tracking-widest mb-1">Invite artists to join:</p>
+                    <div className="flex items-center border border-black bg-white overflow-hidden">
+                      <span className="px-4 py-3 text-xs text-black/50 font-mono border-r border-black select-all whitespace-nowrap overflow-hidden text-ellipsis">
+                        thelocalarthub.com/signup?role=artist&ref={profile?.id}
+                      </span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(`https://thelocalarthub.com/signup?role=artist&ref=${profile?.id}`).then(() => {
+                            setInviteCopied(true);
+                            setTimeout(() => setInviteCopied(false), 2500);
+                          });
+                        }}
+                        className="px-5 py-3 text-xs font-bold uppercase tracking-widest bg-black text-white hover:bg-[#E5000F] transition-colors whitespace-nowrap shrink-0"
+                      >
+                        {inviteCopied ? "✓ Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Client invite link */}
+                  <div>
+                    <p className="text-xs text-black/40 uppercase tracking-widest mb-1">Share your profile with clients:</p>
+                    <div className="flex items-center border border-black bg-white overflow-hidden">
+                      <span className="px-4 py-3 text-xs text-black/50 font-mono border-r border-black select-all whitespace-nowrap overflow-hidden text-ellipsis">
+                        thelocalarthub.com/artists/{profile?.id}
+                      </span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(`https://thelocalarthub.com/artists/${profile?.id}`);
+                        }}
+                        className="px-5 py-3 text-xs font-bold uppercase tracking-widest border-l border-black text-xs text-black/50 hover:text-black transition-colors whitespace-nowrap shrink-0"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+
+                  <a
+                    href={`mailto:?subject=Join me on The Local Art Hub&body=Hey! I use The Local Art Hub to get bookings in Italy. You should create your own artist profile — it's free. Join here: https://thelocalarthub.com/signup?role=artist%26ref=${profile?.id}`}
+                    className="text-center text-xs font-bold uppercase tracking-widest border border-black px-5 py-3 hover:bg-black hover:text-white transition-colors"
+                  >
+                    ✉ Invite via Email
+                  </a>
+                </div>
               </div>
-              <a
-                href={`mailto:?subject=Join me on The Local Art Hub&body=Hey! I found this platform for local artists in Italy — you can sign up and get bookings from clients. Check it out: https://thelocalarthub.com`}
-                className="text-center text-xs font-bold uppercase tracking-widest border border-black px-5 py-3 hover:bg-black hover:text-white transition-colors"
-              >
-                ✉ Invite via Email
-              </a>
             </div>
           </div>
         </div>

@@ -9,6 +9,8 @@ function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const forceArtist = searchParams.get("role") === "artist";
+  const refParam = searchParams.get("ref") || "";
+
   const [role, setRole] = useState<"client" | "artist">(forceArtist ? "artist" : "client");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
@@ -30,7 +32,7 @@ function SignupForm() {
       const { error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
-        options: { data: { full_name: form.name, role } },
+        options: { data: { full_name: form.name, role, ...(refParam ? { referred_by: refParam } : {}) } },
       });
       if (error) {
         if (error.message.toLowerCase().includes("already")) {

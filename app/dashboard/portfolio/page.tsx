@@ -118,7 +118,9 @@ export default function PortfolioPage() {
   async function uploadToCloudinary(file: File): Promise<string> {
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-    if (!cloudName || !uploadPreset) throw new Error("Cloudinary is not configured. Add NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET to your environment variables.");
+    if (!cloudName || !uploadPreset) {
+      throw new Error("Cloudinary is not configured. Please check your environment variables.");
+    }
 
     const formData = new FormData();
     formData.append("file", file);
@@ -128,8 +130,17 @@ export default function PortfolioPage() {
       method: "POST",
       body: formData,
     });
-    if (!res.ok) throw new Error("Image upload failed. Check your Cloudinary settings.");
     const data = await res.json();
+    if (!res.ok) {
+      const cloudinaryMsg = data?.error?.message ?? "";
+      // The most common error: preset is "Signed" — must be "Unsigned" for browser uploads
+      if (cloudinaryMsg.toLowerCase().includes("preset") || cloudinaryMsg.toLowerCase().includes("whitelist")) {
+        throw new Error(
+          "Your Cloudinary upload preset must be set to Unsigned. Go to cloudinary.com → Settings → Upload → find your preset → change Mode to Unsigned, then save."
+        );
+      }
+      throw new Error(cloudinaryMsg || "Image upload failed. Check your Cloudinary settings.");
+    }
     return data.secure_url as string;
   }
 
