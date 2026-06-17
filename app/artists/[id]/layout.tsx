@@ -1,40 +1,34 @@
 import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
 
-type Props = { params: Promise<{ id: string }> };
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-  const fallback: Metadata = { title: "Artist — The Local Art Hub" };
-
+async function getArtistMeta(id: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  // Metadata must never take the page down — fall back to a generic title
-  if (!url || !key) return fallback;
+  if (!url || !key) return null;
+  const supabase = createClient(url, key);
+  const { data } = await supabase
+    .from("profiles")
+    .select("full_name, category, location, bio, avatar_url")
+    .eq("id", id)
+    .eq("role", "artist")
+    .maybeSingle();
+  return data;
+}
 
-  let artist;
-  try {
-    const supabase = createClient(url, key);
-    ({ data: artist } = await supabase
-      .from("profiles")
-      .select("full_name, category, location, bio, avatar_url")
-      .eq("id", id)
-      .single());
-  } catch {
-    return fallback;
-  }
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const artist = await getArtistMeta(id);
 
-  if (!artist) {
-    return fallback;
-  }
+  if (!artist) return { title: "Artist Profile" };
 
-  const name = artist.full_name ?? "Artist";
-  const cat = artist.category ?? "Artist";
-  const loc = artist.location ?? "Italy";
-  const title = `${name} — ${cat} in ${loc} | The Local Art Hub`;
-  const description =
-    artist.bio?.replace(/<[^>]+>/g, "").slice(0, 155) ||
-    `Book ${name}, a ${cat} based in ${loc}. View portfolio and request a booking on The Local Art Hub.`;
+  const title = `${artist.full_name} — ${artist.category} in ${artist.location}`;
+  const description = artist.bio
+    ? artist.bio.slice(0, 155) + (artist.bio.length > 155 ? "…" : "")
+    : `Book ${artist.full_name}, a ${artist.category} based in ${artist.location}. Available on The Local Art Hub.`;
 
   return {
     title,
@@ -42,20 +36,61 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title,
       description,
-      url: `https://thelocalarthub.com/artists/${id}`,
-      siteName: "The Local Art Hub",
-      images: artist.avatar_url ? [{ url: artist.avatar_url }] : [],
       type: "profile",
+      url: `https://thelocalarthub.com/artists/${id}`,
+      ...(artist.avatar_url && {
+        images: [{ url: artist.avatar_url, width: 1200, height: 630, alt: artist.full_name }],
+      }),
     },
     twitter: {
-      card: "summary_large_image",
+      card: artist.avatar_url ? "summary_large_image" : "summary",
       title,
       description,
-      images: artist.avatar_url ? [artist.avatar_url] : [],
+      ...(artist.avatar_url && { images: [artist.avatar_url] }),
     },
   };
 }
 
-export default function ArtistLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+export default async function ArtistLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const artist = await getArtistMeta(id);
+
+  const jsonLd = artist
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        name: artist.full_name,
+        jobTitle: artist.category,
+        address: {
+          "@type": "PostalAddress",
+          addressLocality: artist.location,
+          addressCountry: "IT",
+        },
+        url: `https://thelocalarthub.com/artists/${id}`,
+        ...(artist.avatar_url && { image: artist.avatar_url }),
+        worksFor: {
+          "@type": "Organization",
+          name: "The Local Art Hub",
+          url: "https://thelocalarthub.com",
+        },
+      }
+    : null;
+
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      {children}
+    </>
+  );
 }

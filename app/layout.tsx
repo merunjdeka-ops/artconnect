@@ -28,10 +28,28 @@ export const metadata: Metadata = {
   },
   description: "Discover and book local artists in Italy — photographers, musicians, makeup artists, painters and more. Find the perfect artist for your event on The Local Art Hub.",
   metadataBase: new URL("https://thelocalarthub.com"),
+  keywords: [
+    "local artists Italy",
+    "book artist Italy",
+    "photographer Italy",
+    "musician Italy",
+    "makeup artist Italy",
+    "wedding photographer Italy",
+    "creative booking platform Italy",
+    "artisti locali Italia",
+  ],
   openGraph: {
     siteName: "The Local Art Hub",
     locale: "en_US",
     type: "website",
+    url: "https://thelocalarthub.com",
+    title: "The Local Art Hub — Book Local Artists in Italy",
+    description: "Discover and book local artists in Italy — photographers, musicians, makeup artists, painters and more.",
+  },
+  twitter: {
+    card: "summary",
+    title: "The Local Art Hub — Book Local Artists in Italy",
+    description: "Discover and book local artists in Italy — photographers, musicians, makeup artists, painters and more.",
   },
   // Add your Google Search Console verification code below (get it from search.google.com/search-console)
   // verification: { google: "YOUR_VERIFICATION_CODE_HERE" },

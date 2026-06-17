@@ -13,6 +13,7 @@ function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const forceArtist = searchParams.get("role") === "artist";
+  const refParam = searchParams.get("ref") || "";
 
   const [role, setRole] = useState<"client" | "artist">(forceArtist ? "artist" : "client");
   const [tab, setTab] = useState<Tab>("email");
@@ -55,7 +56,7 @@ function SignupForm() {
       const { error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
-        options: { data: { full_name: form.name, role } },
+        options: { data: { full_name: form.name, role, ...(refParam ? { referred_by: refParam } : {}) } },
       });
 
       // Supabase returns no error for duplicate emails (sends confirmation again)
@@ -148,6 +149,7 @@ function SignupForm() {
           full_name: phoneName,
           role,
           phone_number: phone,
+          ...(refParam ? { referred_by: refParam } : {}),
         }, { onConflict: "id" });
       }
 

@@ -5,6 +5,59 @@ import { useEffect, useState } from "react";
 import GuideButton from "@/app/components/GuideButton";
 import { getSupabase } from "@/lib/supabase";
 
+function NewsletterForm() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.includes("@")) return;
+    setStatus("sending");
+    try {
+      const res = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      setStatus(res.ok ? "done" : "error");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "done") {
+    return (
+      <div className="border border-black bg-white px-6 py-5 inline-flex items-center gap-3">
+        <span className="text-[#E5000F] font-black text-lg">✓</span>
+        <p className="text-sm font-bold uppercase tracking-widest">You&apos;re on the list.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-0 max-w-md">
+      <input
+        type="email"
+        required
+        placeholder="your@email.com"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        className="flex-1 border border-black px-4 py-3 text-sm bg-white outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30 sm:border-r-0"
+      />
+      <button
+        type="submit"
+        disabled={status === "sending"}
+        className="px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-50 border border-black whitespace-nowrap"
+      >
+        {status === "sending" ? "..." : "Notify Me"}
+      </button>
+      {status === "error" && (
+        <p className="text-xs text-[#E5000F] mt-2 uppercase tracking-widest w-full">Something went wrong. Try again.</p>
+      )}
+    </form>
+  );
+}
+
 const categories = [
   { name: "Photography", description: "Portrait, wedding, events, commercial and more." },
   { name: "Music", description: "Live performers, session musicians, singers and bands." },
@@ -82,26 +135,43 @@ export default function Home() {
       {/* HERO */}
       <section className="px-8 pt-20 pb-16 border-b border-black">
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-6 fade-in-up fade-in-up-1">
-          For local artists & creatives
+          Italy&apos;s creative marketplace
         </p>
         <h1 className="text-[clamp(3rem,10vw,9rem)] font-black uppercase leading-none tracking-tight max-w-6xl fade-in-up fade-in-up-2">
           Where Local<br />
           <span className="text-[#E5000F]">Artists</span><br />
-          Get Found.
+          Get Booked.
         </h1>
         <div className="flex flex-col md:flex-row gap-6 md:gap-16 mt-12 max-w-4xl fade-in-up fade-in-up-3">
           <p className="text-base text-black/60 max-w-sm leading-relaxed">
-            The Local Art Hub is a platform for every kind of creative — photographers, musicians,
-            makeup artists, painters, and more — to showcase their work, sell, and get booked.
+            Photographers, musicians, makeup artists, painters and more — all in one place.
+            Browse real portfolios, see real rates, and book directly. No agencies, no middlemen.
           </p>
-          <div className="flex gap-4 items-start">
+          <div className="flex gap-4 items-start flex-wrap">
             <Link href="/artists" className="bg-black text-white text-sm font-bold uppercase tracking-widest px-6 py-3 hover:bg-[#E5000F] transition-colors">
               Find an Artist
             </Link>
             <Link href="/signup?role=artist" className="border border-black text-sm font-bold uppercase tracking-widest px-6 py-3 hover:border-[#E5000F] hover:text-[#E5000F] transition-colors">
-              Share Your Work
+              Join as Artist
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* SOCIAL PROOF NUMBERS */}
+      <section className="border-b border-black">
+        <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-black">
+          {[
+            { num: "21", label: "Creative disciplines" },
+            { num: "100%", label: "Local, real artists" },
+            { num: "0%", label: "Commission fees" },
+            { num: "Free", label: "To list your work" },
+          ].map((s) => (
+            <div key={s.label} className="px-8 py-10 reveal">
+              <p className="text-4xl font-black text-[#E5000F]">{s.num}</p>
+              <p className="text-xs uppercase tracking-widest text-black/50 mt-2">{s.label}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -151,15 +221,37 @@ export default function Home() {
           Stop Being<br />Invisible.
         </h2>
         <p className="mt-6 text-white/50 max-w-md text-base leading-relaxed">
-          Create your profile, upload your work, set your own rates, and let clients
-          find you. No middlemen. Your talent, your terms.
+          Create your profile, upload your portfolio, set your own rates, and let clients in Italy
+          find you. No agency fees. No commissions. Your talent, your terms.
         </p>
-        <Link
-          href="/signup"
-          className="inline-block mt-10 bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-8 py-4 hover:bg-white hover:text-black transition-colors"
-        >
-          Join as an Artist
-        </Link>
+        <div className="flex flex-wrap gap-4 mt-10">
+          <Link
+            href="/signup?role=artist"
+            className="inline-block bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-8 py-4 hover:bg-white hover:text-black transition-colors"
+          >
+            Create Free Profile →
+          </Link>
+          <Link
+            href="/artists"
+            className="inline-block border border-white/30 text-white text-sm font-bold uppercase tracking-widest px-8 py-4 hover:border-white hover:text-white transition-colors"
+          >
+            See How It Works
+          </Link>
+        </div>
+      </section>
+
+      {/* NEWSLETTER */}
+      <section className="px-8 py-16 border-b border-black">
+        <div className="max-w-2xl reveal">
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-4">Stay in the loop</p>
+          <h2 className="text-3xl font-black uppercase leading-tight mb-4">
+            New Artists.<br />Straight to Your Inbox.
+          </h2>
+          <p className="text-sm text-black/60 mb-8 max-w-sm leading-relaxed">
+            Get notified when standout new artists join. No spam — just the best creatives from across Italy.
+          </p>
+          <NewsletterForm />
+        </div>
       </section>
 
       {/* FOOTER */}
