@@ -12,10 +12,8 @@ export default function LoginPage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("email");
 
-  // Email login
   const [form, setForm] = useState({ email: "", password: "" });
 
-  // Phone login
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [phoneStep, setPhoneStep] = useState<PhoneStep>("enter");
@@ -25,7 +23,6 @@ export default function LoginPage() {
 
   function resetErrors() { setError(""); }
 
-  // ── Email login ──
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
     resetErrors();
@@ -44,7 +41,6 @@ export default function LoginPage() {
     }
   }
 
-  // ── Phone: send OTP ──
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
     resetErrors();
@@ -64,7 +60,6 @@ export default function LoginPage() {
     }
   }
 
-  // ── Phone: verify OTP ──
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
     resetErrors();
@@ -100,7 +95,6 @@ export default function LoginPage() {
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-3">Welcome back</p>
           <h2 className="text-4xl font-black uppercase leading-none mb-8">Log<br />In</h2>
 
-          {/* Method tabs */}
           <div className="flex border border-black mb-8">
             <button
               onClick={() => { setTab("email"); resetErrors(); }}
@@ -122,7 +116,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* ── Email form ── */}
           {tab === "email" && (
             <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
               <input
@@ -142,7 +135,6 @@ export default function LoginPage() {
             </form>
           )}
 
-          {/* ── Phone: enter number ── */}
           {tab === "phone" && phoneStep === "enter" && (
             <form onSubmit={handleSendOtp} className="flex flex-col gap-4">
               <div>
@@ -164,7 +156,6 @@ export default function LoginPage() {
             </form>
           )}
 
-          {/* ── Phone: enter OTP ── */}
           {tab === "phone" && phoneStep === "verify" && (
             <form onSubmit={handleVerifyOtp} className="flex flex-col gap-4">
               <div className="px-4 py-3 bg-black/5 border border-black/10 text-xs uppercase tracking-widest text-black/50">
