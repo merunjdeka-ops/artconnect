@@ -5,11 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 import GuideButton from "@/app/components/GuideButton";
-
-function optimizeCloudinaryUrl(url: string, width: number): string {
-  if (!url || !url.includes("res.cloudinary.com")) return url;
-  return url.replace("/upload/", `/upload/w_${width},q_auto,f_auto,c_fill/`);
-}
+import { cdnUrl } from "@/lib/cloudinary";
 
 const HANDCRAFT_SUBCATEGORIES = [
   "Handcraft - Wood",
@@ -463,7 +459,7 @@ function ArtistsPageInner() {
                   <div className="relative overflow-hidden bg-black aspect-[4/3] mb-3">
                     {artist.avatar_url ? (
                       <img
-                        src={optimizeCloudinaryUrl(artist.avatar_url, 600)}
+                        src={cdnUrl(artist.avatar_url, "w_600,c_fill,q_auto,f_auto")}
                         alt={artist.full_name}
                         loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -502,7 +498,7 @@ function ArtistsPageInner() {
                       {/* Small avatar */}
                       <div className="w-8 h-8 flex-shrink-0 overflow-hidden rounded-full border border-black/20">
                         {artist.avatar_url ? (
-                          <img src={optimizeCloudinaryUrl(artist.avatar_url, 64)} alt="" className="w-full h-full object-cover" />
+                          <img src={cdnUrl(artist.avatar_url, "w_64,c_fill,q_auto,f_auto")} alt="" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full bg-black flex items-center justify-center">
                             <span className="text-white font-black text-xs">
