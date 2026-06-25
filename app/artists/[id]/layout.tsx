@@ -1,6 +1,35 @@
 import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
 
+// Map each discipline to a proper occupation noun for SEO titles and
+// schema.org jobTitle. Categories that are already role nouns (e.g.
+// "Makeup Artist", "DJ") and anything unmapped fall back to the raw value.
+const ROLE_NOUNS: Record<string, string> = {
+  Photography: "Photographer",
+  Videography: "Videographer",
+  Painting: "Painter",
+  Illustration: "Illustrator",
+  "Graphic Design": "Graphic Designer",
+  Sculpture: "Sculptor",
+  Calligraphy: "Calligrapher",
+  Music: "Musician",
+  Dance: "Dancer",
+  "Hair Styling": "Hair Stylist",
+  "Pottery & Ceramics": "Ceramicist",
+  "Fashion Design": "Fashion Designer",
+  "Comedy & Stand-Up": "Comedian",
+  "Poetry & Spoken Word": "Poet",
+  "Acting & Theatre": "Actor",
+  "Jewelry Making": "Jewelry Maker",
+  "Interior Design": "Interior Designer",
+  Handcraft: "Artisan",
+};
+
+function roleNoun(category: string | null): string {
+  if (!category) return "Artist";
+  return ROLE_NOUNS[category] ?? category;
+}
+
 async function getArtistMeta(id: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -25,10 +54,11 @@ export async function generateMetadata({
 
   if (!artist) return { title: "Artist Profile" };
 
-  const title = `${artist.full_name} — ${artist.category} in ${artist.location}`;
+  const role = roleNoun(artist.category);
+  const title = `${artist.full_name} — ${role} in ${artist.location}`;
   const description = artist.bio
     ? artist.bio.slice(0, 155) + (artist.bio.length > 155 ? "…" : "")
-    : `Book ${artist.full_name}, a ${artist.category} based in ${artist.location}. Available on The Local Art Hub.`;
+    : `Book ${artist.full_name}, a ${role} based in ${artist.location}. Available on The Local Art Hub.`;
 
   return {
     title,
@@ -39,7 +69,7 @@ export async function generateMetadata({
       type: "profile",
       url: `https://thelocalarthub.com/artists/${id}`,
       ...(artist.avatar_url && {
-        images: [{ url: artist.avatar_url, width: 1200, height: 630, alt: artist.full_name }],
+        images: [{ url: artist.avatar_url, alt: artist.full_name }],
       }),
     },
     twitter: {
@@ -66,7 +96,7 @@ export default async function ArtistLayout({
         "@context": "https://schema.org",
         "@type": "Person",
         name: artist.full_name,
-        jobTitle: artist.category,
+        jobTitle: roleNoun(artist.category),
         address: {
           "@type": "PostalAddress",
           addressLocality: artist.location,
