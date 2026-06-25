@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 import { sanitizeCaption } from "@/lib/sanitize";
+import { cdnUrl } from "@/lib/cloudinary";
 import StarRating from "@/app/components/StarRating";
 import ReviewForm from "@/app/components/ReviewForm";
 
@@ -329,7 +330,7 @@ export default function ArtistProfilePage() {
         {/* Full photo — avatar first, active daily pic as fallback, then gradient */}
         {(artist.avatar_url || dailyPicActive) ? (
           <img
-            src={artist.avatar_url || artist.daily_pic_url!}
+            src={cdnUrl(artist.avatar_url || artist.daily_pic_url!, "w_1600,c_limit,q_auto,f_auto")}
             alt={artist.full_name}
             className="absolute inset-0 w-full h-full object-cover object-center"
           />
@@ -521,7 +522,7 @@ export default function ArtistProfilePage() {
                 ) : (
                   /* Photo story — click to open fullscreen */
                   <div className="relative cursor-zoom-in" onClick={() => setStoryOpen(true)}>
-                    <img src={artist.daily_pic_url!} alt="Daily story" className="w-full object-cover max-h-[480px] transition-transform duration-300 group-hover:scale-[1.02]" />
+                    <img src={cdnUrl(artist.daily_pic_url!, "w_1200,c_limit,q_auto,f_auto")} alt="Daily story" className="w-full object-cover max-h-[480px] transition-transform duration-300 group-hover:scale-[1.02]" />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-end justify-end p-4">
                       <span className="text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg">⤢</span>
                     </div>
@@ -549,7 +550,7 @@ export default function ArtistProfilePage() {
                           className="relative cursor-zoom-in overflow-hidden mb-3"
                           onClick={() => setLightbox({ url: item.media_url, title: item.title, index: idx })}
                         >
-                          <img src={item.media_url} alt={item.title} className="w-full h-56 object-cover transition-transform duration-300 group-hover:scale-105" />
+                          <img src={cdnUrl(item.media_url, "w_800,c_limit,q_auto,f_auto")} alt={item.title} className="w-full h-56 object-cover transition-transform duration-300 group-hover:scale-105" />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                             <span className="text-white text-2xl opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg">⤢</span>
                           </div>
@@ -1026,7 +1027,7 @@ export default function ArtistProfilePage() {
             {isVideo(artist.daily_pic_url!) ? (
               <video src={artist.daily_pic_url!} controls autoPlay className="max-h-[80vh] max-w-full" />
             ) : (
-              <img src={artist.daily_pic_url!} alt="Story" className="max-h-[80vh] max-w-full object-contain" />
+              <img src={cdnUrl(artist.daily_pic_url!, "w_2000,c_limit,q_auto,f_auto")} alt="Story" className="max-h-[80vh] max-w-full object-contain" />
             )}
             {artist.daily_pic_caption && (
               <div className="text-white/70 text-sm text-center max-w-xl rich-caption" dangerouslySetInnerHTML={{ __html: sanitizeCaption(artist.daily_pic_caption) }} />
@@ -1066,7 +1067,7 @@ export default function ArtistProfilePage() {
             {/* Image */}
             <div className="max-w-5xl max-h-[90vh] mx-12 flex flex-col items-center gap-4" onClick={e => e.stopPropagation()}>
               <img
-                src={lightbox.url}
+                src={cdnUrl(lightbox.url, "w_2000,c_limit,q_auto,f_auto")}
                 alt={lightbox.title}
                 className="max-h-[80vh] max-w-full object-contain"
               />

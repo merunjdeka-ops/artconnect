@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NavbarAuth from "@/app/components/NavbarAuth";
 import { getSupabase } from "@/lib/supabase";
+import { cdnUrl } from "@/lib/cloudinary";
 
 async function uploadToCloudinary(file: File, folder = "avatars"): Promise<string> {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
@@ -260,7 +261,7 @@ export default function SetupPage() {
                 className="relative w-24 h-24 rounded-full border-2 border-black overflow-hidden bg-white hover:border-[#E5000F] transition-colors flex-shrink-0 group"
               >
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                  <img src={cdnUrl(avatarUrl, "w_192,c_fill,q_auto,f_auto")} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-[#F2EDE4]">
                     <span className="text-2xl font-black text-black/30">{userName ? userName[0].toUpperCase() : "?"}</span>

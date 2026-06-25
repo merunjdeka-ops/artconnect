@@ -7,6 +7,7 @@ import NavbarAuth from "@/app/components/NavbarAuth";
 import GuideButton from "@/app/components/GuideButton";
 import RichCaptionEditor from "@/app/components/RichCaptionEditor";
 import { getSupabase } from "@/lib/supabase";
+import { cdnUrl } from "@/lib/cloudinary";
 
 async function uploadToCloudinary(file: File, folder = "daily_pics"): Promise<string> {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
@@ -444,7 +445,7 @@ export default function DashboardPage() {
                       {profile.daily_pic_url!.match(/\.(mp4|mov|webm|m4v)$/i) || profile.daily_pic_url!.includes("/video/upload/") ? (
                         <video src={profile.daily_pic_url!} className="w-full h-48 object-cover" muted playsInline controls />
                       ) : (
-                        <img src={profile.daily_pic_url!} alt="Daily story" className="w-full h-48 object-cover" />
+                        <img src={cdnUrl(profile.daily_pic_url!, "w_800,c_limit,q_auto,f_auto")} alt="Daily story" className="w-full h-48 object-cover" />
                       )}
                       <div className="p-3 border-t border-black flex justify-between items-center">
                         <span className="text-xs text-black/50 uppercase tracking-widest">Live on profile</span>
