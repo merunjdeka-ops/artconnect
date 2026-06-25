@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NavbarAuth from "@/app/components/NavbarAuth";
 import { getSupabase } from "@/lib/supabase";
+import { cdnUrl } from "@/lib/cloudinary";
 
 type MediaType = "image" | "soundcloud" | "spotify" | "youtube";
 
@@ -357,7 +358,7 @@ export default function PortfolioPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-black border border-black">
                 {imageItems.map(item => (
                   <div key={item.id} className="bg-[#F2EDE4] p-4">
-                    <img src={item.media_url} alt={item.title} className="w-full h-48 object-cover mb-3 border border-black/10" />
+                    <img src={cdnUrl(item.media_url, "w_800,c_limit,q_auto,f_auto")} alt={item.title} className="w-full h-48 object-cover mb-3 border border-black/10" />
 
                     {editing?.id === item.id ? (
                       <form onSubmit={handleEditSave} className="flex flex-col gap-2 mt-1">
