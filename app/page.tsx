@@ -135,7 +135,7 @@ export default function Home() {
       {/* HERO */}
       <section className="px-8 pt-20 pb-16 border-b border-black">
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-6 fade-in-up fade-in-up-1">
-          Italy&apos;s creative marketplace
+          Creative marketplace
         </p>
         <h1 className="text-[clamp(3rem,10vw,9rem)] font-black uppercase leading-none tracking-tight max-w-6xl fade-in-up fade-in-up-2">
           Where Local<br />
@@ -221,7 +221,7 @@ export default function Home() {
           Stop Being<br />Invisible.
         </h2>
         <p className="mt-6 text-white/50 max-w-md text-base leading-relaxed">
-          Create your profile, upload your portfolio, set your own rates, and let clients in Italy
+          Create your profile, upload your portfolio, set your own rates, and let clients
           find you. No agency fees. No commissions. Your talent, your terms.
         </p>
         <div className="flex flex-wrap gap-4 mt-10">
@@ -248,7 +248,7 @@ export default function Home() {
             New Artists.<br />Straight to Your Inbox.
           </h2>
           <p className="text-sm text-black/60 mb-8 max-w-sm leading-relaxed">
-            Get notified when standout new artists join. No spam — just the best creatives from across Italy.
+            Get notified when standout new artists join. No spam — just the best new creatives.
           </p>
           <NewsletterForm />
         </div>
