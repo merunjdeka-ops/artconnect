@@ -23,6 +23,9 @@ type EditState = {
   media_url: string; // only used for music
 };
 
+const MAX_IMAGES = 20;
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024; // 3 MB
+
 function getMusicEmbedUrl(url: string): { type: MediaType; embedUrl: string } | null {
   try {
     const u = new URL(url);
@@ -147,7 +150,11 @@ export default function PortfolioPage() {
   async function handleImageAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!imageFile || !imageTitle) return;
-    if (imageItems.length >= 10) { setError("Maximum 10 images allowed."); return; }
+    if (imageItems.length >= MAX_IMAGES) { setError(`Maximum ${MAX_IMAGES} images allowed.`); return; }
+    if (imageFile.size > MAX_IMAGE_BYTES) {
+      setError("Image is larger than 3 MB. Please choose a smaller file.");
+      return;
+    }
     setSaving(true);
     setUploadProgress(true);
     setError("");
@@ -272,7 +279,7 @@ export default function PortfolioPage() {
             onClick={() => { setTab("images"); setError(""); }}
             className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${tab === "images" ? "bg-black text-white" : "bg-transparent text-black hover:bg-black/5"}`}
           >
-            Images ({imageItems.length}/10)
+            Images ({imageItems.length}/{MAX_IMAGES})
           </button>
           <button
             onClick={() => { setTab("music"); setError(""); }}
@@ -313,7 +320,7 @@ export default function PortfolioPage() {
                   ) : (
                     <>
                       <p className="text-sm font-bold uppercase mb-1">Click to choose an image</p>
-                      <p className="text-xs text-black/40">JPG, PNG, WEBP — max 10MB</p>
+                      <p className="text-xs text-black/40">JPG, PNG, WEBP — max 3MB</p>
                     </>
                   )}
                   <input
@@ -321,7 +328,17 @@ export default function PortfolioPage() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={e => setImageFile(e.target.files?.[0] || null)}
+                    onChange={e => {
+                      const f = e.target.files?.[0] || null;
+                      if (f && f.size > MAX_IMAGE_BYTES) {
+                        setError("Image is larger than 3 MB. Please choose a smaller file.");
+                        setImageFile(null);
+                        e.target.value = "";
+                        return;
+                      }
+                      setError("");
+                      setImageFile(f);
+                    }}
                   />
                 </div>
                 <button
