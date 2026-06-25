@@ -13,14 +13,17 @@ export async function POST(req: NextRequest) {
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(url, key);
 
+    // Plain insert rather than upsert with ignoreDuplicates: an
+    // "INSERT ... ON CONFLICT DO NOTHING" requires a SELECT policy under RLS
+    // (so Postgres can see the conflicting row), which we deliberately don't
+    // grant — that would expose the whole subscriber list through the public
+    // anon key. Instead we insert and treat a duplicate (unique violation,
+    // 23505) as success, keeping signups idempotent and the list private.
     const { error } = await supabase
       .from("newsletter_subscribers")
-      .upsert(
-        { email: email.toLowerCase().trim(), name: name?.trim() || null },
-        { onConflict: "email", ignoreDuplicates: true }
-      );
+      .insert({ email: email.toLowerCase().trim(), name: name?.trim() || null });
 
-    if (error) throw error;
+    if (error && error.code !== "23505") throw error;
 
     const resendKey = process.env.RESEND_API_KEY;
     if (resendKey) {
