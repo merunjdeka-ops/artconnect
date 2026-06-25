@@ -23,6 +23,8 @@ const ROLE_NOUNS: Record<string, string> = {
   "Jewelry Making": "Jewelry Maker",
   "Interior Design": "Interior Designer",
   Handcraft: "Artisan",
+  "Mural Art": "Muralist",
+  Animation: "Animator",
 };
 
 function roleNoun(category: string | null): string {

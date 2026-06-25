@@ -32,7 +32,7 @@ const CATEGORIES = [
   "Videography", "DJ", "Dance", "Hair Styling", "Graphic Design",
   "Pottery & Ceramics", "Sculpture", "Calligraphy", "Fashion Design",
   "Tattoo Artist", "Comedy & Stand-Up", "Poetry & Spoken Word",
-  "Acting & Theatre", "Handcraft", "Interior Design",
+  "Acting & Theatre", "Handcraft", "Interior Design", "Florist", "Mural Art", "Animation",
   ...HANDCRAFT_SUBCATEGORIES,
 ];
 
@@ -272,7 +272,7 @@ function ArtistsPageInner() {
               "Videography", "DJ", "Dance", "Hair Styling", "Graphic Design",
               "Pottery & Ceramics", "Sculpture", "Calligraphy", "Fashion Design",
               "Tattoo Artist", "Comedy & Stand-Up", "Poetry & Spoken Word",
-              "Acting & Theatre", "Interior Design", "Handcraft",
+              "Acting & Theatre", "Interior Design", "Florist", "Mural Art", "Animation", "Handcraft",
             ].map(cat => (
               <button
                 key={cat}

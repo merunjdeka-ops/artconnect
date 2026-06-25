@@ -80,6 +80,9 @@ const categories = [
   { name: "Jewelry Making", description: "Handcrafted custom jewelry and accessories." },
   { name: "Interior Design", description: "Artistic interior styling and space transformation." },
   { name: "Handcraft", description: "Wood, paper, textile, ceramics, leather, resin and more." },
+  { name: "Florist", description: "Floral arrangements for weddings, events and gifting." },
+  { name: "Mural Art", description: "Large-scale wall paintings and commissioned murals." },
+  { name: "Animation", description: "2D/3D animation, motion graphics and digital storytelling." },
 ];
 
 export default function Home() {
@@ -162,7 +165,7 @@ export default function Home() {
       <section className="border-b border-black">
         <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-black">
           {[
-            { num: "21", label: "Creative disciplines" },
+            { num: "24", label: "Creative disciplines" },
             { num: "100%", label: "Local, real artists" },
             { num: "0%", label: "Commission fees" },
             { num: "Free", label: "To list your work" },
@@ -209,11 +212,6 @@ export default function Home() {
               <p className="mt-2 text-xs leading-relaxed opacity-60 group-hover:opacity-80">{cat.description}</p>
             </button>
           ))}
-          {/* Filler cells complete the final row so no black gap shows through.
-              21 categories don't divide evenly: at 4 cols 3 are needed, at 2 cols 1. */}
-          <span aria-hidden className="hidden sm:block bg-[#F2EDE4]" />
-          <span aria-hidden className="hidden lg:block bg-[#F2EDE4]" />
-          <span aria-hidden className="hidden lg:block bg-[#F2EDE4]" />
         </div>
       </section>
 

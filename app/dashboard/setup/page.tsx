@@ -23,7 +23,7 @@ async function uploadToCloudinary(file: File, folder = "avatars"): Promise<strin
 const CATEGORY_GROUPS: { group: string; items: string[] }[] = [
   {
     group: "Visual Arts",
-    items: ["Photography", "Videography", "Painting", "Illustration", "Graphic Design", "Sculpture", "Calligraphy"],
+    items: ["Photography", "Videography", "Painting", "Illustration", "Graphic Design", "Sculpture", "Calligraphy", "Mural Art", "Animation"],
   },
   {
     group: "Handcraft",
@@ -53,7 +53,7 @@ const CATEGORY_GROUPS: { group: string; items: string[] }[] = [
   },
   {
     group: "Design & Other",
-    items: ["Pottery & Ceramics", "Interior Design", "Other"],
+    items: ["Pottery & Ceramics", "Interior Design", "Florist", "Other"],
   },
 ];
 
