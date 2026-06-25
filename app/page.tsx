@@ -165,7 +165,7 @@ export default function Home() {
       <section className="border-b border-black">
         <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-black">
           {[
-            { num: "21", label: "Creative disciplines" },
+            { num: "24", label: "Creative disciplines" },
             { num: "100%", label: "Local, real artists" },
             { num: "0%", label: "Commission fees" },
             { num: "Free", label: "To list your work" },
