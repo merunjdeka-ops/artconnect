@@ -19,13 +19,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const supabase = createClient(url, key);
     const { data: artists } = await supabase
       .from("profiles")
-      .select("id, updated_at")
+      .select("id, created_at")
       .eq("role", "artist")
       .eq("is_deactivated", false);
 
     const artistUrls: MetadataRoute.Sitemap = (artists ?? []).map((a) => ({
       url: `https://thelocalarthub.com/artists/${a.id}`,
-      lastModified: new Date(a.updated_at ?? Date.now()),
+      lastModified: new Date(a.created_at ?? Date.now()),
       changeFrequency: "weekly",
       priority: 0.8,
     }));
