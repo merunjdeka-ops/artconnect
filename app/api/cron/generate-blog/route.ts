@@ -27,9 +27,27 @@ function fmt(iso: string | null): string {
   return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 }
 
-// Free-tier models to try in order — if one is rate-limited (429) we fall back
-// to the next, which lives in a separate quota bucket.
-const GEMINI_MODELS = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
+// Fallback model list used only if the live model-discovery call fails.
+const GEMINI_MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-001", "gemini-1.5-flash"];
+
+// Ask the API which models this key can actually use for generateContent, so we
+// never send a guessed name that 404s. Flash models first (fast + free).
+async function listGeminiModels(key: string): Promise<string[]> {
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+    if (!res.ok) return GEMINI_MODELS;
+    const data = await res.json();
+    const avail: string[] = (data.models || [])
+      .filter((m: { supportedGenerationMethods?: string[] }) => (m.supportedGenerationMethods || []).includes("generateContent"))
+      .map((m: { name: string }) => m.name.replace(/^models\//, ""))
+      .filter((n: string) => n.includes("gemini") && !n.includes("thinking"));
+    const flash = avail.filter(n => n.includes("flash"));
+    const ordered = [...new Set([...flash, ...avail])];
+    return ordered.length ? ordered : GEMINI_MODELS;
+  } catch {
+    return GEMINI_MODELS;
+  }
+}
 
 async function callGemini(model: string, key: string, system: string, userMsg: string): Promise<Response> {
   return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
@@ -98,18 +116,22 @@ async function generate() {
     + `{"title": "catchy headline mentioning ${city}", "excerpt": "one-sentence teaser", `
     + `"body": "3 to 5 short paragraphs of plain text (use \\n\\n between paragraphs) that walk through the events by name, with their dates and venues, and end by inviting readers to explore The Local Art Hub"}`;
 
+  const models = await listGeminiModels(geminiKey);
   let aiRes: Response | null = null;
-  for (const model of GEMINI_MODELS) {
+  let lastStatus = 500;
+  for (const model of models.slice(0, 6)) {
     aiRes = await callGemini(model, geminiKey, system, userMsg);
-    if (aiRes.status !== 429) break; // only fall through on rate-limit
+    if (aiRes.ok) break;
+    lastStatus = aiRes.status;
+    // Skip to the next model if this one is missing (404) or rate-limited (429).
+    if (aiRes.status !== 404 && aiRes.status !== 429) break;
   }
   if (!aiRes || !aiRes.ok) {
-    const status = aiRes?.status ?? 500;
-    console.error("Gemini error:", status, aiRes ? await aiRes.text() : "no response");
-    if (status === 429) {
+    console.error("Gemini error:", lastStatus, aiRes ? await aiRes.text() : "no response");
+    if (lastStatus === 429) {
       return { error: "The free AI is rate-limited right now. Please wait a minute and try again.", status: 429 };
     }
-    return { error: `AI request failed (${status}).`, status: 502 };
+    return { error: `AI request failed (${lastStatus}).`, status: 502 };
   }
   const aiData = await aiRes.json();
   const raw: string = aiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
