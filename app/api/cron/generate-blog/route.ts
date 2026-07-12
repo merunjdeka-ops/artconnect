@@ -49,14 +49,16 @@ async function listGeminiModels(key: string): Promise<string[]> {
   }
 }
 
-async function callGemini(model: string, key: string, system: string, userMsg: string): Promise<Response> {
+async function callGemini(model: string, key: string, prompt: string): Promise<Response> {
+  // Lowest-common-denominator request shape accepted by all generateContent
+  // models: a single user turn, no system_instruction field, no responseMimeType
+  // (both of which some models reject with a 400).
   return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      system_instruction: { parts: [{ text: system }] },
-      contents: [{ role: "user", parts: [{ text: userMsg }] }],
-      generationConfig: { maxOutputTokens: 1800, temperature: 0.7, responseMimeType: "application/json" },
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: 1800, temperature: 0.7 },
     }),
   });
 }
@@ -116,29 +118,41 @@ async function generate() {
     + `{"title": "catchy headline mentioning ${city}", "excerpt": "one-sentence teaser", `
     + `"body": "3 to 5 short paragraphs of plain text (use \\n\\n between paragraphs) that walk through the events by name, with their dates and venues, and end by inviting readers to explore The Local Art Hub"}`;
 
+  const prompt = `${system}\n\n${userMsg}`;
   const models = await listGeminiModels(geminiKey);
   let aiRes: Response | null = null;
   let lastStatus = 500;
+  let lastBody = "";
   for (const model of models.slice(0, 6)) {
-    aiRes = await callGemini(model, geminiKey, system, userMsg);
+    aiRes = await callGemini(model, geminiKey, prompt);
     if (aiRes.ok) break;
     lastStatus = aiRes.status;
-    // Skip to the next model if this one is missing (404) or rate-limited (429).
-    if (aiRes.status !== 404 && aiRes.status !== 429) break;
+    lastBody = await aiRes.text();
+    // Skip to the next model on missing (404), rate-limited (429) or a
+    // model-specific bad-request (400); stop on anything else.
+    if (![400, 404, 429].includes(aiRes.status)) break;
   }
   if (!aiRes || !aiRes.ok) {
-    console.error("Gemini error:", lastStatus, aiRes ? await aiRes.text() : "no response");
+    console.error("Gemini error:", lastStatus, lastBody);
     if (lastStatus === 429) {
       return { error: "The free AI is rate-limited right now. Please wait a minute and try again.", status: 429 };
     }
-    return { error: `AI request failed (${lastStatus}).`, status: 502 };
+    const reason = lastBody.replace(/\s+/g, " ").slice(0, 160);
+    return { error: `AI request failed (${lastStatus})${reason ? ": " + reason : ""}`, status: 502 };
   }
   const aiData = await aiRes.json();
   const raw: string = aiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-  const jsonStr = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  const jsonStr = raw.replace(/```(?:json)?/gi, "").trim();
 
-  let parsed: { title?: string; excerpt?: string; body?: string };
-  try { parsed = JSON.parse(jsonStr); } catch { return { error: "AI returned unparseable output.", status: 502 }; }
+  let parsed: { title?: string; excerpt?: string; body?: string } | null = null;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch {
+    // Fall back to extracting the first {...} block if there's surrounding prose.
+    const m = jsonStr.match(/\{[\s\S]*\}/);
+    if (m) { try { parsed = JSON.parse(m[0]); } catch { /* ignore */ } }
+  }
+  if (!parsed) return { error: "AI returned unparseable output.", status: 502 };
   if (!parsed.title || !parsed.body) return { error: "AI output missing title or body.", status: 502 };
 
   const photos = cityEvents.map(e => (e.photos?.[0] as string | undefined)).filter(Boolean).slice(0, 4) as string[];
