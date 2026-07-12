@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getSupabase } from "@/lib/supabase";
 
 function SignupForm() {
   const router = useRouter();
@@ -21,25 +20,22 @@ function SignupForm() {
     setError("");
     setLoading(true);
     try {
-      const supabase = getSupabase();
-      const { data: existingEmail } = await supabase
-        .from("profiles").select("id").eq("email", form.email).maybeSingle();
-      if (existingEmail) {
-        setError("An account with this email already exists. Please log in instead.");
-        setLoading(false);
-        return;
-      }
-      const { error } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: { data: { full_name: form.name, role, ...(refParam ? { referred_by: refParam } : {}) } },
+      // Sends the confirmation email through our own /api/signup route (via
+      // Resend) rather than Supabase's rate-limited built-in email sender.
+      const res = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+          name: form.name,
+          role,
+          ...(refParam ? { ref: refParam } : {}),
+        }),
       });
-      if (error) {
-        if (error.message.toLowerCase().includes("already")) {
-          setError("An account with this email already exists. Please log in instead.");
-        } else {
-          setError(error.message);
-        }
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.error || "Something went wrong. Please try again.");
         return;
       }
       router.push("/signup/confirm");
