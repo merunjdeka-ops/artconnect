@@ -1,0 +1,162 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { slugify } from "@/lib/blog";
+
+// Auto-writes a blog roundup from REAL upcoming events already in our database.
+// The AI is given only the actual event rows and is instructed never to invent
+// anything — so the output is grounded and verified, not hallucinated.
+//
+// Triggers:
+//  - GET  with  Authorization: Bearer <CRON_SECRET>  → scheduled (Vercel Cron).
+//    Only runs on Mon/Wed/Fri so a daily cron yields ~3 posts/week.
+//  - POST with  Authorization: Bearer <admin access token>  → manual "Generate now".
+
+const RUN_DAYS = [1, 3, 5]; // Mon, Wed, Fri
+const LOOKAHEAD_DAYS = 21;
+const COOLDOWN_DAYS = 6;    // don't re-cover the same city within this window
+
+function admin(): SupabaseClient {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+function fmt(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+}
+
+async function generate() {
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return { error: "Server not configured.", status: 500 };
+  if (!anthropicKey) return { error: "AI writer not configured. Add ANTHROPIC_API_KEY.", status: 500 };
+
+  const db = admin();
+  const now = new Date();
+  const until = new Date(now.getTime() + LOOKAHEAD_DAYS * 86400_000);
+
+  // Real upcoming, published events with a city.
+  const { data: events } = await db
+    .from("events")
+    .select("title, description, city, venue, event_date, photos, source_name, external_url")
+    .eq("is_published", true)
+    .not("city", "is", null)
+    .gte("event_date", now.toISOString())
+    .lte("event_date", until.toISOString())
+    .order("event_date", { ascending: true });
+
+  if (!events || events.length === 0) return { skipped: "No upcoming events to write about." };
+
+  // Cities already covered by a recent auto-post are on cooldown.
+  const cooldownSince = new Date(now.getTime() - COOLDOWN_DAYS * 86400_000).toISOString();
+  const { data: recent } = await db
+    .from("posts").select("auto_city").eq("is_auto", true).gte("created_at", cooldownSince);
+  const onCooldown = new Set((recent || []).map(r => (r.auto_city || "").toLowerCase()));
+
+  // Pick the eligible city with the most upcoming events (>= 2).
+  const byCity = new Map<string, typeof events>();
+  for (const ev of events) {
+    const c = ev.city as string;
+    if (onCooldown.has(c.toLowerCase())) continue;
+    if (!byCity.has(c)) byCity.set(c, []);
+    byCity.get(c)!.push(ev);
+  }
+  const eligible = [...byCity.entries()].filter(([, evs]) => evs.length >= 2).sort((a, b) => b[1].length - a[1].length);
+  if (eligible.length === 0) return { skipped: "No city with enough fresh upcoming events." };
+
+  const [city, cityEvents] = eligible[0];
+  const source = cityEvents.slice(0, 8).map(e => ({
+    title: e.title, date: fmt(e.event_date), venue: e.venue, source: e.source_name,
+    description: e.description ? String(e.description).slice(0, 200) : undefined,
+  }));
+
+  const system = "You are the arts editor for The Local Art Hub, a platform for booking local artists in Italy. "
+    + "You write short, lively blog roundups of upcoming events. CRITICAL RULES: use ONLY the event data provided by the user. "
+    + "Never invent events, dates, venues, artists, prices, or any fact not present in the data. Do not add events you think you know about. "
+    + "If information is missing, simply omit it. Warm, welcoming editorial tone, British English. Output ONLY valid JSON, no markdown fences.";
+
+  const userMsg = `Real upcoming events in ${city}. Write a roundup blog post about them.\n\n`
+    + `EVENTS:\n${JSON.stringify(source, null, 2)}\n\n`
+    + `Return ONLY this JSON object:\n`
+    + `{"title": "catchy headline mentioning ${city}", "excerpt": "one-sentence teaser", `
+    + `"body": "3 to 5 short paragraphs of plain text (use \\n\\n between paragraphs) that walk through the events by name, with their dates and venues, and end by inviting readers to explore The Local Art Hub"}`;
+
+  const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": anthropicKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-5",
+      max_tokens: 1800,
+      system,
+      messages: [{ role: "user", content: userMsg }],
+    }),
+  });
+  if (!aiRes.ok) {
+    const t = await aiRes.text();
+    console.error("Anthropic error:", t);
+    return { error: `AI request failed (${aiRes.status}).`, status: 502 };
+  }
+  const aiData = await aiRes.json();
+  const raw: string = aiData?.content?.[0]?.text ?? "";
+  const jsonStr = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+
+  let parsed: { title?: string; excerpt?: string; body?: string };
+  try { parsed = JSON.parse(jsonStr); } catch { return { error: "AI returned unparseable output.", status: 502 }; }
+  if (!parsed.title || !parsed.body) return { error: "AI output missing title or body.", status: 502 };
+
+  const photos = cityEvents.map(e => (e.photos?.[0] as string | undefined)).filter(Boolean).slice(0, 4) as string[];
+  const { data: adminProfile } = await db.from("profiles").select("id").eq("is_admin", true).limit(1).maybeSingle();
+
+  const record = {
+    title: parsed.title.trim(),
+    category: "event",
+    excerpt: parsed.excerpt?.trim() || null,
+    body: parsed.body.trim(),
+    cover_url: photos[0] || null,
+    photos,
+    is_published: true,   // event roundups are grounded/safe → auto-publish
+    is_auto: true,
+    auto_city: city,
+    author_id: adminProfile?.id || null,
+    published_at: now.toISOString(),
+  };
+
+  let slug = slugify(record.title) || `events-${city.toLowerCase()}`;
+  let ins = await db.from("posts").insert({ ...record, slug }).select("id").single();
+  if (ins.error && ins.error.code === "23505") {
+    slug = `${slug}-${Math.floor(performance.now())}`;
+    ins = await db.from("posts").insert({ ...record, slug }).select("id").single();
+  }
+  if (ins.error) return { error: ins.error.message, status: 500 };
+
+  return { generated: true, city, title: record.title, postId: ins.data?.id, eventCount: cityEvents.length };
+}
+
+export async function GET(req: NextRequest) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // Daily cron, but only actually write on the scheduled weekdays.
+  if (!RUN_DAYS.includes(new Date().getUTCDay())) {
+    return NextResponse.json({ skipped: "Not a scheduled day." });
+  }
+  const result = await generate();
+  return NextResponse.json(result, { status: (result as { status?: number }).status ?? 200 });
+}
+
+export async function POST(req: NextRequest) {
+  // Manual admin trigger.
+  const token = req.headers.get("authorization")?.replace("Bearer ", "");
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+  const { data: { user } } = await authClient.auth.getUser(token);
+  if (!user) return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return NextResponse.json({ error: "Server not configured." }, { status: 500 });
+  const { data: profile } = await admin().from("profiles").select("is_admin").eq("id", user.id).maybeSingle();
+  if (!profile?.is_admin) return NextResponse.json({ error: "Admins only" }, { status: 403 });
+
+  const result = await generate();
+  return NextResponse.json(result, { status: (result as { status?: number }).status ?? 200 });
+}

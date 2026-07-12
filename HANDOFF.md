@@ -24,8 +24,12 @@ Set: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
 `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`,
 `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`.
 
-**NEEDED (not yet confirmed active):** `TICKETMASTER_API_KEY` — must be added
-**and the site redeployed** afterward (Vercel only picks up env vars on a new deploy).
+**NEEDED (not yet confirmed active):**
+- `TICKETMASTER_API_KEY` — for event auto-import. Must be added **and the site
+  redeployed** afterward (Vercel only picks up env vars on a new deploy).
+- `ANTHROPIC_API_KEY` — for the AI blog auto-writer (Claude API).
+- `CRON_SECRET` — any random string; Vercel sends it as a Bearer token to the
+  cron route so only the scheduler can trigger it.
 
 ## Features shipped (all merged to main)
 1. **Signup DB error fixed** — `handle_new_user()` trigger was missing a search
@@ -44,6 +48,13 @@ Set: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
 9. **Admin CMS** — `/admin` (gated by `is_admin`), `/admin/blog`, `/admin/events`
    (all-events + Ticketmaster import), public `/blog` + `/blog/[slug]`, `BlogFeed`
    on home, red "Admin" nav link shown to admins.
+10. **AI blog auto-writer** — `/api/cron/generate-blog` writes a *grounded* event
+    roundup from real upcoming events (never invents facts) via the Claude API.
+    Auto-publishes (event roundups are the safe type). Vercel Cron runs daily at
+    09:00 UTC but the route only writes on Mon/Wed/Fri (`RUN_DAYS`), and skips a
+    city covered within `COOLDOWN_DAYS` (6). Manual "Generate a post now" button in
+    Admin → Blog (POST, admin-verified). Needs `ANTHROPIC_API_KEY` + `CRON_SECRET`.
+    `posts.is_auto` / `posts.auto_city` track/dedupe auto posts.
 
 ## Database (migrations applied to the Supabase project)
 - **`events`**: title, description, city, venue, event_date, photos[], source
