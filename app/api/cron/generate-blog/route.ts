@@ -37,12 +37,18 @@ async function listGeminiModels(key: string): Promise<string[]> {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
     if (!res.ok) return GEMINI_MODELS;
     const data = await res.json();
+    // Exclude special-purpose variants (TTS, image generation, audio/live,
+    // embeddings, thinking) — they support generateContent but can't return
+    // plain text articles.
+    const SPECIAL = /tts|image|audio|live|native|embedding|thinking|vision|exp\b/;
     const avail: string[] = (data.models || [])
       .filter((m: { supportedGenerationMethods?: string[] }) => (m.supportedGenerationMethods || []).includes("generateContent"))
       .map((m: { name: string }) => m.name.replace(/^models\//, ""))
-      .filter((n: string) => n.includes("gemini") && !n.includes("thinking"));
+      .filter((n: string) => n.includes("gemini") && !SPECIAL.test(n));
+    // Prefer stable flash models (no "preview"/"latest" suffixes), then any flash, then the rest.
+    const stableFlash = avail.filter(n => n.includes("flash") && !/preview|latest/.test(n));
     const flash = avail.filter(n => n.includes("flash"));
-    const ordered = [...new Set([...flash, ...avail])];
+    const ordered = [...new Set([...stableFlash, ...flash, ...avail])];
     return ordered.length ? ordered : GEMINI_MODELS;
   } catch {
     return GEMINI_MODELS;
