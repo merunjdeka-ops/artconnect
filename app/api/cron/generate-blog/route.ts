@@ -7,11 +7,11 @@ import { slugify } from "@/lib/blog";
 // anything — so the output is grounded and verified, not hallucinated.
 //
 // Triggers:
-//  - GET  with  Authorization: Bearer <CRON_SECRET>  → scheduled (Vercel Cron).
-//    Only runs on Mon/Wed/Fri so a daily cron yields ~3 posts/week.
+//  - GET  with  Authorization: Bearer <CRON_SECRET>  → scheduled (Vercel Cron, daily).
+//    Writes at most one post per run and skips days with no fresh events.
 //  - POST with  Authorization: Bearer <admin access token>  → manual "Generate now".
 
-const RUN_DAYS = [1, 3, 5]; // Mon, Wed, Fri
+const RUN_DAYS = [0, 1, 2, 3, 4, 5, 6]; // every day
 const LOOKAHEAD_DAYS = 21;
 const COOLDOWN_DAYS = 6;    // don't re-cover the same city within this window
 
@@ -28,9 +28,9 @@ function fmt(iso: string | null): string {
 }
 
 async function generate() {
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY;
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return { error: "Server not configured.", status: 500 };
-  if (!anthropicKey) return { error: "AI writer not configured. Add ANTHROPIC_API_KEY.", status: 500 };
+  if (!geminiKey) return { error: "AI writer not configured. Add GEMINI_API_KEY.", status: 500 };
 
   const db = admin();
   const now = new Date();
@@ -82,23 +82,25 @@ async function generate() {
     + `{"title": "catchy headline mentioning ${city}", "excerpt": "one-sentence teaser", `
     + `"body": "3 to 5 short paragraphs of plain text (use \\n\\n between paragraphs) that walk through the events by name, with their dates and venues, and end by inviting readers to explore The Local Art Hub"}`;
 
-  const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "x-api-key": anthropicKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-5",
-      max_tokens: 1800,
-      system,
-      messages: [{ role: "user", content: userMsg }],
-    }),
-  });
+  const aiRes = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: system }] },
+        contents: [{ role: "user", parts: [{ text: userMsg }] }],
+        generationConfig: { maxOutputTokens: 1800, temperature: 0.7, responseMimeType: "application/json" },
+      }),
+    }
+  );
   if (!aiRes.ok) {
     const t = await aiRes.text();
-    console.error("Anthropic error:", t);
+    console.error("Gemini error:", t);
     return { error: `AI request failed (${aiRes.status}).`, status: 502 };
   }
   const aiData = await aiRes.json();
-  const raw: string = aiData?.content?.[0]?.text ?? "";
+  const raw: string = aiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
   const jsonStr = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
 
   let parsed: { title?: string; excerpt?: string; body?: string };
