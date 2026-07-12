@@ -328,6 +328,9 @@ export default function DashboardPage() {
                 <Link href="/dashboard/portfolio" className="block border border-black px-5 py-3 text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
                   Manage Portfolio
                 </Link>
+                <Link href="/dashboard/events" className="block border border-black px-5 py-3 text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+                  Manage Events
+                </Link>
                 <Link href="/dashboard/availability" className="block border border-black px-5 py-3 text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
                   Set Availability
                 </Link>
