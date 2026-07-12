@@ -38,6 +38,9 @@ export default function AdminBlogPage() {
   const [form, setForm] = useState({ ...emptyForm });
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [autoRunning, setAutoRunning] = useState(false);
+  const [autoMsg, setAutoMsg] = useState("");
+
   useEffect(() => {
     async function load() {
       const supabase = getSupabase();
@@ -135,6 +138,30 @@ export default function AdminBlogPage() {
     if (editingId === id) resetForm();
   }
 
+  async function handleAutoGenerate() {
+    setAutoRunning(true); setAutoMsg("");
+    try {
+      const supabase = getSupabase();
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/cron/generate-blog", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+      });
+      const data = await res.json();
+      if (data.generated) {
+        setAutoMsg(`Wrote a roundup for ${data.city} (${data.eventCount} events): "${data.title}"`);
+        const { data: fresh } = await supabase.from("posts").select("*").order("published_at", { ascending: false });
+        setItems((fresh as Post[]) || []);
+      } else if (data.skipped) {
+        setAutoMsg(`Nothing written: ${data.skipped}`);
+      } else {
+        setAutoMsg(data.error || "Could not generate a post.");
+      }
+    } catch {
+      setAutoMsg("Generation failed. Please try again.");
+    } finally { setAutoRunning(false); }
+  }
+
   const inputClass = "border border-black px-4 py-3 bg-transparent text-sm outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30 w-full";
 
   return (
@@ -148,6 +175,16 @@ export default function AdminBlogPage() {
       </div>
 
       {error && <div className="mb-6 px-4 py-3 border border-[#E5000F] text-[#E5000F] text-xs uppercase tracking-widest">{error}</div>}
+
+      {/* Auto-writer */}
+      <div className="border border-black bg-black text-white p-8 mb-8">
+        <h2 className="text-lg font-black uppercase mb-2">AI Auto-Writer</h2>
+        <p className="text-xs text-white/50 mb-5 max-w-lg">Writes a verified roundup of upcoming events from your real event data — nothing invented. Runs automatically a few times a week; use the button to generate one now.</p>
+        <button onClick={handleAutoGenerate} disabled={autoRunning} className="px-6 py-3 bg-[#E5000F] text-white text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors disabled:opacity-50">
+          {autoRunning ? "Writing..." : "Generate a post now"}
+        </button>
+        {autoMsg && <p className="text-xs text-white/70 mt-4 uppercase tracking-widest">{autoMsg}</p>}
+      </div>
 
       <div className="border border-black bg-white p-8 mb-12">
         <h2 className="text-lg font-black uppercase mb-6">{editingId ? "Edit Post" : "Write Post"}</h2>
