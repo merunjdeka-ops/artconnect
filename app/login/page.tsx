@@ -132,6 +132,9 @@ export default function LoginPage() {
                 className="mt-2 py-4 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-50">
                 {loading ? "Logging in..." : "Log In"}
               </button>
+              <Link href="/forgot-password" className="text-center text-xs uppercase tracking-widest text-black/40 hover:text-[#E5000F] transition-colors">
+                Forgot password?
+              </Link>
             </form>
           )}
 
