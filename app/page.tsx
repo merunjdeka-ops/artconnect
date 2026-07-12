@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import GuideButton from "@/app/components/GuideButton";
 import EventsFeed from "@/app/components/EventsFeed";
+import BlogFeed from "@/app/components/BlogFeed";
 import { getSupabase } from "@/lib/supabase";
 
 function NewsletterForm() {
@@ -89,6 +90,7 @@ const categories = [
 export default function Home() {
   const router = useRouter();
   const [userName, setUserName] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
@@ -96,8 +98,9 @@ export default function Home() {
       const supabase = getSupabase();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
+        const { data: profile } = await supabase.from("profiles").select("full_name, is_admin").eq("id", user.id).single();
         setUserName(profile?.full_name || "");
+        setIsAdmin(!!profile?.is_admin);
       }
       setAuthChecked(true);
     }
@@ -121,7 +124,9 @@ export default function Home() {
           {authChecked && userName !== null ? (
             <>
               <Link href="/artists" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Browse</Link>
+              <Link href="/blog" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
               <Link href="/dashboard" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Dashboard</Link>
+              {isAdmin && <Link href="/admin" className="text-sm font-bold uppercase tracking-widest text-[#E5000F] hover:text-black transition-colors">Admin</Link>}
               <span className="text-xs uppercase tracking-widest text-black/40 hidden md:block">{userName}</span>
               <button onClick={handleLogout} className="text-sm font-bold uppercase tracking-widest bg-black text-white px-5 py-2 hover:bg-[#E5000F] transition-colors">
                 Logout
@@ -129,6 +134,7 @@ export default function Home() {
             </>
           ) : authChecked ? (
             <>
+              <Link href="/blog" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
               <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
               <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors">Join Now</Link>
             </>
@@ -198,6 +204,9 @@ export default function Home() {
 
       {/* EVENTS / PERFORMANCES FEED */}
       <EventsFeed />
+
+      {/* BLOG / JOURNAL FEED */}
+      <BlogFeed />
 
       {/* CATEGORIES */}
       <section className="px-8 py-16 border-b border-black">

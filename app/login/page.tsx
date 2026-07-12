@@ -23,6 +23,12 @@ export default function LoginPage() {
 
   function resetErrors() { setError(""); }
 
+  function destination(): string {
+    if (typeof window === "undefined") return "/dashboard";
+    const next = new URLSearchParams(window.location.search).get("next");
+    return next && next.startsWith("/") ? next : "/dashboard";
+  }
+
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
     resetErrors();
@@ -33,7 +39,7 @@ export default function LoginPage() {
         password: form.password,
       });
       if (error) { setError(error.message); return; }
-      router.push("/dashboard");
+      router.push(destination());
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -71,7 +77,7 @@ export default function LoginPage() {
         type: "sms",
       });
       if (error) { setError(error.message); return; }
-      router.push("/dashboard");
+      router.push(destination());
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Invalid code.");
     } finally {
