@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import GuideButton from "@/app/components/GuideButton";
+import EventsFeed from "@/app/components/EventsFeed";
 import { getSupabase } from "@/lib/supabase";
 
 function NewsletterForm() {
@@ -194,6 +195,9 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* EVENTS / PERFORMANCES FEED */}
+      <EventsFeed />
 
       {/* CATEGORIES */}
       <section className="px-8 py-16 border-b border-black">
