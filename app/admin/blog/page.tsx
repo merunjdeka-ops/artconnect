@@ -179,7 +179,7 @@ export default function AdminBlogPage() {
       {/* Auto-writer */}
       <div className="border border-black bg-black text-white p-8 mb-8">
         <h2 className="text-lg font-black uppercase mb-2">AI Auto-Writer</h2>
-        <p className="text-xs text-white/50 mb-5 max-w-lg">Writes a verified roundup of upcoming events from your real event data — nothing invented. Runs automatically a few times a week; use the button to generate one now.</p>
+        <p className="text-xs text-white/50 mb-5 max-w-lg">Writes a verified roundup of upcoming events from your real event data — nothing invented. Runs automatically every day (and quietly skips days with no fresh events); use the button to generate one now.</p>
         <button onClick={handleAutoGenerate} disabled={autoRunning} className="px-6 py-3 bg-[#E5000F] text-white text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors disabled:opacity-50">
           {autoRunning ? "Writing..." : "Generate a post now"}
         </button>
