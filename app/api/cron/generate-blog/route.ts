@@ -45,10 +45,14 @@ async function listGeminiModels(key: string): Promise<string[]> {
       .filter((m: { supportedGenerationMethods?: string[] }) => (m.supportedGenerationMethods || []).includes("generateContent"))
       .map((m: { name: string }) => m.name.replace(/^models\//, ""))
       .filter((n: string) => n.includes("gemini") && !SPECIAL.test(n));
-    // Prefer stable flash models (no "preview"/"latest" suffixes), then any flash, then the rest.
-    const stableFlash = avail.filter(n => n.includes("flash") && !/preview|latest/.test(n));
-    const flash = avail.filter(n => n.includes("flash"));
-    const ordered = [...new Set([...stableFlash, ...flash, ...avail])];
+    // New API keys can only use Google's newer models (older ones 404 with
+    // "no longer available to new users"), so sort by version DESCENDING.
+    // Within the same version prefer flash (fast/free) and stable names over
+    // preview/latest ones.
+    const version = (n: string) => parseFloat(n.match(/gemini-(\d+(?:\.\d+)?)/)?.[1] ?? "0");
+    const rank = (n: string) =>
+      version(n) * 100 + (n.includes("flash") ? 10 : 0) + (/preview|latest/.test(n) ? 0 : 1);
+    const ordered = [...new Set(avail)].sort((a, b) => rank(b) - rank(a));
     return ordered.length ? ordered : GEMINI_MODELS;
   } catch {
     return GEMINI_MODELS;
@@ -129,7 +133,7 @@ async function generate() {
   let aiRes: Response | null = null;
   let lastStatus = 500;
   let lastBody = "";
-  for (const model of models.slice(0, 6)) {
+  for (const model of models.slice(0, 10)) {
     aiRes = await callGemini(model, geminiKey, prompt);
     if (aiRes.ok) break;
     lastStatus = aiRes.status;
