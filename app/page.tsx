@@ -220,9 +220,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FRESH ON THE HUB — latest portfolio work */}
-      <FeaturedWork />
-
       {/* HOW IT WORKS */}
       <section className="border-b border-black">
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-black">
@@ -245,6 +242,9 @@ export default function Home() {
 
       {/* BLOG / JOURNAL FEED */}
       <BlogFeed />
+
+      {/* FRESH ON THE HUB — latest portfolio work */}
+      <FeaturedWork />
 
       {/* CATEGORIES */}
       <section className="px-8 py-16 border-b border-black">
