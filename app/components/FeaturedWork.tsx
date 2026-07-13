@@ -26,7 +26,7 @@ export default function FeaturedWork() {
         .eq("artist.role", "artist")
         .eq("artist.is_deactivated", false)
         .order("created_at", { ascending: false })
-        .limit(6);
+        .limit(8);
       setItems((data as unknown as WorkItem[]) || []);
       setLoading(false);
     }
@@ -51,7 +51,7 @@ export default function FeaturedWork() {
       {loading ? (
         <p className="text-xs uppercase tracking-widest text-black/40 py-8">Loading...</p>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-px bg-black border border-black">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-black border border-black">
           {items.map(item => (
             <Link
               key={item.id}
