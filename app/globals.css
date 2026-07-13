@@ -113,11 +113,11 @@ input:focus, textarea:focus, select:focus {
   border-radius: 2px;
 }
 
-/* ── Marquee ticker (flows left → right; owner wants motion even under
+/* ── Marquee ticker (flows right → left; owner wants motion even under
       OS reduced-motion, so no prefers-reduced-motion override) ── */
 @keyframes marquee {
-  from { transform: translateX(-50%); }
-  to   { transform: translateX(0); }
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
 .marquee-track {
   animation: marquee 45s linear infinite;
