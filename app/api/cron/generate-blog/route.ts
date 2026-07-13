@@ -68,9 +68,29 @@ async function callGemini(model: string, key: string, prompt: string): Promise<R
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens: 1800, temperature: 0.7 },
+      // Generous limit: on Gemini 2.5+ internal "thinking" tokens count against
+      // maxOutputTokens, so a tight cap truncates the visible answer mid-JSON.
+      generationConfig: { maxOutputTokens: 8192, temperature: 0.7 },
     }),
   });
+}
+
+// Escape raw control characters that appear INSIDE JSON string literals —
+// models often emit real newlines in string values, which JSON.parse rejects.
+// Characters outside strings (pretty-printing) are left untouched.
+function escapeCtrlInStrings(json: string): string {
+  let out = "";
+  let inStr = false;
+  for (let i = 0; i < json.length; i++) {
+    const ch = json[i];
+    if (inStr && ch === "\\" && i + 1 < json.length) { out += ch + json[++i]; continue; }
+    if (ch === '"') { inStr = !inStr; out += ch; continue; }
+    if (inStr && ch === "\n") { out += "\\n"; continue; }
+    if (inStr && ch === "\t") { out += "\\t"; continue; }
+    if (inStr && ch === "\r") continue;
+    out += ch;
+  }
+  return out;
 }
 
 async function generate() {
@@ -151,18 +171,41 @@ async function generate() {
     return { error: `AI request failed (${lastStatus})${reason ? ": " + reason : ""}`, status: 502 };
   }
   const aiData = await aiRes.json();
-  const raw: string = aiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  const candidate = aiData?.candidates?.[0];
+  // Join ALL text parts (skipping "thought" parts) — newer models can split
+  // the answer across parts, and parts[0] alone may be empty.
+  type Part = { text?: string; thought?: boolean };
+  const raw: string = ((candidate?.content?.parts as Part[] | undefined) || [])
+    .filter(p => typeof p.text === "string" && !p.thought)
+    .map(p => p.text)
+    .join("");
   const jsonStr = raw.replace(/```(?:json)?/gi, "").trim();
 
   let parsed: { title?: string; excerpt?: string; body?: string } | null = null;
-  try {
-    parsed = JSON.parse(jsonStr);
-  } catch {
-    // Fall back to extracting the first {...} block if there's surrounding prose.
-    const m = jsonStr.match(/\{[\s\S]*\}/);
-    if (m) { try { parsed = JSON.parse(m[0]); } catch { /* ignore */ } }
+  const tryParse = (s: string) => { try { return JSON.parse(s); } catch { return null; } };
+  parsed = tryParse(jsonStr);
+  if (!parsed) {
+    // Extract the outermost {...} block in case of surrounding prose.
+    const start = jsonStr.indexOf("{");
+    const end = jsonStr.lastIndexOf("}");
+    if (start !== -1 && end > start) {
+      const block = jsonStr.slice(start, end + 1);
+      parsed = tryParse(block) ?? tryParse(escapeCtrlInStrings(block));
+    }
   }
-  if (!parsed) return { error: "AI returned unparseable output.", status: 502 };
+  if (!parsed) {
+    // Log the full API response for Vercel logs and surface a self-explanatory
+    // error so the admin UI shows WHY it failed, not just that it did.
+    console.error("Unparseable AI output:", JSON.stringify(aiData).slice(0, 3000));
+    const reason = candidate?.finishReason || aiData?.promptFeedback?.blockReason;
+    if (reason === "MAX_TOKENS") {
+      return { error: "AI answer was cut off by the token limit before the JSON completed. Try again.", status: 502 };
+    }
+    const detail = raw
+      ? ` Output began: “${raw.slice(0, 140).replace(/\s+/g, " ")}…”`
+      : " The model returned no text at all.";
+    return { error: `AI returned unparseable output${reason ? ` (finishReason: ${reason})` : ""}.${detail}`, status: 502 };
+  }
   if (!parsed.title || !parsed.body) return { error: "AI output missing title or body.", status: 502 };
 
   const photos = cityEvents.map(e => (e.photos?.[0] as string | undefined)).filter(Boolean).slice(0, 4) as string[];
