@@ -31,6 +31,8 @@ export default function Marquee() {
           .limit(5),
       ]);
 
+      // Keep entries short so the ticker stays scannable.
+      const short = (s: string) => (s.length > 42 ? `${s.slice(0, 42).trimEnd()}…` : s);
       const list: string[] = [];
       ((artists as MarqueeArtist[]) || []).forEach(a => {
         if (!a.full_name) return;
@@ -40,7 +42,7 @@ export default function Marquee() {
         const d = e.event_date ? new Date(e.event_date) : null;
         const isToday = !!d && d.toDateString() === new Date().toDateString();
         const when = !d ? "" : isToday ? "Tonight" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-        list.push(`${when ? `${when}: ` : ""}${e.title}${e.city ? ` — ${e.city}` : ""}`);
+        list.push(`${when ? `${when}: ` : ""}${short(e.title)}${e.city ? ` — ${e.city}` : ""}`);
       });
       setItems(list);
     }
