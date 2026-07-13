@@ -92,6 +92,7 @@ export default function Home() {
   const [userName, setUserName] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
 
   useEffect(() => {
     async function checkAuth() {
@@ -193,22 +194,31 @@ export default function Home() {
 
       {/* CATEGORIES */}
       <section className="px-8 py-16 border-b border-black">
-        <div className="flex items-baseline justify-between mb-12 reveal">
-          <h2 className="text-4xl font-black uppercase">All Categories</h2>
+        <button
+          onClick={() => setShowCategories(v => !v)}
+          aria-expanded={showCategories}
+          className="w-full flex items-baseline justify-between reveal cursor-pointer text-left group"
+        >
+          <h2 className="text-4xl font-black uppercase group-hover:text-[#E5000F] transition-colors">
+            All Categories
+            <span className="text-[#E5000F] ml-4 group-hover:text-black transition-colors">{showCategories ? "−" : "+"}</span>
+          </h2>
           <span className="text-sm text-black/40 uppercase tracking-widest">{categories.length} disciplines</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-black border border-black">
-          {categories.map((cat) => (
-            <button
-              key={cat.name}
-              onClick={() => router.push(`/artists?category=${encodeURIComponent(cat.name)}`)}
-              className="bg-[#F2EDE4] p-6 hover:bg-[#E5000F] hover:text-white transition-all duration-200 cursor-pointer group text-left w-full"
-            >
-              <h3 className="text-base font-black uppercase">{cat.name}</h3>
-              <p className="mt-2 text-xs leading-relaxed opacity-60 group-hover:opacity-80">{cat.description}</p>
-            </button>
-          ))}
-        </div>
+        </button>
+        {showCategories && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-black border border-black mt-12">
+            {categories.map((cat) => (
+              <button
+                key={cat.name}
+                onClick={() => router.push(`/artists?category=${encodeURIComponent(cat.name)}`)}
+                className="bg-[#F2EDE4] p-6 hover:bg-[#E5000F] hover:text-white transition-all duration-200 cursor-pointer group text-left w-full"
+              >
+                <h3 className="text-base font-black uppercase">{cat.name}</h3>
+                <p className="mt-2 text-xs leading-relaxed opacity-60 group-hover:opacity-80">{cat.description}</p>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ARTIST CTA */}
