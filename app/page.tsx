@@ -228,10 +228,12 @@ export default function Home() {
             { num: "02", title: "Get Discovered", body: "Clients browse by category and location. Your work speaks for itself." },
             { num: "03", title: "Book & Earn", body: "Accept bookings, sell your art, and grow your local presence — on your terms." },
           ].map((step, i) => (
-            <div key={step.num} className={`px-8 py-12 reveal reveal-delay-${i + 1}`}>
-              <span className="text-5xl font-black text-[#E5000F] leading-none">{step.num}</span>
-              <h3 className="text-xl font-black uppercase mt-4 mb-3">{step.title}</h3>
-              <p className="text-sm text-black/60 leading-relaxed">{step.body}</p>
+            <div key={step.num} className={`px-8 py-5 reveal reveal-delay-${i + 1}`}>
+              <div className="flex items-baseline gap-3">
+                <span className="text-lg font-black text-[#E5000F] leading-none">{step.num}</span>
+                <h3 className="text-sm font-black uppercase">{step.title}</h3>
+              </div>
+              <p className="text-xs text-black/50 leading-relaxed mt-1.5">{step.body}</p>
             </div>
           ))}
         </div>
