@@ -56,7 +56,7 @@ export default function FeaturedWork() {
             <Link
               key={item.id}
               href={item.artist ? `/artists/${item.artist.id}` : "/artists"}
-              className="relative aspect-square overflow-hidden bg-[#F2EDE4] group"
+              className="relative aspect-[4/3] overflow-hidden bg-[#F2EDE4] group"
             >
               <img
                 src={cdnUrl(item.media_url, "w_800,c_limit,q_auto,f_auto")}
