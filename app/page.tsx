@@ -1,11 +1,14 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import GuideButton from "@/app/components/GuideButton";
 import EventsFeed from "@/app/components/EventsFeed";
 import BlogFeed from "@/app/components/BlogFeed";
+import FeaturedWork from "@/app/components/FeaturedWork";
+import Marquee from "@/app/components/Marquee";
 import { getSupabase } from "@/lib/supabase";
+import { cdnUrl } from "@/lib/cloudinary";
 
 function NewsletterForm() {
   const [email, setEmail] = useState("");
@@ -87,12 +90,52 @@ const categories = [
   { name: "Animation", description: "2D/3D animation, motion graphics and digital storytelling." },
 ];
 
+const emptySubscribe = () => () => {};
+
+function timeGreeting(): string {
+  const h = new Date().getHours();
+  return h >= 5 && h < 12 ? "Good morning — start something creative today." :
+    h >= 12 && h < 17 ? "Good afternoon — the local scene is wide awake." :
+    h >= 17 && h < 23 ? "Good evening — looking for something creative tonight?" :
+    "Up late? Inspiration doesn't sleep.";
+}
+
 export default function Home() {
   const router = useRouter();
   const [userName, setUserName] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
+  const [catPreviews, setCatPreviews] = useState<Record<string, string>>({});
+  const previewsLoaded = useRef(false);
+  const [hoverCat, setHoverCat] = useState<string | null>(null);
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+
+  // Empty server snapshot so the static prerender never disagrees with local time.
+  const greeting = useSyncExternalStore(emptySubscribe, timeGreeting, () => "");
+
+  async function loadCategoryPreviews() {
+    if (previewsLoaded.current) return;
+    previewsLoaded.current = true;
+    const supabase = getSupabase();
+    const { data } = await supabase
+      .from("portfolio_items")
+      .select("media_url, artist:profiles!portfolio_items_artist_id_fkey!inner(category)")
+      .eq("media_type", "image")
+      .eq("artist.role", "artist")
+      .eq("artist.is_deactivated", false)
+      .not("artist.category", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    const map: Record<string, string> = {};
+    ((data as unknown as { media_url: string; artist: { category: string } | null }[]) || []).forEach(row => {
+      let cat = row.artist?.category;
+      if (!cat) return;
+      if (cat.startsWith("Handcraft")) cat = "Handcraft";
+      if (!map[cat]) map[cat] = row.media_url;
+    });
+    setCatPreviews(map);
+  }
 
   useEffect(() => {
     async function checkAuth() {
@@ -143,11 +186,19 @@ export default function Home() {
         </div>
       </nav>
 
+      {/* LIVE TICKER */}
+      <Marquee />
+
       {/* HERO */}
       <section className="px-8 pt-20 pb-16 border-b border-black">
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-6 fade-in-up fade-in-up-1">
-          Creative marketplace
-        </p>
+        <div className="flex flex-wrap items-baseline justify-between gap-2 mb-6 fade-in-up fade-in-up-1">
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F]">
+            Creative marketplace
+          </p>
+          {greeting && (
+            <p className="text-xs uppercase tracking-widest text-black/40">{greeting}</p>
+          )}
+        </div>
         <h1 className="text-[clamp(3rem,10vw,9rem)] font-black uppercase leading-none tracking-tight max-w-6xl fade-in-up fade-in-up-2">
           Where Local<br />
           <span className="text-[#E5000F]">Artists</span><br />
@@ -168,6 +219,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* FRESH ON THE HUB — latest portfolio work */}
+      <FeaturedWork />
 
       {/* HOW IT WORKS */}
       <section className="border-b border-black">
@@ -195,7 +249,7 @@ export default function Home() {
       {/* CATEGORIES */}
       <section className="px-8 py-16 border-b border-black">
         <button
-          onClick={() => setShowCategories(v => !v)}
+          onClick={() => { setShowCategories(v => !v); loadCategoryPreviews(); }}
           aria-expanded={showCategories}
           className="w-full flex items-baseline justify-between reveal cursor-pointer text-left group"
         >
@@ -206,11 +260,17 @@ export default function Home() {
           <span className="text-sm text-black/40 uppercase tracking-widest">{categories.length} disciplines</span>
         </button>
         {showCategories && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-black border border-black mt-12">
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-black border border-black mt-12"
+            onMouseMove={e => setMouse({ x: e.clientX, y: e.clientY })}
+            onMouseLeave={() => setHoverCat(null)}
+          >
             {categories.map((cat) => (
               <button
                 key={cat.name}
                 onClick={() => router.push(`/artists?category=${encodeURIComponent(cat.name)}`)}
+                onMouseEnter={() => setHoverCat(cat.name)}
+                onMouseLeave={() => setHoverCat(null)}
                 className="bg-[#F2EDE4] p-6 hover:bg-[#E5000F] hover:text-white transition-all duration-200 cursor-pointer group text-left w-full"
               >
                 <h3 className="text-base font-black uppercase">{cat.name}</h3>
@@ -218,6 +278,18 @@ export default function Home() {
               </button>
             ))}
           </div>
+        )}
+        {hoverCat && catPreviews[hoverCat] && (
+          <img
+            src={cdnUrl(catPreviews[hoverCat], "w_400,c_limit,q_auto,f_auto")}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none fixed z-50 w-56 aspect-square object-cover border-2 border-black shadow-xl hidden lg:block"
+            style={{
+              left: Math.min(mouse.x + 24, (typeof window !== "undefined" ? window.innerWidth : 1280) - 250),
+              top: mouse.y - 112,
+            }}
+          />
         )}
       </section>
 
