@@ -168,23 +168,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SOCIAL PROOF NUMBERS */}
-      <section className="border-b border-black">
-        <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-black">
-          {[
-            { num: "24", label: "Creative disciplines" },
-            { num: "100%", label: "Local, real artists" },
-            { num: "0%", label: "Commission fees" },
-            { num: "Free", label: "To list your work" },
-          ].map((s) => (
-            <div key={s.label} className="px-8 py-10 reveal">
-              <p className="text-4xl font-black text-[#E5000F]">{s.num}</p>
-              <p className="text-xs uppercase tracking-widest text-black/50 mt-2">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* HOW IT WORKS */}
       <section className="border-b border-black">
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-black">
