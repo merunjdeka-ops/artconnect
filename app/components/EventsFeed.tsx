@@ -26,10 +26,16 @@ function formatDate(iso: string | null): string {
   return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 }
 
+const EVENT_COLUMNS = "id, title, city, venue, event_date, photos, source, source_name, external_url, artist_id, artist:profiles!events_artist_id_fkey(full_name)";
+
 export default function EventsFeed() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState("all");
+  const [search, setSearch] = useState("");
+  const [searchedCity, setSearchedCity] = useState("");
+  const [searchResults, setSearchResults] = useState<EventItem[] | null>(null);
+  const [searching, setSearching] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,7 +45,7 @@ export default function EventsFeed() {
       today.setHours(0, 0, 0, 0);
       const { data } = await supabase
         .from("events")
-        .select("id, title, city, venue, event_date, photos, source, source_name, external_url, artist_id, artist:profiles!events_artist_id_fkey(full_name)")
+        .select(EVENT_COLUMNS)
         .eq("is_published", true)
         .gte("event_date", today.toISOString())
         .order("event_date", { ascending: true, nullsFirst: false })
@@ -50,8 +56,38 @@ export default function EventsFeed() {
     load();
   }, []);
 
+  // The feed only loads the 24 nearest events, so the dropdown can miss
+  // cities that do have events further out — the search asks the DB directly.
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const term = search.trim();
+    if (!term) { clearSearch(); return; }
+    setSearching(true);
+    const supabase = getSupabase();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const { data } = await supabase
+      .from("events")
+      .select(EVENT_COLUMNS)
+      .eq("is_published", true)
+      .gte("event_date", today.toISOString())
+      .ilike("city", `%${term}%`)
+      .order("event_date", { ascending: true, nullsFirst: false })
+      .limit(24);
+    setSearchResults((data as unknown as EventItem[]) || []);
+    setSearchedCity(term);
+    setCity("all");
+    setSearching(false);
+  }
+
+  function clearSearch() {
+    setSearch("");
+    setSearchedCity("");
+    setSearchResults(null);
+  }
+
   const cities = Array.from(new Set(events.map(e => e.city).filter(Boolean))) as string[];
-  const visible = city === "all" ? events : events.filter(e => e.city === city);
+  const visible = searchResults ?? (city === "all" ? events : events.filter(e => e.city === city));
 
   function scroll(dir: 1 | -1) {
     scroller.current?.scrollBy({ left: dir * 360, behavior: "smooth" });
@@ -67,11 +103,23 @@ export default function EventsFeed() {
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-3">Live &amp; local</p>
           <h2 className="text-4xl font-black uppercase leading-none">Upcoming<br />Performances</h2>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <form onSubmit={handleSearch} className="flex">
+            <input
+              type="search"
+              placeholder="Search any city..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); if (!e.target.value.trim()) clearSearch(); }}
+              className="w-40 sm:w-48 border border-black border-r-0 bg-transparent px-4 py-2 text-xs font-bold uppercase tracking-widest outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30 placeholder:normal-case placeholder:font-normal"
+            />
+            <button type="submit" disabled={searching} aria-label="Search city" className="px-4 py-2 border border-black bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] hover:border-[#E5000F] transition-colors disabled:opacity-50">
+              {searching ? "..." : "Go"}
+            </button>
+          </form>
           {cities.length > 0 && (
             <select
-              value={city}
-              onChange={e => setCity(e.target.value)}
+              value={searchResults ? "all" : city}
+              onChange={e => { clearSearch(); setCity(e.target.value); }}
               className="border border-black bg-transparent px-4 py-2 text-xs font-bold uppercase tracking-widest outline-none focus:border-[#E5000F] transition-colors cursor-pointer"
             >
               <option value="all">All cities</option>
@@ -90,7 +138,9 @@ export default function EventsFeed() {
       {loading ? (
         <p className="text-xs uppercase tracking-widest text-black/40 py-12">Loading events...</p>
       ) : visible.length === 0 ? (
-        <p className="text-sm text-black/40 py-12">No events in {city}. Try another city.</p>
+        <p className="text-sm text-black/40 py-12">
+          No upcoming events in {searchResults ? `"${searchedCity}"` : city} yet. Try another city.
+        </p>
       ) : (
         <div
           ref={scroller}
