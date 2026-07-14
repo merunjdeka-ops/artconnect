@@ -78,8 +78,8 @@ export default function NewsPage() {
             {visible.map(n => (
               <a key={n.id} href={n.link} target="_blank" rel="noopener noreferrer" className="bg-[#F2EDE4] p-6 flex gap-6 items-start group hover:bg-white transition-colors">
                 {n.image_url && (
-                  <div className="hidden sm:block w-32 h-24 shrink-0 overflow-hidden border border-black/10 bg-black/5">
-                    <img src={n.image_url} alt="" loading="eager" decoding="async" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                  <div className="w-24 h-20 sm:w-44 sm:h-32 shrink-0 overflow-hidden border border-black/10 bg-black/5">
+                    <img src={n.image_url} alt="" decoding="async" referrerPolicy="no-referrer" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                   </div>
                 )}
                 <div className="min-w-0">
