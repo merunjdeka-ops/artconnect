@@ -28,66 +28,96 @@ function formatDate(iso: string | null): string {
 
 const EVENT_COLUMNS = "id, title, city, venue, event_date, photos, source, source_name, external_url, artist_id, artist:profiles!events_artist_id_fkey(full_name)";
 
+function startOfToday(): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today.toISOString();
+}
+
 export default function EventsFeed() {
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState("all");
   const [search, setSearch] = useState("");
-  const [searchedCity, setSearchedCity] = useState("");
-  const [searchResults, setSearchResults] = useState<EventItem[] | null>(null);
+  const [filterLabel, setFilterLabel] = useState("");
+  const [filtered, setFiltered] = useState<EventItem[] | null>(null);
   const [searching, setSearching] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function load() {
       const supabase = getSupabase();
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
       const { data } = await supabase
         .from("events")
         .select(EVENT_COLUMNS)
         .eq("is_published", true)
-        .gte("event_date", today.toISOString())
+        .gte("event_date", startOfToday())
         .order("event_date", { ascending: true, nullsFirst: false })
         .limit(24);
       setEvents((data as unknown as EventItem[]) || []);
       setLoading(false);
+      // Dropdown lists every city with an upcoming event, not just the 24 loaded.
+      const { data: cityRows } = await supabase
+        .from("events")
+        .select("city")
+        .eq("is_published", true)
+        .gte("event_date", startOfToday())
+        .not("city", "is", null)
+        .limit(1000);
+      const unique = Array.from(new Set((cityRows || []).map(r => (r.city as string).trim()).filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b));
+      setCities(unique);
     }
     load();
   }, []);
 
-  // The feed only loads the 24 nearest events, so the dropdown can miss
-  // cities that do have events further out — the search asks the DB directly.
+  // Both the dropdown and the search ask the DB directly — the feed only
+  // holds the 24 nearest events, so filtering it client-side misses events
+  // further out.
+  async function loadCityFromDb(term: string, exact: boolean) {
+    setSearching(true);
+    const supabase = getSupabase();
+    const base = supabase
+      .from("events")
+      .select(EVENT_COLUMNS)
+      .eq("is_published", true)
+      .gte("event_date", startOfToday());
+    const { data } = await (exact ? base.eq("city", term) : base.ilike("city", `%${term}%`))
+      .order("event_date", { ascending: true, nullsFirst: false })
+      .limit(60);
+    setFiltered((data as unknown as EventItem[]) || []);
+    setFilterLabel(term);
+    setSearching(false);
+  }
+
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     const term = search.trim();
     if (!term) { clearSearch(); return; }
-    setSearching(true);
-    const supabase = getSupabase();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const { data } = await supabase
-      .from("events")
-      .select(EVENT_COLUMNS)
-      .eq("is_published", true)
-      .gte("event_date", today.toISOString())
-      .ilike("city", `%${term}%`)
-      .order("event_date", { ascending: true, nullsFirst: false })
-      .limit(24);
-    setSearchResults((data as unknown as EventItem[]) || []);
-    setSearchedCity(term);
     setCity("all");
-    setSearching(false);
+    await loadCityFromDb(term, false);
+  }
+
+  function handleCityChange(value: string) {
+    setSearch("");
+    setCity(value);
+    if (value === "all") {
+      setFilterLabel("");
+      setFiltered(null);
+    } else {
+      loadCityFromDb(value, true);
+    }
   }
 
   function clearSearch() {
     setSearch("");
-    setSearchedCity("");
-    setSearchResults(null);
+    setFilterLabel("");
+    setFiltered(null);
+    setCity("all");
   }
 
-  const cities = Array.from(new Set(events.map(e => e.city).filter(Boolean))) as string[];
-  const visible = searchResults ?? (city === "all" ? events : events.filter(e => e.city === city));
+  const visible = filtered ?? events;
 
   function scroll(dir: 1 | -1) {
     scroller.current?.scrollBy({ left: dir * 360, behavior: "smooth" });
@@ -118,8 +148,8 @@ export default function EventsFeed() {
           </form>
           {cities.length > 0 && (
             <select
-              value={searchResults ? "all" : city}
-              onChange={e => { clearSearch(); setCity(e.target.value); }}
+              value={city}
+              onChange={e => handleCityChange(e.target.value)}
               className="border border-black bg-transparent px-4 py-2 text-xs font-bold uppercase tracking-widest outline-none focus:border-[#E5000F] transition-colors cursor-pointer"
             >
               <option value="all">All cities</option>
@@ -139,7 +169,7 @@ export default function EventsFeed() {
         <p className="text-xs uppercase tracking-widest text-black/40 py-12">Loading events...</p>
       ) : visible.length === 0 ? (
         <p className="text-sm text-black/40 py-12">
-          No upcoming events in {searchResults ? `"${searchedCity}"` : city} yet. Try another city.
+          No upcoming events in &quot;{filterLabel}&quot; yet. Try another city.
         </p>
       ) : (
         <div
