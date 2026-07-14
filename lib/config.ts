@@ -12,7 +12,11 @@ export const SITE_URL = "https://www.thelocalarthub.com";
 
 // Google AdSense publisher ID (ca-pub-XXXXXXXXXXXXXXXX). Leave unset until the
 // AdSense account is created and approved — ad slots fall back to house ads.
-export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? "";
+// The script tag and meta tag need the "ca-pub-…" form, but AdSense shows the
+// ID as "pub-…" in several places — accept either and normalise here.
+const rawAdsenseClient = (process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? "").trim();
+export const ADSENSE_CLIENT =
+  rawAdsenseClient && !rawAdsenseClient.startsWith("ca-") ? `ca-${rawAdsenseClient}` : rawAdsenseClient;
 
 
 
