@@ -6,6 +6,7 @@ import GuideButton from "@/app/components/GuideButton";
 import EventsFeed from "@/app/components/EventsFeed";
 import BlogFeed from "@/app/components/BlogFeed";
 import FeaturedWork from "@/app/components/FeaturedWork";
+import AdSlot from "@/app/components/AdSlot";
 import Marquee from "@/app/components/Marquee";
 import { getSupabase } from "@/lib/supabase";
 import { cdnUrl } from "@/lib/cloudinary";
@@ -247,6 +248,11 @@ export default function Home() {
 
       {/* FRESH ON THE HUB — latest portfolio work */}
       <FeaturedWork />
+
+      {/* AD SLOT */}
+      <section className="px-8 py-8 border-b border-black">
+        <AdSlot slot="home" />
+      </section>
 
       {/* CATEGORIES */}
       <section className="px-8 py-16 border-b border-black">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 import GuideButton from "@/app/components/GuideButton";
+import AdSlot from "@/app/components/AdSlot";
 import { cdnUrl } from "@/lib/cloudinary";
 
 const HANDCRAFT_SUBCATEGORIES = [
@@ -523,6 +524,11 @@ function ArtistsPageInner() {
           </>
         )}
       </section>
+
+      {/* AD SLOT */}
+      <div className="px-8 pb-8">
+        <AdSlot slot="artists" />
+      </div>
 
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black mt-10">
         <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>the</span><span className="uppercase"> Local Art Hub</span></span>

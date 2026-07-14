@@ -10,5 +10,9 @@ export const DMCA_EMAIL    = "goartconnect@gmail.com";
 
 export const SITE_URL = "https://www.thelocalarthub.com";
 
+// Google AdSense publisher ID (ca-pub-XXXXXXXXXXXXXXXX). Leave unset until the
+// AdSense account is created and approved — ad slots fall back to house ads.
+export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? "";
+
 
 

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 import { cdnUrl } from "@/lib/cloudinary";
 import { categoryLabel } from "@/lib/blog";
+import AdSlot from "@/app/components/AdSlot";
 
 type Post = {
   id: string;
@@ -92,6 +93,11 @@ export default function BlogPostPage() {
                 ))}
               </div>
             )}
+
+            {/* AD SLOT */}
+            <div className="mt-12">
+              <AdSlot slot="blog" />
+            </div>
           </article>
 
           {lightbox && (
