@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono, Mr_Dafoe } from "next/font/google";
 import "./globals.css";
 import ScrollReveal from "@/app/components/ScrollReveal";
 import CookieBanner from "@/app/components/CookieBanner";
+import { ADSENSE_CLIENT } from "@/lib/config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -53,6 +55,8 @@ export const metadata: Metadata = {
   },
   // Add your Google Search Console verification code below (get it from search.google.com/search-console)
   // verification: { google: "YOUR_VERIFICATION_CODE_HERE" },
+  // AdSense site-ownership meta tag — appears once NEXT_PUBLIC_ADSENSE_CLIENT is set
+  ...(ADSENSE_CLIENT ? { other: { "google-adsense-account": ADSENSE_CLIENT } } : {}),
 };
 
 export default function RootLayout({
@@ -70,6 +74,27 @@ export default function RootLayout({
         <link rel="preconnect" href="https://res.cloudinary.com" />
         {process.env.NEXT_PUBLIC_SUPABASE_URL && (
           <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+        )}
+        {ADSENSE_CLIENT && (
+          <>
+            {/* GDPR: hold AdSense ad requests until the visitor accepts advertising
+                cookies (see CookieBanner, which unpauses on accept). Must run before
+                adsbygoogle.js executes, so it ships inline in the initial HTML. */}
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `try{if(localStorage.getItem("gac_cookie_consent")!=="accepted"){(window.adsbygoogle=window.adsbygoogle||[]).pauseAdRequests=1;}}catch(e){}`,
+              }}
+            />
+            {/* Sitewide AdSense loader — required on every page for site review/verification.
+                data-adsense stops AdSlot from injecting a duplicate copy. */}
+            <Script
+              id="adsense-loader"
+              data-adsense="1"
+              src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+              crossOrigin="anonymous"
+              strategy="afterInteractive"
+            />
+          </>
         )}
         <ScrollReveal />
         {children}

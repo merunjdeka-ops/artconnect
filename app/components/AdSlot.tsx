@@ -8,7 +8,7 @@ import { ADSENSE_CLIENT } from "@/lib/config";
 
 declare global {
   interface Window {
-    adsbygoogle?: unknown[];
+    adsbygoogle?: unknown[] & { pauseAdRequests?: number };
   }
 }
 

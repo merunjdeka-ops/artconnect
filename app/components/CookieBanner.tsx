@@ -21,6 +21,12 @@ export default function CookieBanner() {
     try {
       localStorage.setItem(CONSENT_KEY, value);
     } catch {}
+    if (value === "accepted") {
+      // Ad requests are paused in the root layout until consent — lift the pause.
+      try {
+        (window.adsbygoogle = window.adsbygoogle || []).pauseAdRequests = 0;
+      } catch {}
+    }
     setVisible(false);
   }
 
