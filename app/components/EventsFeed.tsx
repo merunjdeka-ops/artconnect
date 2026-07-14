@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
-import { cdnUrl } from "@/lib/cloudinary";
+import { cdnUrl, lightTmUrl } from "@/lib/cloudinary";
 
 type EventItem = {
   id: string;
@@ -105,7 +105,7 @@ export default function EventsFeed() {
               <>
                 <div className="relative aspect-[4/3] bg-black/5 overflow-hidden">
                   {cover ? (
-                    <img src={cdnUrl(cover, "w_700,c_limit,q_auto,f_auto")} alt={ev.title} loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    <img src={cdnUrl(lightTmUrl(cover), "w_700,c_limit,q_auto,f_auto")} alt={ev.title} loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-black via-[#1a0000] to-[#E5000F]/40" />
                   )}

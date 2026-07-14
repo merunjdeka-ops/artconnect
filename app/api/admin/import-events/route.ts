@@ -13,9 +13,13 @@ type TMEvent = {
 
 function bestImage(images?: TMImage[]): string | null {
   if (!images?.length) return null;
+  // Smallest 16:9 that's still ≥640px wide — the largest is Ticketmaster's
+  // multi-hundred-KB _SOURCE original, far too heavy for feed cards.
   const wide = images.filter(i => i.ratio === "16_9" && (i.width ?? 0) >= 640);
-  const pool = wide.length ? wide : images;
-  return pool.reduce((a, b) => ((a.width ?? 0) >= (b.width ?? 0) ? a : b)).url || null;
+  if (wide.length) {
+    return wide.reduce((a, b) => ((a.width ?? Infinity) <= (b.width ?? Infinity) ? a : b)).url || null;
+  }
+  return images.reduce((a, b) => ((a.width ?? 0) >= (b.width ?? 0) ? a : b)).url || null;
 }
 
 export async function POST(req: NextRequest) {
