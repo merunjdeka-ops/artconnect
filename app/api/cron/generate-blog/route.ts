@@ -134,11 +134,11 @@ async function generate() {
   const [city, cityEvents] = eligible[0];
   const source = cityEvents.slice(0, 8).map(e => ({
     title: e.title, date: fmt(e.event_date), venue: e.venue, source: e.source_name,
-    description: e.description ? String(e.description).slice(0, 200) : undefined,
+    description: e.description ? String(e.description).slice(0, 500) : undefined,
   }));
 
   const system = "You are the arts editor for The Local Art Hub, a platform for booking local artists in Italy. "
-    + "You write short, lively blog roundups of upcoming events. CRITICAL RULES: use ONLY the event data provided by the user. "
+    + "You write substantial, lively blog roundups of upcoming events. CRITICAL RULES: use ONLY the event data provided by the user. "
     + "Never invent events, dates, venues, artists, prices, or any fact not present in the data. Do not add events you think you know about. "
     + "If information is missing, simply omit it. Warm, welcoming editorial tone, British English. Output ONLY valid JSON, no markdown fences.";
 
@@ -146,7 +146,12 @@ async function generate() {
     + `EVENTS:\n${JSON.stringify(source, null, 2)}\n\n`
     + `Return ONLY this JSON object:\n`
     + `{"title": "catchy headline mentioning ${city}", "excerpt": "one-sentence teaser", `
-    + `"body": "3 to 5 short paragraphs of plain text (use \\n\\n between paragraphs) that walk through the events by name, with their dates and venues, and end by inviting readers to explore The Local Art Hub"}`;
+    + `"body": "a well-developed article of 600 to 900 words in plain text (use \\n\\n between paragraphs). `
+    + `Open with an inviting paragraph about what the coming weeks look like in ${city} based on the listed events. `
+    + `Then give each event its own paragraph — name, date and venue woven into flowing prose, drawing on the description text where provided. `
+    + `Vary the sentence rhythm so it reads as editorial, not a listing. `
+    + `Close by inviting readers to explore and book local artists on The Local Art Hub. `
+    + `Remember: every fact must come from the event data above — pad with tone and craft, never with invented details"}`;
 
   const prompt = `${system}\n\n${userMsg}`;
   const models = await listGeminiModels(geminiKey);

@@ -108,6 +108,8 @@ export default function Home() {
   const [userName, setUserName] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  // Nav link hidden while no open calls exist, so the empty page isn't reachable.
+  const [hasCompetitions, setHasCompetitions] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
   const [catPreviews, setCatPreviews] = useState<Record<string, string>>({});
   const previewsLoaded = useRef(false);
@@ -166,6 +168,18 @@ export default function Home() {
     checkAuth();
   }, []);
 
+  useEffect(() => {
+    async function checkCompetitions() {
+      const { count } = await getSupabase()
+        .from("competitions")
+        .select("id", { count: "exact", head: true })
+        .eq("is_published", true)
+        .or(`deadline.is.null,deadline.gte.${new Date().toISOString()}`);
+      setHasCompetitions((count ?? 0) > 0);
+    }
+    checkCompetitions();
+  }, []);
+
   async function handleLogout() {
     await getSupabase().auth.signOut();
     setUserName(null);
@@ -184,7 +198,7 @@ export default function Home() {
             <>
               <Link href="/artists" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Browse</Link>
               <Link href="/blog" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
-              <Link href="/competitions" className="hidden lg:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Competitions</Link>
+              {hasCompetitions && <Link href="/competitions" className="hidden lg:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Competitions</Link>}
               <Link href="/news" className="hidden lg:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">News</Link>
               <Link href="/dashboard" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Dashboard</Link>
               {isAdmin && <Link href="/admin" className="text-sm font-bold uppercase tracking-widest text-[#E5000F] hover:text-black transition-colors">Admin</Link>}
@@ -196,7 +210,7 @@ export default function Home() {
           ) : authChecked ? (
             <>
               <Link href="/blog" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
-              <Link href="/competitions" className="hidden md:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Competitions</Link>
+              {hasCompetitions && <Link href="/competitions" className="hidden md:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Competitions</Link>}
               <Link href="/news" className="hidden md:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">News</Link>
               <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
               <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors whitespace-nowrap">Join Now</Link>
