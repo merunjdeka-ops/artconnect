@@ -59,13 +59,22 @@ export default function NewsFeed() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-white/20 border border-white/20">
           {items.map(n => (
-            <a key={n.id} href={n.link} target="_blank" rel="noopener noreferrer" className="bg-black group flex flex-col p-6 hover:bg-[#111] transition-colors">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-[#E5000F] mb-3">
-                {[n.category, formatDate(n.published_at)].filter(Boolean).join(" · ")}
-              </p>
-              <h3 className="text-base font-black uppercase leading-tight mb-3 group-hover:text-[#E5000F] transition-colors">{n.title}</h3>
-              {n.excerpt && <p className="text-xs text-white/50 leading-relaxed line-clamp-3 mb-4">{n.excerpt}</p>}
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mt-auto">{n.source} →</p>
+            <a key={n.id} href={n.link} target="_blank" rel="noopener noreferrer" className="bg-black group flex flex-col hover:bg-[#111] transition-colors">
+              <div className="aspect-[16/9] overflow-hidden bg-white/5">
+                {n.image_url ? (
+                  <img src={n.image_url} alt={n.title} decoding="async" referrerPolicy="no-referrer" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-[#1a0000] via-black to-[#E5000F]/30" />
+                )}
+              </div>
+              <div className="p-6 flex flex-col flex-1">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-[#E5000F] mb-3">
+                  {[n.category, formatDate(n.published_at)].filter(Boolean).join(" · ")}
+                </p>
+                <h3 className="text-base font-black uppercase leading-tight mb-3 group-hover:text-[#E5000F] transition-colors">{n.title}</h3>
+                {n.excerpt && <p className="text-xs text-white/50 leading-relaxed line-clamp-3 mb-4">{n.excerpt}</p>}
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mt-auto">{n.source} →</p>
+              </div>
             </a>
           ))}
         </div>
