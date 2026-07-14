@@ -88,7 +88,7 @@ export default function BlogPostPage() {
               <div className="grid grid-cols-2 gap-px bg-black border border-black mt-12">
                 {gallery.map(url => (
                   <button key={url} onClick={() => setLightbox(url)} className="aspect-square overflow-hidden bg-black/5 cursor-zoom-in group">
-                    <img src={cdnUrl(url, "w_800,c_limit,q_auto,f_auto")} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    <img src={cdnUrl(url, "w_800,c_limit,q_auto,f_auto")} alt="" decoding="async" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                   </button>
                 ))}
               </div>

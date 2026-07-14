@@ -58,7 +58,7 @@ function MusicEmbed({ item }: { item: PortfolioItem }) {
     return <iframe width="100%" height="120" scrolling="no" frameBorder="no" allow="autoplay" src={item.media_url} className="mb-3" />;
   }
   if (item.media_type === "spotify") {
-    return <iframe src={item.media_url} width="100%" height="152" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" className="mb-3" />;
+    return <iframe src={item.media_url} width="100%" height="152" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" className="mb-3" />;
   }
   if (item.media_type === "youtube") {
     return <iframe width="100%" height="200" src={item.media_url} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="mb-3" />;

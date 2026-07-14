@@ -94,7 +94,6 @@ export default function AdSlot({ slot }: { slot: string }) {
           <img
             src={cdnUrl(sponsor.image_url, "w_1400,c_limit,q_auto,f_auto")}
             alt={sponsor.title || "Sponsored"}
-            loading="lazy"
             decoding="async"
             className="w-full h-auto max-h-48 object-contain"
           />

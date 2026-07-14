@@ -462,7 +462,7 @@ function ArtistsPageInner() {
                       <img
                         src={cdnUrl(artist.avatar_url, "w_600,c_fill,q_auto,f_auto")}
                         alt={artist.full_name}
-                        loading="lazy"
+                       
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     ) : (

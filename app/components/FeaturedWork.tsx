@@ -61,7 +61,6 @@ export default function FeaturedWork() {
               <img
                 src={cdnUrl(item.media_url, "w_600,c_limit,q_auto,f_auto")}
                 alt={item.title || item.artist?.full_name || "Artist work"}
-                loading="lazy"
                 decoding="async"
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
