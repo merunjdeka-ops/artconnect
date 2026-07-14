@@ -7,6 +7,8 @@ export const revalidate = 3600;
 const BASE_URLS: MetadataRoute.Sitemap = [
   { url: "https://thelocalarthub.com", lastModified: new Date(), changeFrequency: "daily", priority: 1 },
   { url: "https://thelocalarthub.com/artists", lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
+  { url: "https://thelocalarthub.com/competitions", lastModified: new Date(), changeFrequency: "daily", priority: 0.7 },
+  { url: "https://thelocalarthub.com/news", lastModified: new Date(), changeFrequency: "daily", priority: 0.6 },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

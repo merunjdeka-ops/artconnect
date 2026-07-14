@@ -5,17 +5,19 @@ import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 
 export default function AdminHome() {
-  const [counts, setCounts] = useState({ posts: 0, events: 0, ads: 0 });
+  const [counts, setCounts] = useState({ posts: 0, events: 0, ads: 0, competitions: 0, news: 0 });
 
   useEffect(() => {
     async function load() {
       const supabase = getSupabase();
-      const [{ count: posts }, { count: events }, { count: ads }] = await Promise.all([
+      const [{ count: posts }, { count: events }, { count: ads }, { count: competitions }, { count: news }] = await Promise.all([
         supabase.from("posts").select("id", { count: "exact", head: true }),
         supabase.from("events").select("id", { count: "exact", head: true }),
         supabase.from("ads").select("id", { count: "exact", head: true }),
+        supabase.from("competitions").select("id", { count: "exact", head: true }),
+        supabase.from("news_items").select("id", { count: "exact", head: true }),
       ]);
-      setCounts({ posts: posts || 0, events: events || 0, ads: ads || 0 });
+      setCounts({ posts: posts || 0, events: events || 0, ads: ads || 0, competitions: competitions || 0, news: news || 0 });
     }
     load();
   }, []);
@@ -40,6 +42,16 @@ export default function AdminHome() {
           <p className="text-5xl font-black">{counts.ads}</p>
           <p className="text-xs uppercase tracking-widest mt-2 opacity-60">Sponsor ads</p>
           <p className="text-xs font-bold uppercase tracking-widest mt-6 border-b-2 border-current inline-block pb-0.5">Manage ads →</p>
+        </Link>
+        <Link href="/admin/competitions" className="bg-[#F2EDE4] p-8 hover:bg-[#E5000F] hover:text-white transition-colors group">
+          <p className="text-5xl font-black">{counts.competitions}</p>
+          <p className="text-xs uppercase tracking-widest mt-2 opacity-60">Competitions</p>
+          <p className="text-xs font-bold uppercase tracking-widest mt-6 border-b-2 border-current inline-block pb-0.5">Manage competitions →</p>
+        </Link>
+        <Link href="/admin/news" className="bg-[#F2EDE4] p-8 hover:bg-[#E5000F] hover:text-white transition-colors group">
+          <p className="text-5xl font-black">{counts.news}</p>
+          <p className="text-xs uppercase tracking-widest mt-2 opacity-60">News items</p>
+          <p className="text-xs font-bold uppercase tracking-widest mt-6 border-b-2 border-current inline-block pb-0.5">Manage news →</p>
         </Link>
       </div>
 

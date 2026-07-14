@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import GuideButton from "@/app/components/GuideButton";
 import EventsFeed from "@/app/components/EventsFeed";
+import CompetitionsFeed from "@/app/components/CompetitionsFeed";
+import NewsFeed from "@/app/components/NewsFeed";
 import BlogFeed from "@/app/components/BlogFeed";
 import FeaturedWork from "@/app/components/FeaturedWork";
 import AdSlot from "@/app/components/AdSlot";
@@ -182,6 +184,8 @@ export default function Home() {
             <>
               <Link href="/artists" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Browse</Link>
               <Link href="/blog" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
+              <Link href="/competitions" className="hidden lg:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Competitions</Link>
+              <Link href="/news" className="hidden lg:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">News</Link>
               <Link href="/dashboard" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Dashboard</Link>
               {isAdmin && <Link href="/admin" className="text-sm font-bold uppercase tracking-widest text-[#E5000F] hover:text-black transition-colors">Admin</Link>}
               <span className="text-xs uppercase tracking-widest text-black/40 hidden md:block">{userName}</span>
@@ -192,6 +196,8 @@ export default function Home() {
           ) : authChecked ? (
             <>
               <Link href="/blog" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
+              <Link href="/competitions" className="hidden md:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Competitions</Link>
+              <Link href="/news" className="hidden md:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">News</Link>
               <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
               <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors whitespace-nowrap">Join Now</Link>
             </>
@@ -255,8 +261,14 @@ export default function Home() {
       {/* EVENTS / PERFORMANCES FEED */}
       <EventsFeed />
 
+      {/* COMPETITIONS / OPEN CALLS */}
+      <CompetitionsFeed />
+
       {/* BLOG / JOURNAL FEED */}
       <BlogFeed />
+
+      {/* CREATIVE NEWS WIRE */}
+      <NewsFeed />
 
       {/* FRESH ON THE HUB — latest portfolio work */}
       <FeaturedWork />
