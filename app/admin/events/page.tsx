@@ -139,7 +139,8 @@ export default function AdminEventsPage() {
   }
 
   async function handleImport() {
-    if (!importCity.trim()) { setImportMsg("Enter a city to import."); return; }
+    const cities = importCity.split(",").map(c => c.trim()).filter(Boolean);
+    if (cities.length === 0) { setImportMsg("Enter a city to import."); return; }
     setImporting(true); setImportMsg("");
     try {
       const supabase = getSupabase();
@@ -147,11 +148,13 @@ export default function AdminEventsPage() {
       const res = await fetch("/api/admin/import-events", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
-        body: JSON.stringify({ city: importCity.trim() }),
+        body: JSON.stringify({ city: cities.join(", ") }),
       });
       const data = await res.json();
       if (!res.ok) { setImportMsg(data?.error || "Import failed."); return; }
-      setImportMsg(`Imported ${data.imported} new event${data.imported === 1 ? "" : "s"} for ${importCity.trim()} (${data.skipped} already existed).`);
+      let msg = `Imported ${data.imported} new event${data.imported === 1 ? "" : "s"} for ${cities.join(", ")} (${data.skipped} already existed).`;
+      if (data.failedCities?.length) msg += ` Ticketmaster request failed for: ${data.failedCities.join(", ")}.`;
+      setImportMsg(msg);
       await reload();
     } catch {
       setImportMsg("Import failed. Please try again.");
@@ -170,9 +173,9 @@ export default function AdminEventsPage() {
       {/* Ticketmaster import */}
       <div className="border border-black bg-black text-white p-8 mb-8">
         <h2 className="text-lg font-black uppercase mb-2">Auto-import from Ticketmaster</h2>
-        <p className="text-xs text-white/50 mb-5 max-w-lg">Pull upcoming concerts and shows for a city from the Ticketmaster Discovery API. Duplicates are skipped automatically.</p>
+        <p className="text-xs text-white/50 mb-5 max-w-lg">Pull upcoming concerts and shows from the Ticketmaster Discovery API. Enter one city or several separated by commas (up to 10). Duplicates are skipped automatically.</p>
         <div className="flex flex-col sm:flex-row gap-3">
-          <input placeholder="City (e.g. Milan)" value={importCity} onChange={e => setImportCity(e.target.value)} className="flex-1 border border-white/30 bg-transparent px-4 py-3 text-sm text-white outline-none focus:border-[#E5000F] transition-colors placeholder:text-white/30" />
+          <input placeholder="City or cities (e.g. Milan, Rome, Florence)" value={importCity} onChange={e => setImportCity(e.target.value)} className="flex-1 border border-white/30 bg-transparent px-4 py-3 text-sm text-white outline-none focus:border-[#E5000F] transition-colors placeholder:text-white/30" />
           <button onClick={handleImport} disabled={importing} className="px-6 py-3 bg-[#E5000F] text-white text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors disabled:opacity-50 whitespace-nowrap">
             {importing ? "Importing..." : "Import Events"}
           </button>
