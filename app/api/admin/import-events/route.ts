@@ -26,6 +26,20 @@ type EventRow = {
   artist_id: null;
 };
 
+// Ticketmaster stores Italian venue cities under their local names, so once
+// the query is country-filtered an English name like "Milan" finds nothing.
+const CITY_ALIASES: Record<string, string> = {
+  milan: "Milano",
+  rome: "Roma",
+  florence: "Firenze",
+  naples: "Napoli",
+  turin: "Torino",
+  venice: "Venezia",
+  genoa: "Genova",
+  padua: "Padova",
+  syracuse: "Siracusa",
+};
+
 function bestImage(images?: TMImage[]): string | null {
   if (!images?.length) return null;
   // Smallest 16:9 that's still ≥640px wide — the largest is Ticketmaster's
@@ -60,7 +74,8 @@ export async function POST(req: NextRequest) {
     const { city } = (await req.json()) as { city?: string };
     const cities: string[] = [];
     const lowered = new Set<string>();
-    for (const c of (city ?? "").split(",").map(s => s.trim()).filter(Boolean)) {
+    for (const raw of (city ?? "").split(",").map(s => s.trim()).filter(Boolean)) {
+      const c = CITY_ALIASES[raw.toLowerCase()] ?? raw;
       if (!lowered.has(c.toLowerCase())) {
         lowered.add(c.toLowerCase());
         cities.push(c);
@@ -88,6 +103,7 @@ export async function POST(req: NextRequest) {
       const params = new URLSearchParams({
         apikey: tmKey,
         city: cityName,
+        countryCode: "IT",
         size: "40",
         sort: "date,asc",
         startDateTime,

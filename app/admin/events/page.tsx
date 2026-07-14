@@ -173,9 +173,9 @@ export default function AdminEventsPage() {
       {/* Ticketmaster import */}
       <div className="border border-black bg-black text-white p-8 mb-8">
         <h2 className="text-lg font-black uppercase mb-2">Auto-import from Ticketmaster</h2>
-        <p className="text-xs text-white/50 mb-5 max-w-lg">Pull upcoming concerts and shows from the Ticketmaster Discovery API. Enter one city or several separated by commas (up to 10). Duplicates are skipped automatically.</p>
+        <p className="text-xs text-white/50 mb-5 max-w-lg">Pull upcoming concerts and shows in Italy from the Ticketmaster Discovery API. Enter one city or several separated by commas (up to 10) — English names like Milan or Rome work too. Duplicates are skipped automatically.</p>
         <div className="flex flex-col sm:flex-row gap-3">
-          <input placeholder="City or cities (e.g. Milan, Rome, Florence)" value={importCity} onChange={e => setImportCity(e.target.value)} className="flex-1 border border-white/30 bg-transparent px-4 py-3 text-sm text-white outline-none focus:border-[#E5000F] transition-colors placeholder:text-white/30" />
+          <input placeholder="City or cities (e.g. Milano, Roma, Firenze)" value={importCity} onChange={e => setImportCity(e.target.value)} className="flex-1 border border-white/30 bg-transparent px-4 py-3 text-sm text-white outline-none focus:border-[#E5000F] transition-colors placeholder:text-white/30" />
           <button onClick={handleImport} disabled={importing} className="px-6 py-3 bg-[#E5000F] text-white text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors disabled:opacity-50 whitespace-nowrap">
             {importing ? "Importing..." : "Import Events"}
           </button>
