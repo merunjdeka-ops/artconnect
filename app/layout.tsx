@@ -66,6 +66,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${mrDafoe.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {/* React hoists these into <head>; every page fetches from both hosts on mount */}
+        <link rel="preconnect" href="https://res.cloudinary.com" />
+        {process.env.NEXT_PUBLIC_SUPABASE_URL && (
+          <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+        )}
         <ScrollReveal />
         {children}
         <CookieBanner />

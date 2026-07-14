@@ -75,7 +75,7 @@ export default function BlogPostPage() {
             <p className="text-xs uppercase tracking-widest text-black/40 mb-10">{fmt(post.published_at)}</p>
 
             {post.cover_url && (
-              <img src={cdnUrl(post.cover_url, "w_1400,c_limit,q_auto,f_auto")} alt={post.title} className="w-full border border-black mb-10" />
+              <img src={cdnUrl(post.cover_url, "w_1400,c_limit,q_auto,f_auto")} alt={post.title} fetchPriority="high" className="w-full border border-black mb-10" />
             )}
 
             {post.excerpt && <p className="text-lg text-black/70 leading-relaxed mb-8 font-medium">{post.excerpt}</p>}
@@ -88,7 +88,7 @@ export default function BlogPostPage() {
               <div className="grid grid-cols-2 gap-px bg-black border border-black mt-12">
                 {gallery.map(url => (
                   <button key={url} onClick={() => setLightbox(url)} className="aspect-square overflow-hidden bg-black/5 cursor-zoom-in group">
-                    <img src={cdnUrl(url, "w_800,c_limit,q_auto,f_auto")} alt="" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    <img src={cdnUrl(url, "w_800,c_limit,q_auto,f_auto")} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                   </button>
                 ))}
               </div>

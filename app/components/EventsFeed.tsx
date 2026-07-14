@@ -8,7 +8,6 @@ import { cdnUrl } from "@/lib/cloudinary";
 type EventItem = {
   id: string;
   title: string;
-  description: string | null;
   city: string | null;
   venue: string | null;
   event_date: string | null;
@@ -36,11 +35,15 @@ export default function EventsFeed() {
   useEffect(() => {
     async function load() {
       const supabase = getSupabase();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
       const { data } = await supabase
         .from("events")
-        .select("id, title, description, city, venue, event_date, photos, source, source_name, external_url, artist_id, artist:profiles!events_artist_id_fkey(full_name)")
+        .select("id, title, city, venue, event_date, photos, source, source_name, external_url, artist_id, artist:profiles!events_artist_id_fkey(full_name)")
         .eq("is_published", true)
-        .order("event_date", { ascending: true, nullsFirst: false });
+        .gte("event_date", today.toISOString())
+        .order("event_date", { ascending: true, nullsFirst: false })
+        .limit(24);
       setEvents((data as unknown as EventItem[]) || []);
       setLoading(false);
     }
@@ -102,7 +105,7 @@ export default function EventsFeed() {
               <>
                 <div className="relative aspect-[4/3] bg-black/5 overflow-hidden">
                   {cover ? (
-                    <img src={cdnUrl(cover, "w_800,c_limit,q_auto,f_auto")} alt={ev.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    <img src={cdnUrl(cover, "w_700,c_limit,q_auto,f_auto")} alt={ev.title} loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-black via-[#1a0000] to-[#E5000F]/40" />
                   )}

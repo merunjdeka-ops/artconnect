@@ -110,7 +110,19 @@ export default function Home() {
   const [catPreviews, setCatPreviews] = useState<Record<string, string>>({});
   const previewsLoaded = useRef(false);
   const [hoverCat, setHoverCat] = useState<string | null>(null);
-  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  // Preview follows the cursor via direct style writes — state here would
+  // re-render the whole page on every mouse move.
+  const mousePos = useRef({ x: 0, y: 0 });
+  const previewRef = useRef<HTMLImageElement>(null);
+
+  function movePreview(e: React.MouseEvent) {
+    mousePos.current = { x: e.clientX, y: e.clientY };
+    const el = previewRef.current;
+    if (el) {
+      el.style.left = `${Math.min(e.clientX + 24, window.innerWidth - 250)}px`;
+      el.style.top = `${e.clientY - 112}px`;
+    }
+  }
 
   // Empty server snapshot so the static prerender never disagrees with local time.
   const greeting = useSyncExternalStore(emptySubscribe, timeGreeting, () => "");
@@ -161,27 +173,27 @@ export default function Home() {
     <main className="min-h-screen bg-[#F2EDE4] text-black font-sans">
 
       {/* NAVBAR — auth-aware */}
-      <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
-        <Link href="/" className="text-xl font-black tracking-tight leading-none">
+      <nav className="flex items-center justify-between gap-3 px-4 sm:px-8 py-4 sm:py-5 border-b border-black">
+        <Link href="/" className="text-lg sm:text-xl font-black tracking-tight leading-none whitespace-nowrap">
           <span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>the</span><span className="uppercase"> Local Art Hub</span>
         </Link>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6">
           {authChecked && userName !== null ? (
             <>
-              <Link href="/artists" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Browse</Link>
-              <Link href="/blog" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
+              <Link href="/artists" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Browse</Link>
+              <Link href="/blog" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
               <Link href="/dashboard" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Dashboard</Link>
               {isAdmin && <Link href="/admin" className="text-sm font-bold uppercase tracking-widest text-[#E5000F] hover:text-black transition-colors">Admin</Link>}
               <span className="text-xs uppercase tracking-widest text-black/40 hidden md:block">{userName}</span>
-              <button onClick={handleLogout} className="text-sm font-bold uppercase tracking-widest bg-black text-white px-5 py-2 hover:bg-[#E5000F] transition-colors">
+              <button onClick={handleLogout} className="text-sm font-bold uppercase tracking-widest bg-black text-white px-5 py-2 hover:bg-[#E5000F] transition-colors whitespace-nowrap">
                 Logout
               </button>
             </>
           ) : authChecked ? (
             <>
-              <Link href="/blog" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
+              <Link href="/blog" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
               <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
-              <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors">Join Now</Link>
+              <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors whitespace-nowrap">Join Now</Link>
             </>
           ) : null}
         </div>
@@ -270,14 +282,14 @@ export default function Home() {
         {showCategories && (
           <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-black border border-black mt-12"
-            onMouseMove={e => setMouse({ x: e.clientX, y: e.clientY })}
+            onMouseMove={movePreview}
             onMouseLeave={() => setHoverCat(null)}
           >
             {categories.map((cat) => (
               <button
                 key={cat.name}
                 onClick={() => router.push(`/artists?category=${encodeURIComponent(cat.name)}`)}
-                onMouseEnter={() => setHoverCat(cat.name)}
+                onMouseEnter={e => { movePreview(e); setHoverCat(cat.name); }}
                 onMouseLeave={() => setHoverCat(null)}
                 className="bg-[#F2EDE4] p-6 hover:bg-[#E5000F] hover:text-white transition-all duration-200 cursor-pointer group text-left w-full"
               >
@@ -289,13 +301,15 @@ export default function Home() {
         )}
         {hoverCat && catPreviews[hoverCat] && (
           <img
+            ref={previewRef}
             src={cdnUrl(catPreviews[hoverCat], "w_400,c_limit,q_auto,f_auto")}
             alt=""
             aria-hidden="true"
+            decoding="async"
             className="pointer-events-none fixed z-50 w-56 aspect-square object-cover border-2 border-black shadow-xl hidden lg:block"
             style={{
-              left: Math.min(mouse.x + 24, (typeof window !== "undefined" ? window.innerWidth : 1280) - 250),
-              top: mouse.y - 112,
+              left: Math.min(mousePos.current.x + 24, (typeof window !== "undefined" ? window.innerWidth : 1280) - 250),
+              top: mousePos.current.y - 112,
             }}
           />
         )}

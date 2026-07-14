@@ -59,8 +59,10 @@ export default function FeaturedWork() {
               className="relative aspect-[4/3] overflow-hidden bg-[#F2EDE4] group"
             >
               <img
-                src={cdnUrl(item.media_url, "w_800,c_limit,q_auto,f_auto")}
+                src={cdnUrl(item.media_url, "w_600,c_limit,q_auto,f_auto")}
                 alt={item.title || item.artist?.full_name || "Artist work"}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-10">

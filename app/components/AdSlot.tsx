@@ -82,7 +82,8 @@ export default function AdSlot({ slot }: { slot: string }) {
     }
   }, [adsense]);
 
-  if (loading) return null;
+  // Reserve roughly the rendered height so the ad doesn't shift the layout in.
+  if (loading) return <div className="min-h-[92px]" aria-hidden="true" />;
 
   // 1) Paid sponsor banner
   if (sponsor) {
@@ -93,6 +94,8 @@ export default function AdSlot({ slot }: { slot: string }) {
           <img
             src={cdnUrl(sponsor.image_url, "w_1400,c_limit,q_auto,f_auto")}
             alt={sponsor.title || "Sponsored"}
+            loading="lazy"
+            decoding="async"
             className="w-full h-auto max-h-48 object-contain"
           />
         </a>
