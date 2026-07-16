@@ -4,7 +4,7 @@ import { Geist, Geist_Mono, Mr_Dafoe } from "next/font/google";
 import "./globals.css";
 import ScrollReveal from "@/app/components/ScrollReveal";
 import CookieBanner from "@/app/components/CookieBanner";
-import { ADSENSE_CLIENT } from "@/lib/config";
+import { ADSENSE_CLIENT, SITE_URL } from "@/lib/config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     template: "%s | The Local Art Hub",
   },
   description: "Discover and book local artists in Italy — photographers, musicians, makeup artists, painters and more. Find the perfect artist for your event on The Local Art Hub.",
-  metadataBase: new URL("https://thelocalarthub.com"),
+  metadataBase: new URL(SITE_URL),
   keywords: [
     "local artists Italy",
     "book artist Italy",
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     siteName: "The Local Art Hub",
     locale: "en_US",
     type: "website",
-    url: "https://thelocalarthub.com",
+    url: SITE_URL,
     title: "The Local Art Hub — Book Local Artists in Italy",
     description: "Discover and book local artists in Italy — photographers, musicians, makeup artists, painters and more.",
   },

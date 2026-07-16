@@ -1,21 +1,22 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { fetchEventCities, citySlug } from "@/lib/events";
+import { SITE_URL } from "@/lib/config";
 
 // Refresh the sitemap hourly so new artists appear without a redeploy
 export const revalidate = 3600;
 
 const BASE_URLS: MetadataRoute.Sitemap = [
-  { url: "https://thelocalarthub.com", lastModified: new Date(), changeFrequency: "daily", priority: 1 },
-  { url: "https://thelocalarthub.com/artists", lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
-  { url: "https://thelocalarthub.com/events", lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
-  { url: "https://thelocalarthub.com/news", lastModified: new Date(), changeFrequency: "daily", priority: 0.6 },
+  { url: SITE_URL, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
+  { url: `${SITE_URL}/artists`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
+  { url: `${SITE_URL}/events`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
+  { url: `${SITE_URL}/news`, lastModified: new Date(), changeFrequency: "daily", priority: 0.6 },
 ];
 
 // Listed only while at least one open call exists — an empty competitions page
 // shouldn't be offered to crawlers.
 const COMPETITIONS_URL: MetadataRoute.Sitemap[number] = {
-  url: "https://thelocalarthub.com/competitions", lastModified: new Date(), changeFrequency: "daily", priority: 0.7,
+  url: `${SITE_URL}/competitions`, lastModified: new Date(), changeFrequency: "daily", priority: 0.7,
 };
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -33,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .eq("is_deactivated", false);
 
     const artistUrls: MetadataRoute.Sitemap = (artists ?? []).map((a) => ({
-      url: `https://thelocalarthub.com/artists/${a.id}`,
+      url: `${SITE_URL}/artists/${a.id}`,
       lastModified: new Date(a.created_at ?? Date.now()),
       changeFrequency: "weekly",
       priority: 0.8,
@@ -48,7 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // One landing page per city with upcoming events ("events in Milan", …).
     const cities = await fetchEventCities();
     const cityUrls: MetadataRoute.Sitemap = cities.map(({ city }) => ({
-      url: `https://thelocalarthub.com/events/${citySlug(city)}`,
+      url: `${SITE_URL}/events/${citySlug(city)}`,
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.8,
