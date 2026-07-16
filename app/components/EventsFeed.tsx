@@ -132,6 +132,9 @@ export default function EventsFeed() {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-3">Live &amp; local</p>
           <h2 className="text-4xl font-black uppercase leading-none">Upcoming<br />Performances</h2>
+          <Link href="/events" className="inline-block mt-3 text-xs font-bold uppercase tracking-widest border-b-2 border-black hover:border-[#E5000F] hover:text-[#E5000F] transition-colors pb-0.5">
+            All events →
+          </Link>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <form onSubmit={handleSearch} className="flex">

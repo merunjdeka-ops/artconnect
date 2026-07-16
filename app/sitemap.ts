@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
+import { fetchEventCities, citySlug } from "@/lib/events";
 
 // Refresh the sitemap hourly so new artists appear without a redeploy
 export const revalidate = 3600;
@@ -7,6 +8,7 @@ export const revalidate = 3600;
 const BASE_URLS: MetadataRoute.Sitemap = [
   { url: "https://thelocalarthub.com", lastModified: new Date(), changeFrequency: "daily", priority: 1 },
   { url: "https://thelocalarthub.com/artists", lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
+  { url: "https://thelocalarthub.com/events", lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
   { url: "https://thelocalarthub.com/news", lastModified: new Date(), changeFrequency: "daily", priority: 0.6 },
 ];
 
@@ -43,9 +45,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .eq("is_published", true)
       .or(`deadline.is.null,deadline.gte.${new Date().toISOString()}`);
 
+    // One landing page per city with upcoming events ("events in Milan", …).
+    const cities = await fetchEventCities();
+    const cityUrls: MetadataRoute.Sitemap = cities.map(({ city }) => ({
+      url: `https://thelocalarthub.com/events/${citySlug(city)}`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.8,
+    }));
+
     return [
       ...BASE_URLS,
       ...(competitionCount ? [COMPETITIONS_URL] : []),
+      ...cityUrls,
       ...artistUrls,
     ];
   } catch {

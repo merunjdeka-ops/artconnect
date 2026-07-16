@@ -197,6 +197,7 @@ export default function Home() {
           {authChecked && userName !== null ? (
             <>
               <Link href="/artists" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Browse</Link>
+              <Link href="/events" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Events</Link>
               <Link href="/blog" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
               {hasCompetitions && <Link href="/competitions" className="hidden lg:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Competitions</Link>}
               <Link href="/news" className="hidden lg:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">News</Link>
@@ -209,6 +210,7 @@ export default function Home() {
             </>
           ) : authChecked ? (
             <>
+              <Link href="/events" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Events</Link>
               <Link href="/blog" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
               {hasCompetitions && <Link href="/competitions" className="hidden md:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Competitions</Link>}
               <Link href="/news" className="hidden md:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">News</Link>
