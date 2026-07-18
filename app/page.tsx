@@ -299,13 +299,13 @@ export default function Home() {
         <button
           onClick={() => { setShowCategories(v => !v); loadCategoryPreviews(); }}
           aria-expanded={showCategories}
-          className="w-full flex items-baseline justify-between reveal cursor-pointer text-left group"
+          className="w-full flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 reveal cursor-pointer text-left group"
         >
-          <h2 className="text-4xl font-black uppercase group-hover:text-[#E5000F] transition-colors">
+          <h2 className="text-3xl sm:text-4xl font-black uppercase group-hover:text-[#E5000F] transition-colors">
             All Categories
             <span className="text-[#E5000F] ml-4 group-hover:text-black transition-colors">{showCategories ? "−" : "+"}</span>
           </h2>
-          <span className="text-sm text-black/40 uppercase tracking-widest">{categories.length} disciplines</span>
+          <span className="text-sm text-black/40 uppercase tracking-widest whitespace-nowrap">{categories.length} disciplines</span>
         </button>
         {showCategories && (
           <div
