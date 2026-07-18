@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  fetchUpcomingEvents, resolveCityFromSlug, eventsJsonLd, jsonLdString, eventPageDescription,
+  fetchUpcomingEvents, resolveCityFromSlug, eventsJsonLd, jsonLdString, eventPageDescription, cityEnglishName,
 } from "@/lib/events";
 import { SITE_NAME } from "@/lib/config";
 import EventCard from "../event-card";
@@ -18,12 +18,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const city = await resolveCityFromSlug(slug);
   if (!city) return { title: "Events" };
   const events = await fetchUpcomingEvents({ city, limit: 100 });
+  const en = cityEnglishName(city);
+  const titleCity = en ? `${en} (${city})` : city;
   return {
-    title: `Events in ${city} — Concerts, Shows & Live Music`,
+    title: `Events in ${titleCity} — Concerts, Shows & Live Music`,
     description: eventPageDescription(city, events),
     alternates: { canonical: `/events/${slug}` },
     openGraph: {
-      title: `Events in ${city} — Concerts, Shows & Live Music | ${SITE_NAME}`,
+      title: `Events in ${titleCity} — Concerts, Shows & Live Music | ${SITE_NAME}`,
       description: eventPageDescription(city, events),
       ...(events[0]?.photos?.[0] ? { images: [events[0].photos[0]] } : {}),
     },

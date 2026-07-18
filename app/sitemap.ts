@@ -10,6 +10,7 @@ const BASE_URLS: MetadataRoute.Sitemap = [
   { url: SITE_URL, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
   { url: `${SITE_URL}/artists`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
   { url: `${SITE_URL}/events`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
+  { url: `${SITE_URL}/blog`, lastModified: new Date(), changeFrequency: "daily", priority: 0.8 },
   { url: `${SITE_URL}/news`, lastModified: new Date(), changeFrequency: "daily", priority: 0.6 },
 ];
 
@@ -55,10 +56,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
+    const { data: posts } = await supabase
+      .from("posts")
+      .select("slug, published_at")
+      .eq("is_published", true);
+    const postUrls: MetadataRoute.Sitemap = (posts ?? []).map((p) => ({
+      url: `${SITE_URL}/blog/${p.slug}`,
+      lastModified: new Date(p.published_at ?? Date.now()),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    }));
+
     return [
       ...BASE_URLS,
       ...(competitionCount ? [COMPETITIONS_URL] : []),
       ...cityUrls,
+      ...postUrls,
       ...artistUrls,
     ];
   } catch {

@@ -27,6 +27,24 @@ export function citySlug(city: string): string {
   return slugify(city);
 }
 
+// English names for cities Ticketmaster stores under their Italian names.
+// Used in titles/descriptions so "Florence events" searches match the
+// /events/firenze page. Display keeps the local name.
+const CITY_EN: Record<string, string> = {
+  Firenze: "Florence",
+  Milano: "Milan",
+  Roma: "Rome",
+  Venezia: "Venice",
+  Torino: "Turin",
+  Napoli: "Naples",
+  Genova: "Genoa",
+  Padova: "Padua",
+};
+
+export function cityEnglishName(city: string): string | null {
+  return CITY_EN[city] ?? null;
+}
+
 function serverSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -157,7 +175,9 @@ export function jsonLdString(data: object): string {
 }
 
 export function eventPageDescription(city: string, events: PublicEvent[]): string {
+  const en = cityEnglishName(city);
+  const cityLabel = en ? `${city} (${en})` : city;
   const venues = [...new Set(events.map(e => e.venue).filter(Boolean))].slice(0, 3);
   const venuePart = venues.length ? ` at ${venues.join(", ")}` : "";
-  return `${events.length} upcoming concert${events.length === 1 ? "" : "s"}, shows and live events in ${city}${venuePart}. Dates, venues and tickets — updated daily on ${SITE_NAME}.`;
+  return `${events.length} upcoming concert${events.length === 1 ? "" : "s"}, shows and live events in ${cityLabel}${venuePart}. Dates, venues and tickets — updated daily on ${SITE_NAME}.`;
 }
