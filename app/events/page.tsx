@@ -3,6 +3,7 @@ import Link from "next/link";
 import { fetchUpcomingEvents, fetchEventCities, citySlug, eventsJsonLd, jsonLdString } from "@/lib/events";
 import { SITE_NAME } from "@/lib/config";
 import EventCard from "./event-card";
+import AffiliateNote from "../components/AffiliateNote";
 
 // Server-rendered so search engines see the full event listing, refreshed hourly.
 export const revalidate = 3600;
@@ -69,6 +70,7 @@ export default async function EventsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px bg-black border border-black">
               {events.map(ev => <EventCard key={ev.id} event={ev} />)}
             </div>
+            <AffiliateNote className="mt-4" />
           </>
         )}
       </section>

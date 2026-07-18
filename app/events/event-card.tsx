@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { affiliateTicketUrl, ticketRel } from "@/lib/affiliate";
 import { cdnUrl, lightTmUrl } from "@/lib/cloudinary";
 import type { PublicEvent } from "@/lib/events";
 
@@ -16,7 +17,9 @@ function formatDate(iso: string | null): string {
 
 export default function EventCard({ event }: { event: PublicEvent }) {
   const cover = event.photos?.[0];
-  const href = event.external_url || (event.artist_id ? `/artists/${event.artist_id}` : null);
+  const href = event.external_url
+    ? affiliateTicketUrl(event.external_url)
+    : (event.artist_id ? `/artists/${event.artist_id}` : null);
   const isExternal = !!event.external_url;
 
   const inner = (
@@ -26,7 +29,6 @@ export default function EventCard({ event }: { event: PublicEvent }) {
           <img
             src={cdnUrl(lightTmUrl(cover), "w_700,c_limit,q_auto,f_auto")}
             alt={`${event.title}${event.city ? ` — ${event.city}` : ""}`}
-            loading="lazy"
             decoding="async"
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
@@ -60,7 +62,7 @@ export default function EventCard({ event }: { event: PublicEvent }) {
   const cardClass = "bg-[#F2EDE4] group flex flex-col";
 
   if (href && isExternal) {
-    return <a href={href} target="_blank" rel="noopener noreferrer" className={cardClass}>{inner}</a>;
+    return <a href={href} target="_blank" rel={ticketRel(event.external_url!, href)} className={cardClass}>{inner}</a>;
   }
   if (href) {
     return <Link href={href} className={cardClass}>{inner}</Link>;

@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
+import { affiliateTicketUrl, ticketRel } from "@/lib/affiliate";
 import { cdnUrl, lightTmUrl } from "@/lib/cloudinary";
+import AffiliateNote from "./AffiliateNote";
 
 type EventItem = {
   id: string;
@@ -182,7 +184,9 @@ export default function EventsFeed() {
         >
           {visible.map(ev => {
             const cover = ev.photos?.[0];
-            const href = ev.external_url || (ev.artist_id ? `/artists/${ev.artist_id}` : null);
+            const href = ev.external_url
+              ? affiliateTicketUrl(ev.external_url)
+              : (ev.artist_id ? `/artists/${ev.artist_id}` : null);
             const isExternal = !!ev.external_url;
             const inner = (
               <>
@@ -226,7 +230,7 @@ export default function EventsFeed() {
 
             if (href && isExternal) {
               return (
-                <a key={ev.id} href={href} target="_blank" rel="noopener noreferrer" className={cardClass}>
+                <a key={ev.id} href={href} target="_blank" rel={ticketRel(ev.external_url!, href)} className={cardClass}>
                   {inner}
                 </a>
               );
@@ -238,6 +242,7 @@ export default function EventsFeed() {
           })}
         </div>
       )}
+      <AffiliateNote className="mt-3" />
     </section>
   );
 }
