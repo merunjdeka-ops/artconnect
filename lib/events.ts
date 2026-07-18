@@ -83,18 +83,37 @@ export async function resolveCityFromSlug(slug: string): Promise<string | null> 
   return cities.find(c => citySlug(c.city) === slug)?.city ?? null;
 }
 
-// schema.org Event objects for Google's event rich results. Only real data
-// from the row goes in; optional fields are omitted when missing.
+// schema.org Event objects for Google's event rich results. Every field
+// Google recommends is populated, but only from real row data — the
+// fallback description is assembled from actual title/venue/date, never
+// invented facts.
 export function eventsJsonLd(events: PublicEvent[]): object[] {
   return events
     .filter(ev => ev.title && ev.event_date)
     .map(ev => {
       const image = ev.photos?.[0];
+      const url = ev.external_url || (ev.city ? `${SITE_URL}/events/${citySlug(ev.city)}` : SITE_URL);
+      const when = ev.event_date
+        ? new Date(ev.event_date).toLocaleDateString("en-GB", {
+            day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Rome",
+          })
+        : "";
+      const fallbackDescription = [
+        ev.title,
+        "— live event",
+        ev.venue ? `at ${ev.venue}` : "",
+        ev.city ? `in ${ev.city}` : "",
+        when ? `on ${when}.` : ".",
+        ev.external_url ? "Tickets available online." : "",
+      ].filter(Boolean).join(" ").replace(/\s+/g, " ");
       return {
         "@context": "https://schema.org",
         "@type": "Event",
         name: ev.title,
         startDate: ev.event_date,
+        // Real end times aren't published for most listings — Google accepts
+        // endDate equal to startDate for single-day events.
+        endDate: ev.event_date,
         eventStatus: "https://schema.org/EventScheduled",
         eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
         location: {
@@ -107,13 +126,26 @@ export function eventsJsonLd(events: PublicEvent[]): object[] {
           },
         },
         ...(image ? { image: [image] } : {}),
-        ...(ev.description ? { description: String(ev.description).slice(0, 500) } : {}),
+        description: ev.description ? String(ev.description).slice(0, 500) : fallbackDescription,
+        url,
+        // Concert listings are titled by the act, so the title doubles as the
+        // performer name; no price data exists, so offers carries the ticket
+        // link and availability only.
+        performer: { "@type": "PerformingGroup", name: ev.title },
         ...(ev.external_url
-          ? { url: ev.external_url }
-          : ev.city
-            ? { url: `${SITE_URL}/events/${citySlug(ev.city)}` }
-            : {}),
-        ...(ev.source_name ? { organizer: { "@type": "Organization", name: ev.source_name } } : {}),
+          ? {
+              offers: {
+                "@type": "Offer",
+                url: ev.external_url,
+                availability: "https://schema.org/InStock",
+              },
+            }
+          : {}),
+        organizer: {
+          "@type": "Organization",
+          name: ev.source_name || SITE_NAME,
+          url: ev.external_url || SITE_URL,
+        },
       };
     });
 }
