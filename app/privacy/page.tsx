@@ -87,6 +87,7 @@ export default function PrivacyPage() {
               <li>You can opt out of many other third-party advertising cookies at <a href="https://www.aboutads.info/choices" target="_blank" rel="noopener noreferrer" className="underline">www.aboutads.info</a> or, for EU users, <a href="https://www.youronlinechoices.eu" target="_blank" rel="noopener noreferrer" className="underline">www.youronlinechoices.eu</a>.</li>
               <li>Details on how Google uses data from sites that use its services are available at <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer" className="underline">policies.google.com/technologies/partner-sites</a>.</li>
             </ul>
+            <p className="mt-3"><strong>Affiliate links:</strong> Some outbound links to ticket sellers (such as Ticketmaster) are affiliate links managed through the Impact partner network. If you purchase tickets after clicking one, we may earn a small commission at no extra cost to you. The seller and its affiliate network may use cookies to attribute the purchase to this site; we do not receive your personal data through this process. Such links are marked with a disclosure notice on the pages where they appear.</p>
           </section>
 
           <section>

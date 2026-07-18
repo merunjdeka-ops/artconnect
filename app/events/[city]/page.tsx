@@ -6,6 +6,7 @@ import {
 } from "@/lib/events";
 import { SITE_NAME } from "@/lib/config";
 import EventCard from "../event-card";
+import AffiliateNote from "../../components/AffiliateNote";
 
 // One landing page per city ("events in Milan", "concerti Pisa", …) —
 // server-rendered with schema.org Event markup, refreshed hourly.
@@ -68,6 +69,7 @@ export default async function CityEventsPage({ params }: Props) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px bg-black border border-black">
           {events.map(ev => <EventCard key={ev.id} event={ev} />)}
         </div>
+        <AffiliateNote className="mt-4" />
 
         <div className="mt-12 border border-black bg-white px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
