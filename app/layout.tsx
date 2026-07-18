@@ -6,6 +6,12 @@ import ScrollReveal from "@/app/components/ScrollReveal";
 import CookieBanner from "@/app/components/CookieBanner";
 import { ADSENSE_CLIENT, SITE_URL } from "@/lib/config";
 
+// Spread onto the <meta> below; typed loosely because value= is not a
+// standard meta attribute.
+const IMPACT_VERIFICATION: Record<string, string> = {
+  value: "965b611e-582e-4e52-acf9-f3b290a536cb",
+};
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -80,6 +86,10 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         {/* React hoists these into <head>; every page fetches from both hosts on mount */}
         <link rel="preconnect" href="https://res.cloudinary.com" />
+        {/* Impact (Ticketmaster affiliate) site-ownership check. Impact's scanner
+            expects their exact snippet with a value= attribute (not content=),
+            hence the spread to get the nonstandard attribute past TSX. */}
+        <meta name="impact-site-verification" {...IMPACT_VERIFICATION} />
         {process.env.NEXT_PUBLIC_SUPABASE_URL && (
           <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
         )}
