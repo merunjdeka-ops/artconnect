@@ -11,7 +11,11 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Live Events, Concerts & Shows in Italy",
   description:
-    "Upcoming concerts, live music, exhibitions and shows across Italy — Milan, Rome, Florence, Pisa and more. Dates, venues and tickets, updated daily.",
+    "Upcoming concerts, live music, exhibitions and shows across Italy — Milan, Rome, Florence, Pisa and more. Dates, venues and tickets, updated daily. Eventi e concerti in Italia: date, luoghi e biglietti.",
+  keywords: [
+    "eventi Italia", "concerti Italia", "eventi oggi", "cosa fare questo weekend",
+    "events Italy", "concerts Italy", "biglietti concerti",
+  ],
   alternates: { canonical: "/events" },
 };
 

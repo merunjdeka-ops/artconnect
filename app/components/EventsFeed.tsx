@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
+import { citySlug, eventSlug } from "@/lib/events";
 import { affiliateTicketUrl, ticketRel } from "@/lib/affiliate";
 import { cdnUrl, lightTmUrl } from "@/lib/cloudinary";
 import AffiliateNote from "./AffiliateNote";
@@ -184,10 +185,11 @@ export default function EventsFeed() {
         >
           {visible.map(ev => {
             const cover = ev.photos?.[0];
-            const href = ev.external_url
-              ? affiliateTicketUrl(ev.external_url)
+            const internal = ev.city
+              ? `/events/${citySlug(ev.city)}/${eventSlug(ev)}`
               : (ev.artist_id ? `/artists/${ev.artist_id}` : null);
-            const isExternal = !!ev.external_url;
+            const href = internal ?? (ev.external_url ? affiliateTicketUrl(ev.external_url) : null);
+            const isExternal = !internal && !!ev.external_url;
             const inner = (
               <>
                 <div className="relative aspect-[4/3] bg-black/5 overflow-hidden">
@@ -219,7 +221,7 @@ export default function EventsFeed() {
                   )}
                   {href && (
                     <span className="inline-block mt-4 text-[11px] font-bold uppercase tracking-widest border-b-2 border-black group-hover:border-[#E5000F] group-hover:text-[#E5000F] transition-colors pb-0.5">
-                      {isExternal ? "Get tickets →" : "View artist →"}
+                      {isExternal ? "Get tickets →" : ev.external_url ? "Details & tickets →" : "View artist →"}
                     </span>
                   )}
                 </div>
