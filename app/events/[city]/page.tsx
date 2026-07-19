@@ -23,7 +23,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const titleCity = en ? `${en} (${city})` : city;
   return {
     title: `Events in ${titleCity} — Concerts, Shows & Live Music`,
-    description: eventPageDescription(city, events),
+    description: `${eventPageDescription(city, events)} Concerti, spettacoli ed eventi a ${city}: date, luoghi e biglietti.`,
+    keywords: [
+      `eventi ${city}`, `concerti ${city}`, `cosa fare a ${city}`, `spettacoli ${city}`,
+      `${en ?? city} events`, `concerts ${en ?? city}`, `biglietti concerti ${city}`,
+    ],
     alternates: { canonical: `/events/${slug}` },
     openGraph: {
       title: `Events in ${titleCity} — Concerts, Shows & Live Music | ${SITE_NAME}`,
@@ -63,6 +67,15 @@ export default async function CityEventsPage({ params }: Props) {
           {venues.length > 0 && <> — including {venues.slice(0, 3).join(", ")}</>}.
           Dates, venues and ticket links, updated daily.
         </p>
+        <p className="mt-2 text-sm text-black/50 max-w-xl leading-relaxed" lang="it">
+          Concerti, spettacoli ed eventi a {city}: date, luoghi e biglietti, aggiornati ogni giorno.
+        </p>
+        <Link
+          href={`/events/${slug}/weekend`}
+          className="inline-block mt-5 text-xs font-bold uppercase tracking-widest border-b-2 border-black hover:border-[#E5000F] hover:text-[#E5000F] transition-colors pb-0.5"
+        >
+          This weekend in {city} →
+        </Link>
       </header>
 
       <section className="px-8 py-12">

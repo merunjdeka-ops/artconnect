@@ -101,6 +101,48 @@ export async function resolveCityFromSlug(slug: string): Promise<string | null> 
   return cities.find(c => citySlug(c.city) === slug)?.city ?? null;
 }
 
+// URL slug for one event. The 8-char uuid prefix keeps it unique without a
+// DB column and lets lookup survive title edits between import runs.
+export function eventSlug(ev: { id: string; title: string }): string {
+  const base = slugify(ev.title).slice(0, 60).replace(/-$/g, "");
+  return base ? `${base}-${ev.id.slice(0, 8)}` : ev.id.slice(0, 8);
+}
+
+export async function findEventBySlug(city: string, slug: string): Promise<PublicEvent | null> {
+  const idPrefix = slug.slice(slug.lastIndexOf("-") + 1);
+  const events = await fetchUpcomingEvents({ city, limit: 200 });
+  return (
+    events.find(ev => eventSlug(ev) === slug) ??
+    events.find(ev => ev.id.startsWith(idPrefix)) ??
+    null
+  );
+}
+
+// The coming weekend: Friday 00:00 through Sunday end-of-day. Saturday and
+// Sunday count as "this weekend" while it is underway.
+export function weekendRange(now = new Date()): { start: Date; end: Date } {
+  const day = now.getDay(); // 0 Sun … 6 Sat
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  if (day >= 1 && day <= 5) start.setDate(start.getDate() + (5 - day));
+  else if (day === 6) start.setDate(start.getDate() - 1);
+  else start.setDate(start.getDate() - 2);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 2);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
+export async function fetchWeekendEvents(city: string): Promise<PublicEvent[]> {
+  const { start, end } = weekendRange();
+  const events = await fetchUpcomingEvents({ city, limit: 200 });
+  return events.filter(ev => {
+    if (!ev.event_date) return false;
+    const d = new Date(ev.event_date);
+    return d >= start && d <= end;
+  });
+}
+
 // schema.org Event objects for Google's event rich results. Every field
 // Google recommends is populated, but only from real row data — the
 // fallback description is assembled from actual title/venue/date, never

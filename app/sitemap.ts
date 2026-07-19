@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
-import { fetchEventCities, citySlug } from "@/lib/events";
+import { fetchEventCities, fetchUpcomingEvents, citySlug, eventSlug } from "@/lib/events";
 import { SITE_URL } from "@/lib/config";
 
 // Refresh the sitemap hourly so new artists appear without a redeploy
@@ -47,14 +47,34 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .eq("is_published", true)
       .or(`deadline.is.null,deadline.gte.${new Date().toISOString()}`);
 
-    // One landing page per city with upcoming events ("events in Milan", …).
+    // One landing page per city with upcoming events ("events in Milan", …),
+    // plus its weekend roundup ("cosa fare a Milano questo weekend").
     const cities = await fetchEventCities();
-    const cityUrls: MetadataRoute.Sitemap = cities.map(({ city }) => ({
-      url: `${SITE_URL}/events/${citySlug(city)}`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.8,
-    }));
+    const cityUrls: MetadataRoute.Sitemap = cities.flatMap(({ city }) => [
+      {
+        url: `${SITE_URL}/events/${citySlug(city)}`,
+        lastModified: new Date(),
+        changeFrequency: "daily" as const,
+        priority: 0.8,
+      },
+      {
+        url: `${SITE_URL}/events/${citySlug(city)}/weekend`,
+        lastModified: new Date(),
+        changeFrequency: "daily" as const,
+        priority: 0.6,
+      },
+    ]);
+
+    // One page per upcoming event — the long-tail "<act> <city> biglietti" URLs.
+    const events = await fetchUpcomingEvents({ limit: 500 });
+    const eventUrls: MetadataRoute.Sitemap = events
+      .filter(ev => ev.city && ev.title)
+      .map(ev => ({
+        url: `${SITE_URL}/events/${citySlug(ev.city!)}/${eventSlug(ev)}`,
+        lastModified: new Date(),
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
+      }));
 
     const { data: posts } = await supabase
       .from("posts")
@@ -71,6 +91,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...BASE_URLS,
       ...(competitionCount ? [COMPETITIONS_URL] : []),
       ...cityUrls,
+      ...eventUrls,
       ...postUrls,
       ...artistUrls,
     ];

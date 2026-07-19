@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { affiliateTicketUrl, ticketRel } from "@/lib/affiliate";
 import { cdnUrl, lightTmUrl } from "@/lib/cloudinary";
-import type { PublicEvent } from "@/lib/events";
+import { citySlug, eventSlug, type PublicEvent } from "@/lib/events";
 
 // Server-rendered event card for the public /events pages — same visual
 // language as the homepage EventsFeed cards, but crawlable HTML.
@@ -17,10 +17,13 @@ function formatDate(iso: string | null): string {
 
 export default function EventCard({ event }: { event: PublicEvent }) {
   const cover = event.photos?.[0];
-  const href = event.external_url
-    ? affiliateTicketUrl(event.external_url)
+  // Cards link to our own event page (long-tail SEO + the ticket CTA lives
+  // there); external only as a fallback for events without a city.
+  const internal = event.city
+    ? `/events/${citySlug(event.city)}/${eventSlug(event)}`
     : (event.artist_id ? `/artists/${event.artist_id}` : null);
-  const isExternal = !!event.external_url;
+  const href = internal ?? (event.external_url ? affiliateTicketUrl(event.external_url) : null);
+  const isExternal = !internal && !!event.external_url;
 
   const inner = (
     <>
@@ -52,7 +55,7 @@ export default function EventCard({ event }: { event: PublicEvent }) {
         )}
         {href && (
           <span className="inline-block mt-4 text-[11px] font-bold uppercase tracking-widest border-b-2 border-black group-hover:border-[#E5000F] group-hover:text-[#E5000F] transition-colors pb-0.5">
-            {isExternal ? "Get tickets →" : "View artist →"}
+            {isExternal ? "Get tickets →" : event.external_url ? "Details & tickets →" : "View artist →"}
           </span>
         )}
       </div>
