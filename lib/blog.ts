@@ -1,4 +1,5 @@
 export const POST_CATEGORIES = [
+  { value: "guide", label: "Guide" },
   { value: "feature", label: "Artist Feature" },
   { value: "concert", label: "Concert" },
   { value: "show", label: "Show" },
