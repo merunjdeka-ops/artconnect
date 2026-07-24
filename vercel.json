@@ -3,5 +3,9 @@
   "buildCommand": "next build",
   "outputDirectory": ".next",
   "installCommand": "npm install",
-  "devCommand": "next dev"
+  "devCommand": "next dev",
+  "crons": [
+    { "path": "/api/cron/generate-blog", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/fetch-news", "schedule": "0 6 * * *" }
+  ]
 }

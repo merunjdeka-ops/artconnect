@@ -1,15 +1,16 @@
 import Link from "next/link";
+import { PRIVACY_EMAIL } from "@/lib/config";
 
 export const metadata = {
-  title: "Privacy Policy — ArtConnect",
-  description: "Privacy Policy for ArtConnect platform.",
+  title: "Privacy Policy — The Local Art Hub",
+  description: "Privacy Policy for The Local Art Hub platform.",
 };
 
 export default function PrivacyPage() {
   return (
     <main className="min-h-screen bg-[#F2EDE4] text-black font-sans">
       <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
-        <Link href="/" className="text-xl font-black tracking-tight uppercase">ArtConnect</Link>
+        <Link href="/" className="text-xl font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>the</span><span className="uppercase"> Local Art Hub</span></Link>
         <div className="flex items-center gap-6">
           <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
           <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors">Join Now</Link>
@@ -19,13 +20,14 @@ export default function PrivacyPage() {
       <div className="max-w-3xl mx-auto px-8 py-20">
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-4">Legal</p>
         <h1 className="text-5xl font-black uppercase leading-none mb-4">Privacy<br />Policy</h1>
-        <p className="text-sm text-black/50 mb-12">Last updated: June 6, 2026</p>
+        <p className="text-sm text-black/50 mb-12">Last updated: July 14, 2026</p>
 
         <div className="flex flex-col gap-10 text-sm leading-relaxed text-black/80">
 
           <section>
-            <h2 className="text-lg font-black uppercase mb-3 text-black">1. Introduction</h2>
-            <p>ArtConnect ("we", "us", "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform. Please read this policy carefully. If you do not agree with its terms, please discontinue use of the Platform.</p>
+            <h2 className="text-lg font-black uppercase mb-3 text-black">1. Introduction & Data Controller</h2>
+            <p className="mb-3">The Local Art Hub ("we", "us", "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform, in accordance with Regulation (EU) 2016/679 ("GDPR") and the Italian Personal Data Protection Code (Legislative Decree 196/2003, as amended).</p>
+            <p>The data controller for personal data processed through this Platform is The Local Art Hub, reachable at <span className="text-black font-bold">{PRIVACY_EMAIL}</span>. If you do not agree with the terms of this policy, please discontinue use of the Platform.</p>
           </section>
 
           <section>
@@ -49,16 +51,17 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-black uppercase mb-3 text-black">3. How We Use Your Information</h2>
+            <h2 className="text-lg font-black uppercase mb-3 text-black">3. How We Use Your Information & Legal Basis</h2>
+            <p className="mb-3">Under the GDPR, every processing activity must rest on a legal basis (Art. 6 GDPR). We process your data as follows:</p>
             <ul className="list-disc pl-5 flex flex-col gap-2">
-              <li>To create and manage your account</li>
-              <li>To facilitate bookings and transactions between artists and clients</li>
-              <li>To display your artist profile and portfolio to potential clients</li>
-              <li>To send transactional emails (account confirmation, booking notifications)</li>
-              <li>To send marketing communications (only with your consent)</li>
-              <li>To improve and personalize the Platform experience</li>
-              <li>To detect and prevent fraud and abuse</li>
-              <li>To comply with legal obligations</li>
+              <li>To create and manage your account — <strong>performance of a contract</strong> (Art. 6(1)(b))</li>
+              <li>To facilitate bookings and transactions between artists and clients — <strong>performance of a contract</strong> (Art. 6(1)(b))</li>
+              <li>To display your artist profile and portfolio to potential clients — <strong>performance of a contract</strong> (Art. 6(1)(b))</li>
+              <li>To send transactional emails (account confirmation, booking notifications) — <strong>performance of a contract</strong> (Art. 6(1)(b))</li>
+              <li>To send marketing communications — <strong>your consent</strong> (Art. 6(1)(a)), which you may withdraw at any time</li>
+              <li>To improve and personalize the Platform experience — <strong>legitimate interest</strong> (Art. 6(1)(f))</li>
+              <li>To detect and prevent fraud and abuse — <strong>legitimate interest</strong> (Art. 6(1)(f))</li>
+              <li>To comply with legal obligations — <strong>legal obligation</strong> (Art. 6(1)(c))</li>
             </ul>
           </section>
 
@@ -68,14 +71,23 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-5 flex flex-col gap-2">
               <li><strong>With other users:</strong> Artist profile information is publicly visible. Booking details are shared between the relevant artist and client.</li>
               <li><strong>With service providers:</strong> We use third-party providers (such as Supabase for authentication and database, and payment processors) who process data on our behalf under strict confidentiality agreements.</li>
-              <li><strong>Legal requirements:</strong> We may disclose your information if required by law, court order, or to protect the rights and safety of ArtConnect or others.</li>
+              <li><strong>With advertising partners:</strong> If you consent to advertising cookies, Google (AdSense) processes usage data to serve advertisements on the Platform — see Section 5 for details and opt-out options.</li>
+              <li><strong>Legal requirements:</strong> We may disclose your information if required by law, court order, or to protect the rights and safety of The Local Art Hub or others.</li>
               <li><strong>Business transfers:</strong> In the event of a merger, acquisition, or sale of assets, your information may be transferred to the acquiring entity.</li>
             </ul>
+            <p className="mt-3"><strong>International transfers:</strong> Some of our service providers (including Supabase for database/authentication, Cloudinary for media hosting, and Resend for email delivery) may process data outside the European Economic Area. Where this occurs, transfers are protected by appropriate safeguards such as the EU Standard Contractual Clauses or an adequacy decision (Art. 44–49 GDPR).</p>
           </section>
 
           <section>
-            <h2 className="text-lg font-black uppercase mb-3 text-black">5. Cookies</h2>
-            <p>We use cookies and similar technologies to maintain your session, remember your preferences, and analyze Platform usage. You can control cookie settings through your browser. Disabling cookies may affect the functionality of the Platform.</p>
+            <h2 className="text-lg font-black uppercase mb-3 text-black">5. Cookies & Advertising</h2>
+            <p className="mb-3">We use cookies and similar technologies to maintain your session, remember your preferences, and analyze Platform usage. You can control cookie settings through your browser. Disabling cookies may affect the functionality of the Platform.</p>
+            <p className="mb-3"><strong>Advertising (Google AdSense):</strong> We display advertisements served by Google AdSense. Google, as a third-party vendor, uses cookies (including the DoubleClick cookie) to serve ads based on your visits to this and other websites. Personalized advertising cookies are only set if you accept them via our cookie banner — the legal basis is <strong>your consent</strong> (Art. 6(1)(a) GDPR), which you may withdraw at any time by clearing your browser data for this site and choosing &ldquo;Essential Only&rdquo; when the banner reappears.</p>
+            <ul className="list-disc pl-5 flex flex-col gap-2">
+              <li>You can opt out of personalized advertising from Google at <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer" className="underline">Google Ads Settings</a>.</li>
+              <li>You can opt out of many other third-party advertising cookies at <a href="https://www.aboutads.info/choices" target="_blank" rel="noopener noreferrer" className="underline">www.aboutads.info</a> or, for EU users, <a href="https://www.youronlinechoices.eu" target="_blank" rel="noopener noreferrer" className="underline">www.youronlinechoices.eu</a>.</li>
+              <li>Details on how Google uses data from sites that use its services are available at <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer" className="underline">policies.google.com/technologies/partner-sites</a>.</li>
+            </ul>
+            <p className="mt-3"><strong>Affiliate links:</strong> Some outbound links to ticket sellers (such as Ticketmaster) are affiliate links managed through the Impact partner network. If you purchase tickets after clicking one, we may earn a small commission at no extra cost to you. The seller and its affiliate network may use cookies to attribute the purchase to this site; we do not receive your personal data through this process. Such links are marked with a disclosure notice on the pages where they appear.</p>
           </section>
 
           <section>
@@ -92,8 +104,11 @@ export default function PrivacyPage() {
               <li><strong>Deletion:</strong> Request deletion of your personal data</li>
               <li><strong>Portability:</strong> Request your data in a portable format</li>
               <li><strong>Objection:</strong> Object to processing of your data for marketing purposes</li>
+              <li><strong>Restriction:</strong> Request restriction of processing in the cases set out in Art. 18 GDPR</li>
+              <li><strong>Withdraw consent:</strong> Withdraw consent at any time, without affecting prior processing</li>
             </ul>
-            <p className="mt-3">To exercise any of these rights, contact us at <span className="text-black font-bold">privacy@artconnect.com</span>.</p>
+            <p className="mt-3">To exercise any of these rights, contact us at <span className="text-black font-bold">{PRIVACY_EMAIL}</span>. We will respond within one month, as required by Art. 12 GDPR.</p>
+            <p className="mt-3"><strong>Right to lodge a complaint:</strong> If you believe your data has been processed in violation of the GDPR, you have the right to lodge a complaint with your local supervisory authority. In Italy, this is the <strong>Garante per la Protezione dei Dati Personali</strong> (<a href="https://www.garanteprivacy.it" target="_blank" rel="noopener noreferrer" className="underline">www.garanteprivacy.it</a>).</p>
           </section>
 
           <section>
@@ -103,7 +118,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-black uppercase mb-3 text-black">9. Children's Privacy</h2>
-            <p>ArtConnect is not directed to individuals under the age of 18. We do not knowingly collect personal information from minors. If we become aware that a minor has provided us with personal information, we will delete it promptly.</p>
+            <p>The Local Art Hub is not directed to individuals under the age of 18. We do not knowingly collect personal information from minors. If we become aware that a minor has provided us with personal information, we will delete it promptly.</p>
           </section>
 
           <section>
@@ -113,21 +128,33 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-black uppercase mb-3 text-black">11. Contact</h2>
-            <p>For privacy-related questions or requests, contact us at <span className="text-black font-bold">privacy@artconnect.com</span>.</p>
+            <p>For privacy-related questions or requests, contact us at <span className="text-black font-bold">{PRIVACY_EMAIL}</span>.</p>
           </section>
 
         </div>
       </div>
 
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black mt-10">
-        <span className="text-sm font-black uppercase tracking-tight">ArtConnect</span>
+        <span className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>the</span><span className="uppercase"> Local Art Hub</span></span>
         <div className="flex gap-6 text-xs uppercase tracking-widest text-black/40">
           <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>
           <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
           <Link href="/dmca" className="hover:text-black transition-colors">DMCA</Link>
         </div>
-        <span className="text-xs text-black/40 uppercase tracking-widest">© 2026 ArtConnect.</span>
+        <span className="text-xs text-black/40 uppercase tracking-widest">© 2026 The Local Art Hub.</span>
       </footer>
     </main>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
