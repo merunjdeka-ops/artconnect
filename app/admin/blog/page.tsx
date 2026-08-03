@@ -20,12 +20,21 @@ type Post = {
   photos: string[];
   is_published: boolean;
   published_at: string | null;
+  byline: string | null;
+  source_urls: string[] | null;
 };
 
 const emptyForm = {
   title: "", category: "feature", excerpt: "", body: "",
   photos: [] as string[], is_published: true,
 };
+
+const AUTO_TYPES = [
+  { value: "event", label: "Event roundup", desc: "From our real upcoming events — nothing invented. Safe to auto-publish." },
+  { value: "movement", label: "Art movement guide", desc: "General art-history education. Written as a draft for you to skim first." },
+  { value: "exhibition", label: "Exhibition review", desc: "Real gallery news, found via Google Search — only writes when it finds a real, cited source. Always a draft." },
+  { value: "celebrity", label: "Artist visiting Italy", desc: "Real celebrity/artist news, found via Google Search — only writes when it finds a real, cited source. Always a draft." },
+] as const;
 
 export default function AdminBlogPage() {
   const [items, setItems] = useState<Post[]>([]);
@@ -40,6 +49,8 @@ export default function AdminBlogPage() {
 
   const [autoRunning, setAutoRunning] = useState(false);
   const [autoMsg, setAutoMsg] = useState("");
+  const [autoType, setAutoType] = useState<typeof AUTO_TYPES[number]["value"]>("event");
+  const [editingSources, setEditingSources] = useState<string[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -81,7 +92,7 @@ export default function AdminBlogPage() {
     } finally { setUploading(false); }
   }
 
-  function resetForm() { setForm({ ...emptyForm }); setEditingId(null); }
+  function resetForm() { setForm({ ...emptyForm }); setEditingId(null); setEditingSources([]); }
 
   function startEdit(p: Post) {
     setEditingId(p.id);
@@ -90,6 +101,7 @@ export default function AdminBlogPage() {
       photos: p.cover_url ? [p.cover_url, ...(p.photos || []).filter(u => u !== p.cover_url)] : (p.photos || []),
       is_published: p.is_published,
     });
+    setEditingSources(p.source_urls || []);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -145,11 +157,18 @@ export default function AdminBlogPage() {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch("/api/cron/generate-blog", {
         method: "POST",
-        headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+        headers: { Authorization: `Bearer ${session?.access_token ?? ""}`, "content-type": "application/json" },
+        body: JSON.stringify({ type: autoType }),
       });
       const data = await res.json();
       if (data.generated) {
-        setAutoMsg(`Wrote a roundup for ${data.city} (${data.eventCount} events): "${data.title}"`);
+        const published = data.is_published;
+        const note = published ? "" : " — saved as a DRAFT, review it below before publishing";
+        if (autoType === "event") setAutoMsg(`Wrote a roundup for ${data.city} (${data.eventCount} events): "${data.title}"${note}`);
+        else if (autoType === "movement") setAutoMsg(`Wrote a guide on "${data.movement}": "${data.title}"${note}`);
+        else if (autoType === "exhibition") setAutoMsg(`Wrote an exhibition post for ${data.city} (${data.sources?.length ?? 0} source(s) cited): "${data.title}"${note}`);
+        else if (autoType === "celebrity") setAutoMsg(`Wrote a post about ${data.personName} (${data.sources?.length ?? 0} source(s) cited): "${data.title}"${note}`);
+        else setAutoMsg(`Wrote "${data.title}"${note}`);
         const { data: fresh } = await supabase.from("posts").select("*").order("published_at", { ascending: false });
         setItems((fresh as Post[]) || []);
       } else if (data.skipped) {
@@ -179,7 +198,16 @@ export default function AdminBlogPage() {
       {/* Auto-writer */}
       <div className="border border-black bg-black text-white p-8 mb-8">
         <h2 className="text-lg font-black uppercase mb-2">AI Auto-Writer</h2>
-        <p className="text-xs text-white/50 mb-5 max-w-lg">Writes a verified roundup of upcoming events from your real event data — nothing invented. Runs automatically every day (and quietly skips days with no fresh events); use the button to generate one now.</p>
+        <p className="text-xs text-white/50 mb-5 max-w-lg">Event roundups run automatically every day and auto-publish (grounded in your real data). Art guides, exhibitions and celebrity news run weekly and are always saved as drafts for you to review — exhibitions and celebrity posts only write when a real, cited source is found.</p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {AUTO_TYPES.map(t => (
+            <button key={t.value} type="button" onClick={() => setAutoType(t.value)}
+              className={`px-4 py-2 text-xs font-bold uppercase tracking-widest border transition-colors ${autoType === t.value ? "bg-[#E5000F] border-[#E5000F] text-white" : "border-white/30 text-white/60 hover:border-white"}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-white/40 mb-5 max-w-lg">{AUTO_TYPES.find(t => t.value === autoType)?.desc}</p>
         <button onClick={handleAutoGenerate} disabled={autoRunning} className="px-6 py-3 bg-[#E5000F] text-white text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors disabled:opacity-50">
           {autoRunning ? "Writing..." : "Generate a post now"}
         </button>
@@ -200,6 +228,20 @@ export default function AdminBlogPage() {
             </label>
           </div>
           <input placeholder="Short excerpt (shown on cards)" value={form.excerpt} onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))} className={inputClass} />
+
+          {editingSources.length > 0 && (
+            <div className="border border-[#E5000F] px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#E5000F] mb-2">Verify these sources before publishing</p>
+              <ul className="flex flex-col gap-1">
+                {editingSources.map(url => (
+                  <li key={url}>
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-black/60 underline hover:text-black break-all">{url}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <textarea placeholder="Write your post..." value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} rows={8} className={inputClass} />
 
           <div>

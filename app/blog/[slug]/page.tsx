@@ -16,6 +16,8 @@ type Post = {
   cover_url: string | null;
   photos: string[];
   published_at: string | null;
+  byline: string | null;
+  source_urls: string[] | null;
 };
 
 function fmt(iso: string | null) {
@@ -37,7 +39,7 @@ export default function BlogPostPage() {
       const supabase = getSupabase();
       const { data } = await supabase
         .from("posts")
-        .select("id, title, category, excerpt, body, cover_url, photos, published_at")
+        .select("id, title, category, excerpt, body, cover_url, photos, published_at, byline, source_urls")
         .eq("slug", slug)
         .eq("is_published", true)
         .maybeSingle();
@@ -71,7 +73,9 @@ export default function BlogPostPage() {
           <article className="max-w-3xl mx-auto px-8 py-16">
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-4">{categoryLabel(post.category)}</p>
             <h1 className="text-[clamp(2rem,6vw,4rem)] font-black uppercase leading-none mb-6">{post.title}</h1>
-            <p className="text-xs uppercase tracking-widest text-black/40 mb-10">{fmt(post.published_at)}</p>
+            <p className="text-xs uppercase tracking-widest text-black/40 mb-10">
+              {post.byline ? `By ${post.byline} · ` : ""}{fmt(post.published_at)}
+            </p>
 
             {post.cover_url && (
               <img src={cdnUrl(post.cover_url, "w_1400,c_limit,q_auto,f_auto")} alt={post.title} className="w-full border border-black mb-10" />
@@ -81,6 +85,19 @@ export default function BlogPostPage() {
 
             {post.body && (
               <div className="text-base text-black/80 leading-relaxed whitespace-pre-wrap">{post.body}</div>
+            )}
+
+            {post.source_urls && post.source_urls.length > 0 && (
+              <div className="mt-10 pt-6 border-t border-black/10">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-black/40 mb-2">Sources</p>
+                <ul className="flex flex-col gap-1">
+                  {post.source_urls.map(url => (
+                    <li key={url}>
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-black/50 underline hover:text-black break-all">{url}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
 
             {gallery.length > 0 && (

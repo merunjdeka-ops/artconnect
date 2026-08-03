@@ -3,6 +3,7 @@ export const POST_CATEGORIES = [
   { value: "concert", label: "Concert" },
   { value: "show", label: "Show" },
   { value: "event", label: "Event" },
+  { value: "culture", label: "Art & Culture" },
   { value: "review", label: "Review" },
   { value: "news", label: "News" },
 ] as const;
