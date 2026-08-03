@@ -113,6 +113,19 @@ input:focus, textarea:focus, select:focus {
   border-radius: 2px;
 }
 
+/* ── Marquee ticker (flows right → left; owner wants motion even under
+      OS reduced-motion, so no prefers-reduced-motion override) ── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marquee 45s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
 /* ── Scroll reveal: use with JS IntersectionObserver ── */
 .reveal {
   opacity: 0;

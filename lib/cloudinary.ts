@@ -5,3 +5,13 @@ export function cdnUrl(url: string | null | undefined, transform: string): strin
   if (!url || !url.includes("res.cloudinary.com")) return url ?? "";
   return url.replace("/upload/", `/upload/${transform}/`);
 }
+
+// Ticketmaster `_SOURCE` URLs are the full-size originals (600KB+). Every TM
+// image also publishes a 640×360 variant — swap to it for feed-size rendering.
+export function lightTmUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  if (url.includes("ticketm.net") && url.endsWith("_SOURCE")) {
+    return url.replace(/_SOURCE$/, "_RETINA_PORTRAIT_16_9.jpg");
+  }
+  return url;
+}

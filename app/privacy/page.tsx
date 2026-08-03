@@ -20,7 +20,7 @@ export default function PrivacyPage() {
       <div className="max-w-3xl mx-auto px-8 py-20">
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-4">Legal</p>
         <h1 className="text-5xl font-black uppercase leading-none mb-4">Privacy<br />Policy</h1>
-        <p className="text-sm text-black/50 mb-12">Last updated: June 11, 2026</p>
+        <p className="text-sm text-black/50 mb-12">Last updated: July 14, 2026</p>
 
         <div className="flex flex-col gap-10 text-sm leading-relaxed text-black/80">
 
@@ -71,6 +71,7 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-5 flex flex-col gap-2">
               <li><strong>With other users:</strong> Artist profile information is publicly visible. Booking details are shared between the relevant artist and client.</li>
               <li><strong>With service providers:</strong> We use third-party providers (such as Supabase for authentication and database, and payment processors) who process data on our behalf under strict confidentiality agreements.</li>
+              <li><strong>With advertising partners:</strong> If you consent to advertising cookies, Google (AdSense) processes usage data to serve advertisements on the Platform — see Section 5 for details and opt-out options.</li>
               <li><strong>Legal requirements:</strong> We may disclose your information if required by law, court order, or to protect the rights and safety of The Local Art Hub or others.</li>
               <li><strong>Business transfers:</strong> In the event of a merger, acquisition, or sale of assets, your information may be transferred to the acquiring entity.</li>
             </ul>
@@ -78,8 +79,15 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-black uppercase mb-3 text-black">5. Cookies</h2>
-            <p>We use cookies and similar technologies to maintain your session, remember your preferences, and analyze Platform usage. You can control cookie settings through your browser. Disabling cookies may affect the functionality of the Platform.</p>
+            <h2 className="text-lg font-black uppercase mb-3 text-black">5. Cookies & Advertising</h2>
+            <p className="mb-3">We use cookies and similar technologies to maintain your session, remember your preferences, and analyze Platform usage. You can control cookie settings through your browser. Disabling cookies may affect the functionality of the Platform.</p>
+            <p className="mb-3"><strong>Advertising (Google AdSense):</strong> We display advertisements served by Google AdSense. Google, as a third-party vendor, uses cookies (including the DoubleClick cookie) to serve ads based on your visits to this and other websites. Personalized advertising cookies are only set if you accept them via our cookie banner — the legal basis is <strong>your consent</strong> (Art. 6(1)(a) GDPR), which you may withdraw at any time by clearing your browser data for this site and choosing &ldquo;Essential Only&rdquo; when the banner reappears.</p>
+            <ul className="list-disc pl-5 flex flex-col gap-2">
+              <li>You can opt out of personalized advertising from Google at <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer" className="underline">Google Ads Settings</a>.</li>
+              <li>You can opt out of many other third-party advertising cookies at <a href="https://www.aboutads.info/choices" target="_blank" rel="noopener noreferrer" className="underline">www.aboutads.info</a> or, for EU users, <a href="https://www.youronlinechoices.eu" target="_blank" rel="noopener noreferrer" className="underline">www.youronlinechoices.eu</a>.</li>
+              <li>Details on how Google uses data from sites that use its services are available at <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer" className="underline">policies.google.com/technologies/partner-sites</a>.</li>
+            </ul>
+            <p className="mt-3"><strong>Affiliate links:</strong> Some outbound links to ticket sellers (such as Ticketmaster) are affiliate links managed through the Impact partner network. If you purchase tickets after clicking one, we may earn a small commission at no extra cost to you. The seller and its affiliate network may use cookies to attribute the purchase to this site; we do not receive your personal data through this process. Such links are marked with a disclosure notice on the pages where they appear.</p>
           </section>
 
           <section>

@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
-import { cdnUrl } from "@/lib/cloudinary";
+import { citySlug, eventSlug } from "@/lib/events";
+import { affiliateTicketUrl, ticketRel } from "@/lib/affiliate";
+import { cdnUrl, lightTmUrl } from "@/lib/cloudinary";
+import AffiliateNote from "./AffiliateNote";
 
 type EventItem = {
   id: string;
   title: string;
-  description: string | null;
   city: string | null;
   venue: string | null;
   event_date: string | null;
@@ -27,10 +29,23 @@ function formatDate(iso: string | null): string {
   return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 }
 
+const EVENT_COLUMNS = "id, title, city, venue, event_date, photos, source, source_name, external_url, artist_id, artist:profiles!events_artist_id_fkey(full_name)";
+
+function startOfToday(): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today.toISOString();
+}
+
 export default function EventsFeed() {
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState("all");
+  const [search, setSearch] = useState("");
+  const [filterLabel, setFilterLabel] = useState("");
+  const [filtered, setFiltered] = useState<EventItem[] | null>(null);
+  const [searching, setSearching] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,17 +53,74 @@ export default function EventsFeed() {
       const supabase = getSupabase();
       const { data } = await supabase
         .from("events")
-        .select("id, title, description, city, venue, event_date, photos, source, source_name, external_url, artist_id, artist:profiles!events_artist_id_fkey(full_name)")
+        .select(EVENT_COLUMNS)
         .eq("is_published", true)
-        .order("event_date", { ascending: true, nullsFirst: false });
+        .gte("event_date", startOfToday())
+        .order("event_date", { ascending: true, nullsFirst: false })
+        .limit(24);
       setEvents((data as unknown as EventItem[]) || []);
       setLoading(false);
+      // Dropdown lists every city with an upcoming event, not just the 24 loaded.
+      const { data: cityRows } = await supabase
+        .from("events")
+        .select("city")
+        .eq("is_published", true)
+        .gte("event_date", startOfToday())
+        .not("city", "is", null)
+        .limit(1000);
+      const unique = Array.from(new Set((cityRows || []).map(r => (r.city as string).trim()).filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b));
+      setCities(unique);
     }
     load();
   }, []);
 
-  const cities = Array.from(new Set(events.map(e => e.city).filter(Boolean))) as string[];
-  const visible = city === "all" ? events : events.filter(e => e.city === city);
+  // Both the dropdown and the search ask the DB directly — the feed only
+  // holds the 24 nearest events, so filtering it client-side misses events
+  // further out.
+  async function loadCityFromDb(term: string, exact: boolean) {
+    setSearching(true);
+    const supabase = getSupabase();
+    const base = supabase
+      .from("events")
+      .select(EVENT_COLUMNS)
+      .eq("is_published", true)
+      .gte("event_date", startOfToday());
+    const { data } = await (exact ? base.eq("city", term) : base.ilike("city", `%${term}%`))
+      .order("event_date", { ascending: true, nullsFirst: false })
+      .limit(60);
+    setFiltered((data as unknown as EventItem[]) || []);
+    setFilterLabel(term);
+    setSearching(false);
+  }
+
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const term = search.trim();
+    if (!term) { clearSearch(); return; }
+    setCity("all");
+    await loadCityFromDb(term, false);
+  }
+
+  function handleCityChange(value: string) {
+    setSearch("");
+    setCity(value);
+    if (value === "all") {
+      setFilterLabel("");
+      setFiltered(null);
+    } else {
+      loadCityFromDb(value, true);
+    }
+  }
+
+  function clearSearch() {
+    setSearch("");
+    setFilterLabel("");
+    setFiltered(null);
+    setCity("all");
+  }
+
+  const visible = filtered ?? events;
 
   function scroll(dir: 1 | -1) {
     scroller.current?.scrollBy({ left: dir * 360, behavior: "smooth" });
@@ -63,12 +135,27 @@ export default function EventsFeed() {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-3">Live &amp; local</p>
           <h2 className="text-4xl font-black uppercase leading-none">Upcoming<br />Performances</h2>
+          <Link href="/events" className="inline-block mt-3 text-xs font-bold uppercase tracking-widest border-b-2 border-black hover:border-[#E5000F] hover:text-[#E5000F] transition-colors pb-0.5">
+            All events →
+          </Link>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <form onSubmit={handleSearch} className="flex">
+            <input
+              type="search"
+              placeholder="Search any city..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); if (!e.target.value.trim()) clearSearch(); }}
+              className="w-40 sm:w-48 border border-black border-r-0 bg-transparent px-4 py-2 text-xs font-bold uppercase tracking-widest outline-none focus:border-[#E5000F] transition-colors placeholder:text-black/30 placeholder:normal-case placeholder:font-normal"
+            />
+            <button type="submit" disabled={searching} aria-label="Search city" className="px-4 py-2 border border-black bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] hover:border-[#E5000F] transition-colors disabled:opacity-50">
+              {searching ? "..." : "Go"}
+            </button>
+          </form>
           {cities.length > 0 && (
             <select
               value={city}
-              onChange={e => setCity(e.target.value)}
+              onChange={e => handleCityChange(e.target.value)}
               className="border border-black bg-transparent px-4 py-2 text-xs font-bold uppercase tracking-widest outline-none focus:border-[#E5000F] transition-colors cursor-pointer"
             >
               <option value="all">All cities</option>
@@ -87,7 +174,9 @@ export default function EventsFeed() {
       {loading ? (
         <p className="text-xs uppercase tracking-widest text-black/40 py-12">Loading events...</p>
       ) : visible.length === 0 ? (
-        <p className="text-sm text-black/40 py-12">No events in {city}. Try another city.</p>
+        <p className="text-sm text-black/40 py-12">
+          No upcoming events in &quot;{filterLabel}&quot; yet. Try another city.
+        </p>
       ) : (
         <div
           ref={scroller}
@@ -96,13 +185,16 @@ export default function EventsFeed() {
         >
           {visible.map(ev => {
             const cover = ev.photos?.[0];
-            const href = ev.external_url || (ev.artist_id ? `/artists/${ev.artist_id}` : null);
-            const isExternal = !!ev.external_url;
+            const internal = ev.city
+              ? `/events/${citySlug(ev.city)}/${eventSlug(ev)}`
+              : (ev.artist_id ? `/artists/${ev.artist_id}` : null);
+            const href = internal ?? (ev.external_url ? affiliateTicketUrl(ev.external_url) : null);
+            const isExternal = !internal && !!ev.external_url;
             const inner = (
               <>
                 <div className="relative aspect-[4/3] bg-black/5 overflow-hidden">
                   {cover ? (
-                    <img src={cdnUrl(cover, "w_800,c_limit,q_auto,f_auto")} alt={ev.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    <img src={cdnUrl(lightTmUrl(cover), "w_700,c_limit,q_auto,f_auto")} alt={ev.title} decoding="async" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-black via-[#1a0000] to-[#E5000F]/40" />
                   )}
@@ -129,7 +221,7 @@ export default function EventsFeed() {
                   )}
                   {href && (
                     <span className="inline-block mt-4 text-[11px] font-bold uppercase tracking-widest border-b-2 border-black group-hover:border-[#E5000F] group-hover:text-[#E5000F] transition-colors pb-0.5">
-                      {isExternal ? "Get tickets →" : "View artist →"}
+                      {isExternal ? "Get tickets →" : ev.external_url ? "Details & tickets →" : "View artist →"}
                     </span>
                   )}
                 </div>
@@ -140,7 +232,7 @@ export default function EventsFeed() {
 
             if (href && isExternal) {
               return (
-                <a key={ev.id} href={href} target="_blank" rel="noopener noreferrer" className={cardClass}>
+                <a key={ev.id} href={href} target="_blank" rel={ticketRel(ev.external_url!, href)} className={cardClass}>
                   {inner}
                 </a>
               );
@@ -152,6 +244,7 @@ export default function EventsFeed() {
           })}
         </div>
       )}
+      <AffiliateNote className="mt-3" />
     </section>
   );
 }

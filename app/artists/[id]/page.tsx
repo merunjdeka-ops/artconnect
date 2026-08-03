@@ -332,6 +332,7 @@ export default function ArtistProfilePage() {
           <img
             src={cdnUrl(artist.avatar_url || artist.daily_pic_url!, "w_1600,c_limit,q_auto,f_auto")}
             alt={artist.full_name}
+            fetchPriority="high"
             className="absolute inset-0 w-full h-full object-cover object-center"
           />
         ) : (
@@ -522,7 +523,7 @@ export default function ArtistProfilePage() {
                 ) : (
                   /* Photo story — click to open fullscreen */
                   <div className="relative cursor-zoom-in" onClick={() => setStoryOpen(true)}>
-                    <img src={cdnUrl(artist.daily_pic_url!, "w_1200,c_limit,q_auto,f_auto")} alt="Daily story" className="w-full object-cover max-h-[480px] transition-transform duration-300 group-hover:scale-[1.02]" />
+                    <img src={cdnUrl(artist.daily_pic_url!, "w_1200,c_limit,q_auto,f_auto")} alt="Daily story" decoding="async" className="w-full object-cover max-h-[480px] transition-transform duration-300 group-hover:scale-[1.02]" />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-end justify-end p-4">
                       <span className="text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg">⤢</span>
                     </div>
@@ -550,7 +551,7 @@ export default function ArtistProfilePage() {
                           className="relative cursor-zoom-in overflow-hidden mb-3"
                           onClick={() => setLightbox({ url: item.media_url, title: item.title, index: idx })}
                         >
-                          <img src={cdnUrl(item.media_url, "w_800,c_limit,q_auto,f_auto")} alt={item.title} className="w-full h-56 object-cover transition-transform duration-300 group-hover:scale-105" />
+                          <img src={cdnUrl(item.media_url, "w_800,c_limit,q_auto,f_auto")} alt={item.title} decoding="async" className="w-full h-56 object-cover transition-transform duration-300 group-hover:scale-105" />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                             <span className="text-white text-2xl opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg">⤢</span>
                           </div>

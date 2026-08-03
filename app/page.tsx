@@ -1,11 +1,17 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import GuideButton from "@/app/components/GuideButton";
 import EventsFeed from "@/app/components/EventsFeed";
+import CompetitionsFeed from "@/app/components/CompetitionsFeed";
+import NewsFeed from "@/app/components/NewsFeed";
 import BlogFeed from "@/app/components/BlogFeed";
+import FeaturedWork from "@/app/components/FeaturedWork";
+import AdSlot from "@/app/components/AdSlot";
+import Marquee from "@/app/components/Marquee";
 import { getSupabase } from "@/lib/supabase";
+import { cdnUrl } from "@/lib/cloudinary";
 
 function NewsletterForm() {
   const [email, setEmail] = useState("");
@@ -87,11 +93,66 @@ const categories = [
   { name: "Animation", description: "2D/3D animation, motion graphics and digital storytelling." },
 ];
 
+const emptySubscribe = () => () => {};
+
+function timeGreeting(): string {
+  const h = new Date().getHours();
+  return h >= 5 && h < 12 ? "Good morning — start something creative today." :
+    h >= 12 && h < 17 ? "Good afternoon — the local scene is wide awake." :
+    h >= 17 && h < 23 ? "Good evening — looking for something creative tonight?" :
+    "Up late? Inspiration doesn't sleep.";
+}
+
 export default function Home() {
   const router = useRouter();
   const [userName, setUserName] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  // Nav link hidden while no open calls exist, so the empty page isn't reachable.
+  const [hasCompetitions, setHasCompetitions] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
+  const [catPreviews, setCatPreviews] = useState<Record<string, string>>({});
+  const previewsLoaded = useRef(false);
+  const [hoverCat, setHoverCat] = useState<string | null>(null);
+  // Preview follows the cursor via direct style writes — state here would
+  // re-render the whole page on every mouse move.
+  const mousePos = useRef({ x: 0, y: 0 });
+  const previewRef = useRef<HTMLImageElement>(null);
+
+  function movePreview(e: React.MouseEvent) {
+    mousePos.current = { x: e.clientX, y: e.clientY };
+    const el = previewRef.current;
+    if (el) {
+      el.style.left = `${Math.min(e.clientX + 24, window.innerWidth - 250)}px`;
+      el.style.top = `${e.clientY - 112}px`;
+    }
+  }
+
+  // Empty server snapshot so the static prerender never disagrees with local time.
+  const greeting = useSyncExternalStore(emptySubscribe, timeGreeting, () => "");
+
+  async function loadCategoryPreviews() {
+    if (previewsLoaded.current) return;
+    previewsLoaded.current = true;
+    const supabase = getSupabase();
+    const { data } = await supabase
+      .from("portfolio_items")
+      .select("media_url, artist:profiles!portfolio_items_artist_id_fkey!inner(category)")
+      .eq("media_type", "image")
+      .eq("artist.role", "artist")
+      .eq("artist.is_deactivated", false)
+      .not("artist.category", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    const map: Record<string, string> = {};
+    ((data as unknown as { media_url: string; artist: { category: string } | null }[]) || []).forEach(row => {
+      let cat = row.artist?.category;
+      if (!cat) return;
+      if (cat.startsWith("Handcraft")) cat = "Handcraft";
+      if (!map[cat]) map[cat] = row.media_url;
+    });
+    setCatPreviews(map);
+  }
 
   useEffect(() => {
     async function checkAuth() {
@@ -107,6 +168,18 @@ export default function Home() {
     checkAuth();
   }, []);
 
+  useEffect(() => {
+    async function checkCompetitions() {
+      const { count } = await getSupabase()
+        .from("competitions")
+        .select("id", { count: "exact", head: true })
+        .eq("is_published", true)
+        .or(`deadline.is.null,deadline.gte.${new Date().toISOString()}`);
+      setHasCompetitions((count ?? 0) > 0);
+    }
+    checkCompetitions();
+  }, []);
+
   async function handleLogout() {
     await getSupabase().auth.signOut();
     setUserName(null);
@@ -116,37 +189,51 @@ export default function Home() {
     <main className="min-h-screen bg-[#F2EDE4] text-black font-sans">
 
       {/* NAVBAR — auth-aware */}
-      <nav className="flex items-center justify-between px-8 py-5 border-b border-black">
-        <Link href="/" className="text-xl font-black tracking-tight leading-none">
+      <nav className="flex items-center justify-between gap-3 px-4 sm:px-8 py-4 sm:py-5 border-b border-black">
+        <Link href="/" className="text-lg sm:text-xl font-black tracking-tight leading-none whitespace-nowrap">
           <span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif", fontWeight:"normal", fontStyle:"normal"}}>the</span><span className="uppercase"> Local Art Hub</span>
         </Link>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6">
           {authChecked && userName !== null ? (
             <>
-              <Link href="/artists" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Browse</Link>
-              <Link href="/blog" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
+              <Link href="/artists" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Browse</Link>
+              <Link href="/events" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Events</Link>
+              <Link href="/blog" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
+              {hasCompetitions && <Link href="/competitions" className="hidden lg:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Competitions</Link>}
+              <Link href="/news" className="hidden lg:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">News</Link>
               <Link href="/dashboard" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Dashboard</Link>
               {isAdmin && <Link href="/admin" className="text-sm font-bold uppercase tracking-widest text-[#E5000F] hover:text-black transition-colors">Admin</Link>}
               <span className="text-xs uppercase tracking-widest text-black/40 hidden md:block">{userName}</span>
-              <button onClick={handleLogout} className="text-sm font-bold uppercase tracking-widest bg-black text-white px-5 py-2 hover:bg-[#E5000F] transition-colors">
+              <button onClick={handleLogout} className="text-sm font-bold uppercase tracking-widest bg-black text-white px-5 py-2 hover:bg-[#E5000F] transition-colors whitespace-nowrap">
                 Logout
               </button>
             </>
           ) : authChecked ? (
             <>
-              <Link href="/blog" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
+              <Link href="/events" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Events</Link>
+              <Link href="/blog" className="hidden sm:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Blog</Link>
+              {hasCompetitions && <Link href="/competitions" className="hidden md:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Competitions</Link>}
+              <Link href="/news" className="hidden md:block text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">News</Link>
               <Link href="/login" className="text-sm font-medium uppercase tracking-widest hover:text-[#E5000F] transition-colors">Login</Link>
-              <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors">Join Now</Link>
+              <Link href="/signup" className="bg-[#E5000F] text-white text-sm font-bold uppercase tracking-widest px-5 py-2 hover:bg-black transition-colors whitespace-nowrap">Join Now</Link>
             </>
           ) : null}
         </div>
       </nav>
 
+      {/* LIVE TICKER */}
+      <Marquee />
+
       {/* HERO */}
       <section className="px-8 pt-20 pb-16 border-b border-black">
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-6 fade-in-up fade-in-up-1">
-          Creative marketplace
-        </p>
+        <div className="flex flex-wrap items-baseline justify-between gap-2 mb-6 fade-in-up fade-in-up-1">
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F]">
+            Creative marketplace
+          </p>
+          {greeting && (
+            <p className="text-xs uppercase tracking-widest text-black/40">{greeting}</p>
+          )}
+        </div>
         <h1 className="text-[clamp(3rem,10vw,9rem)] font-black uppercase leading-none tracking-tight max-w-6xl fade-in-up fade-in-up-2">
           Where Local<br />
           <span className="text-[#E5000F]">Artists</span><br />
@@ -168,23 +255,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SOCIAL PROOF NUMBERS */}
-      <section className="border-b border-black">
-        <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-black">
-          {[
-            { num: "24", label: "Creative disciplines" },
-            { num: "100%", label: "Local, real artists" },
-            { num: "0%", label: "Commission fees" },
-            { num: "Free", label: "To list your work" },
-          ].map((s) => (
-            <div key={s.label} className="px-8 py-10 reveal">
-              <p className="text-4xl font-black text-[#E5000F]">{s.num}</p>
-              <p className="text-xs uppercase tracking-widest text-black/50 mt-2">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* HOW IT WORKS */}
       <section className="border-b border-black">
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-black">
@@ -193,10 +263,12 @@ export default function Home() {
             { num: "02", title: "Get Discovered", body: "Clients browse by category and location. Your work speaks for itself." },
             { num: "03", title: "Book & Earn", body: "Accept bookings, sell your art, and grow your local presence — on your terms." },
           ].map((step, i) => (
-            <div key={step.num} className={`px-8 py-12 reveal reveal-delay-${i + 1}`}>
-              <span className="text-5xl font-black text-[#E5000F] leading-none">{step.num}</span>
-              <h3 className="text-xl font-black uppercase mt-4 mb-3">{step.title}</h3>
-              <p className="text-sm text-black/60 leading-relaxed">{step.body}</p>
+            <div key={step.num} className={`px-8 py-5 reveal reveal-delay-${i + 1}`}>
+              <div className="flex items-baseline gap-3">
+                <span className="text-lg font-black text-[#E5000F] leading-none">{step.num}</span>
+                <h3 className="text-sm font-black uppercase">{step.title}</h3>
+              </div>
+              <p className="text-xs text-black/50 leading-relaxed mt-1.5">{step.body}</p>
             </div>
           ))}
         </div>
@@ -205,27 +277,70 @@ export default function Home() {
       {/* EVENTS / PERFORMANCES FEED */}
       <EventsFeed />
 
+      {/* COMPETITIONS / OPEN CALLS */}
+      <CompetitionsFeed />
+
       {/* BLOG / JOURNAL FEED */}
       <BlogFeed />
 
+      {/* CREATIVE NEWS WIRE */}
+      <NewsFeed />
+
+      {/* FRESH ON THE HUB — latest portfolio work */}
+      <FeaturedWork />
+
+      {/* AD SLOT */}
+      <section className="px-8 py-8 border-b border-black">
+        <AdSlot slot="home" />
+      </section>
+
       {/* CATEGORIES */}
       <section className="px-8 py-16 border-b border-black">
-        <div className="flex items-baseline justify-between mb-12 reveal">
-          <h2 className="text-4xl font-black uppercase">All Categories</h2>
-          <span className="text-sm text-black/40 uppercase tracking-widest">{categories.length} disciplines</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-black border border-black">
-          {categories.map((cat) => (
-            <button
-              key={cat.name}
-              onClick={() => router.push(`/artists?category=${encodeURIComponent(cat.name)}`)}
-              className="bg-[#F2EDE4] p-6 hover:bg-[#E5000F] hover:text-white transition-all duration-200 cursor-pointer group text-left w-full"
-            >
-              <h3 className="text-base font-black uppercase">{cat.name}</h3>
-              <p className="mt-2 text-xs leading-relaxed opacity-60 group-hover:opacity-80">{cat.description}</p>
-            </button>
-          ))}
-        </div>
+        <button
+          onClick={() => { setShowCategories(v => !v); loadCategoryPreviews(); }}
+          aria-expanded={showCategories}
+          className="w-full flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 reveal cursor-pointer text-left group"
+        >
+          <h2 className="text-3xl sm:text-4xl font-black uppercase group-hover:text-[#E5000F] transition-colors">
+            All Categories
+            <span className="text-[#E5000F] ml-4 group-hover:text-black transition-colors">{showCategories ? "−" : "+"}</span>
+          </h2>
+          <span className="text-sm text-black/40 uppercase tracking-widest whitespace-nowrap">{categories.length} disciplines</span>
+        </button>
+        {showCategories && (
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-black border border-black mt-12"
+            onMouseMove={movePreview}
+            onMouseLeave={() => setHoverCat(null)}
+          >
+            {categories.map((cat) => (
+              <button
+                key={cat.name}
+                onClick={() => router.push(`/artists?category=${encodeURIComponent(cat.name)}`)}
+                onMouseEnter={e => { movePreview(e); setHoverCat(cat.name); }}
+                onMouseLeave={() => setHoverCat(null)}
+                className="bg-[#F2EDE4] p-6 hover:bg-[#E5000F] hover:text-white transition-all duration-200 cursor-pointer group text-left w-full"
+              >
+                <h3 className="text-base font-black uppercase">{cat.name}</h3>
+                <p className="mt-2 text-xs leading-relaxed opacity-60 group-hover:opacity-80">{cat.description}</p>
+              </button>
+            ))}
+          </div>
+        )}
+        {hoverCat && catPreviews[hoverCat] && (
+          <img
+            ref={previewRef}
+            src={cdnUrl(catPreviews[hoverCat], "w_400,c_limit,q_auto,f_auto")}
+            alt=""
+            aria-hidden="true"
+            decoding="async"
+            className="pointer-events-none fixed z-50 w-56 aspect-square object-cover border-2 border-black shadow-xl hidden lg:block"
+            style={{
+              left: Math.min(mousePos.current.x + 24, (typeof window !== "undefined" ? window.innerWidth : 1280) - 250),
+              top: mousePos.current.y - 112,
+            }}
+          />
+        )}
       </section>
 
       {/* ARTIST CTA */}

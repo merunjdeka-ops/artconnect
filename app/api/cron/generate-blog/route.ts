@@ -95,19 +95,39 @@ async function listGeminiModels(key: string): Promise<string[]> {
   }
 }
 
-// Lowest-common-denominator request shape accepted by all generateContent
-// models: a single user turn, no system_instruction field, no responseMimeType
-// (both of which some models reject with a 400).
 async function callGemini(model: string, key: string, prompt: string, grounded: boolean): Promise<Response> {
+  // Lowest-common-denominator request shape accepted by all generateContent
+  // models: a single user turn, no system_instruction field, no responseMimeType
+  // (both of which some models reject with a 400).
   return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       ...(grounded ? { tools: [{ google_search: {} }] } : {}),
-      generationConfig: { maxOutputTokens: 1800, temperature: grounded ? 0.4 : 0.7 },
+      // Generous limit: on Gemini 2.5+ internal "thinking" tokens count against
+      // maxOutputTokens, so a tight cap truncates the visible answer mid-JSON.
+      generationConfig: { maxOutputTokens: 8192, temperature: grounded ? 0.4 : 0.7 },
     }),
   });
+}
+
+// Escape raw control characters that appear INSIDE JSON string literals —
+// models often emit real newlines in string values, which JSON.parse rejects.
+// Characters outside strings (pretty-printing) are left untouched.
+function escapeCtrlInStrings(json: string): string {
+  let out = "";
+  let inStr = false;
+  for (let i = 0; i < json.length; i++) {
+    const ch = json[i];
+    if (inStr && ch === "\\" && i + 1 < json.length) { out += ch + json[++i]; continue; }
+    if (ch === '"') { inStr = !inStr; out += ch; continue; }
+    if (inStr && ch === "\n") { out += "\\n"; continue; }
+    if (inStr && ch === "\t") { out += "\\t"; continue; }
+    if (inStr && ch === "\r") continue;
+    out += ch;
+  }
+  return out;
 }
 
 type AiOutcome = { ok: true; data: unknown } | { ok: false; error: string; status: number };
@@ -137,24 +157,55 @@ async function callGeminiWithFallback(geminiKey: string, prompt: string, grounde
   return { ok: true, data: await aiRes.json() };
 }
 
+type Part = { text?: string; thought?: boolean };
+type Candidate = { content?: { parts?: Part[] }; finishReason?: string; groundingMetadata?: { groundingChunks?: { web?: { uri?: string } }[] } };
+
+function getCandidate(aiData: unknown): Candidate | undefined {
+  return (aiData as { candidates?: Candidate[] })?.candidates?.[0];
+}
+
+// Join ALL text parts (skipping "thought" parts) — newer models can split the
+// answer across parts, and parts[0] alone may be empty.
 function extractText(aiData: unknown): string {
-  const d = aiData as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-  return d?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  const parts = getCandidate(aiData)?.content?.parts || [];
+  return parts.filter(p => typeof p.text === "string" && !p.thought).map(p => p.text).join("");
 }
 
 function extractSources(aiData: unknown): string[] {
-  const d = aiData as { candidates?: { groundingMetadata?: { groundingChunks?: { web?: { uri?: string } }[] } }[] };
-  const chunks = d?.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+  const chunks = getCandidate(aiData)?.groundingMetadata?.groundingChunks || [];
   const urls = chunks.map(c => c.web?.uri).filter((u): u is string => Boolean(u));
   return [...new Set(urls)].slice(0, 5);
 }
 
-function parseJsonLoose(raw: string): Record<string, unknown> | null {
+type ParsedPost = { title?: string; excerpt?: string; body?: string; [key: string]: unknown };
+
+// Returns the parsed JSON object, or a self-explanatory error string if the
+// output couldn't be parsed at all (logging the full response for Vercel logs).
+function parseAiJson(aiData: unknown): ParsedPost | { error: string } {
+  const raw = extractText(aiData);
   const jsonStr = raw.replace(/```(?:json)?/gi, "").trim();
-  try { return JSON.parse(jsonStr); } catch { /* fall through */ }
-  const m = jsonStr.match(/\{[\s\S]*\}/);
-  if (m) { try { return JSON.parse(m[0]); } catch { /* ignore */ } }
-  return null;
+  const tryParse = (s: string): ParsedPost | null => { try { return JSON.parse(s); } catch { return null; } };
+
+  let parsed = tryParse(jsonStr);
+  if (!parsed) {
+    const start = jsonStr.indexOf("{");
+    const end = jsonStr.lastIndexOf("}");
+    if (start !== -1 && end > start) {
+      const block = jsonStr.slice(start, end + 1);
+      parsed = tryParse(block) ?? tryParse(escapeCtrlInStrings(block));
+    }
+  }
+  if (!parsed) {
+    console.error("Unparseable AI output:", JSON.stringify(aiData).slice(0, 3000));
+    const candidate = getCandidate(aiData);
+    const reason = candidate?.finishReason;
+    if (reason === "MAX_TOKENS") {
+      return { error: "AI answer was cut off by the token limit before the JSON completed. Try again." };
+    }
+    const detail = raw ? ` Output began: "${raw.slice(0, 140).replace(/\s+/g, " ")}…"` : " The model returned no text at all.";
+    return { error: `AI returned unparseable output${reason ? ` (finishReason: ${reason})` : ""}.${detail}` };
+  }
+  return parsed;
 }
 
 type PostResult = { skipped: string } | { error: string; status: number } | Record<string, unknown>;
@@ -202,31 +253,37 @@ async function generateEventRoundup(db: SupabaseClient, geminiKey: string): Prom
   const [city, cityEvents] = eligible[0];
   const source = cityEvents.slice(0, 8).map(e => ({
     title: e.title, date: fmt(e.event_date), venue: e.venue, source: e.source_name,
-    description: e.description ? String(e.description).slice(0, 200) : undefined,
+    description: e.description ? String(e.description).slice(0, 500) : undefined,
   }));
 
   const prompt = "You are the arts editor for The Local Art Hub, a platform for booking local artists in Italy. "
-    + "You write short, lively blog roundups of upcoming events. CRITICAL RULES: use ONLY the event data provided below. "
+    + "You write substantial, lively blog roundups of upcoming events. CRITICAL RULES: use ONLY the event data provided below. "
     + "Never invent events, dates, venues, artists, prices, or any fact not present in the data. Do not add events you think you know about. "
     + "If information is missing, simply omit it. Warm, welcoming editorial tone, British English. Output ONLY valid JSON, no markdown fences.\n\n"
     + `Real upcoming events in ${city}. Write a roundup blog post about them.\n\n`
     + `EVENTS:\n${JSON.stringify(source, null, 2)}\n\n`
     + `Return ONLY this JSON object:\n`
     + `{"title": "catchy headline mentioning ${city}", "excerpt": "one-sentence teaser", `
-    + `"body": "3 to 5 short paragraphs of plain text (use \\n\\n between paragraphs) that walk through the events by name, with their dates and venues, and end by inviting readers to explore The Local Art Hub"}`;
+    + `"body": "a well-developed article of 600 to 900 words in plain text (use \\n\\n between paragraphs). `
+    + `Open with an inviting paragraph about what the coming weeks look like in ${city} based on the listed events. `
+    + `Then give each event its own paragraph — name, date and venue woven into flowing prose, drawing on the description text where provided. `
+    + `Vary the sentence rhythm so it reads as editorial, not a listing. `
+    + `Close by inviting readers to explore and book local artists on The Local Art Hub. `
+    + `Remember: every fact must come from the event data above — pad with tone and craft, never with invented details"}`;
 
   const outcome = await callGeminiWithFallback(geminiKey, prompt, false);
   if (!outcome.ok) return { error: outcome.error, status: outcome.status };
-  const parsed = parseJsonLoose(extractText(outcome.data)) as { title?: string; excerpt?: string; body?: string } | null;
-  if (!parsed?.title || !parsed.body) return { error: "AI returned unparseable output.", status: 502 };
+  const parsed = parseAiJson(outcome.data);
+  if ("error" in parsed) return { error: parsed.error, status: 502 };
+  if (!parsed.title || !parsed.body) return { error: "AI output missing title or body.", status: 502 };
 
   const photos = cityEvents.map(e => (e.photos?.[0] as string | undefined)).filter(Boolean).slice(0, 4) as string[];
 
   return insertPost(db, {
-    title: parsed.title.trim(),
+    title: (parsed.title as string).trim(),
     category: "event",
-    excerpt: parsed.excerpt?.trim() || null,
-    body: parsed.body.trim(),
+    excerpt: (parsed.excerpt as string | undefined)?.trim() || null,
+    body: (parsed.body as string).trim(),
     cover_url: photos[0] || null,
     photos,
     is_published: true,   // event roundups are grounded in our own data → safe to auto-publish
@@ -257,18 +314,19 @@ async function generateMovementGuide(db: SupabaseClient, geminiKey: string): Pro
     + "well-established, widely-known facts. Do NOT invent specific dates, quotes, statistics, or claims you are not confident about. "
     + "Warm, accessible editorial tone for art lovers, British English. End with one short line inviting readers to discover local "
     + "artists working in related styles on The Local Art Hub. Output ONLY valid JSON, no markdown fences: "
-    + `{"title": "engaging headline about ${choice}", "excerpt": "one-sentence teaser", "body": "4 to 6 short paragraphs of plain text (use \\n\\n between paragraphs)"}`;
+    + `{"title": "engaging headline about ${choice}", "excerpt": "one-sentence teaser", "body": "a well-developed article of 500 to 800 words in plain text (use \\n\\n between paragraphs)"}`;
 
   const outcome = await callGeminiWithFallback(geminiKey, prompt, false);
   if (!outcome.ok) return { error: outcome.error, status: outcome.status };
-  const parsed = parseJsonLoose(extractText(outcome.data)) as { title?: string; excerpt?: string; body?: string } | null;
-  if (!parsed?.title || !parsed.body) return { error: "AI returned unparseable output.", status: 502 };
+  const parsed = parseAiJson(outcome.data);
+  if ("error" in parsed) return { error: parsed.error, status: 502 };
+  if (!parsed.title || !parsed.body) return { error: "AI output missing title or body.", status: 502 };
 
   return insertPost(db, {
-    title: parsed.title.trim(),
-    category: "culture",
-    excerpt: parsed.excerpt?.trim() || null,
-    body: parsed.body.trim(),
+    title: (parsed.title as string).trim(),
+    category: "guide",
+    excerpt: (parsed.excerpt as string | undefined)?.trim() || null,
+    body: (parsed.body as string).trim(),
     cover_url: null,
     photos: [],
     is_published: false,  // editorial/general-knowledge content → review before publishing
@@ -297,26 +355,26 @@ async function generateExhibitionReview(db: SupabaseClient, geminiKey: string): 
     + `name, venue, or date. If you cannot find any real, currently relevant exhibitions in ${city} via search, respond with `
     + `exactly {"none": true} and nothing else. Otherwise, write a short blog preview covering 1-3 real exhibitions you found, `
     + "using the real venue names and dates reported by your search results. Warm editorial tone, British English. "
-    + `Output ONLY valid JSON, no markdown fences: {"title": "...", "excerpt": "one-sentence teaser", "body": "3 to 4 short paragraphs of plain text (use \\n\\n between paragraphs)"}`
+    + `Output ONLY valid JSON, no markdown fences: {"title": "...", "excerpt": "one-sentence teaser", "body": "3 to 4 substantial paragraphs of plain text (use \\n\\n between paragraphs)"}`
     + ` — or exactly {"none": true} if nothing real was found.`;
 
   const outcome = await callGeminiWithFallback(geminiKey, prompt, true);
   if (!outcome.ok) return { error: outcome.error, status: outcome.status };
 
   const sources = extractSources(outcome.data);
-  const parsed = parseJsonLoose(extractText(outcome.data)) as { title?: string; excerpt?: string; body?: string; none?: boolean } | null;
+  const parsed = parseAiJson(outcome.data);
 
   // Defense in depth: require BOTH a real grounding source from the API AND
   // that the model didn't itself say "nothing found".
-  if (!parsed || parsed.none || sources.length === 0 || !parsed.title || !parsed.body) {
+  if ("error" in parsed || parsed.none || sources.length === 0 || !parsed.title || !parsed.body) {
     return { skipped: `No verifiable exhibitions found for ${city} right now.` };
   }
 
   return insertPost(db, {
-    title: parsed.title.trim(),
+    title: (parsed.title as string).trim(),
     category: "review",
-    excerpt: parsed.excerpt?.trim() || null,
-    body: parsed.body.trim(),
+    excerpt: (parsed.excerpt as string | undefined)?.trim() || null,
+    body: (parsed.body as string).trim(),
     cover_url: null,
     photos: [],
     is_published: false,  // external claim → always requires human review before going live
@@ -343,41 +401,41 @@ async function generateCelebrityVisit(db: SupabaseClient, geminiKey: string): Pr
     + `of this kind, respond with exactly {"none": true} and nothing else. Otherwise write a short, exciting blog news post `
     + "about it, naming the real person and the real city/venue/date as reported by your search results. Warm editorial tone, "
     + `British English. Output ONLY valid JSON, no markdown fences: {"title": "...", "excerpt": "one-sentence teaser", `
-    + `"body": "3 to 4 short paragraphs of plain text (use \\n\\n between paragraphs)", "personName": "the real person's name"} `
+    + `"body": "3 to 4 substantial paragraphs of plain text (use \\n\\n between paragraphs)", "personName": "the real person's name"} `
     + `— or exactly {"none": true} if nothing real was found.`;
 
   const outcome = await callGeminiWithFallback(geminiKey, prompt, true);
   if (!outcome.ok) return { error: outcome.error, status: outcome.status };
 
   const sources = extractSources(outcome.data);
-  const parsed = parseJsonLoose(extractText(outcome.data)) as
-    { title?: string; excerpt?: string; body?: string; personName?: string; none?: boolean } | null;
+  const parsed = parseAiJson(outcome.data);
 
-  if (!parsed || parsed.none || sources.length === 0 || !parsed.title || !parsed.body || !parsed.personName) {
+  if ("error" in parsed || parsed.none || sources.length === 0 || !parsed.title || !parsed.body || !parsed.personName) {
     return { skipped: "No verifiable artist/celebrity Italy visit found right now." };
   }
+  const personName = parsed.personName as string;
 
   const onCooldown = await recentTopics(db, "celebrity", CELEBRITY_COOLDOWN_DAYS);
-  if (onCooldown.has(parsed.personName.toLowerCase())) {
-    return { skipped: `${parsed.personName} was already covered recently.` };
+  if (onCooldown.has(personName.toLowerCase())) {
+    return { skipped: `${personName} was already covered recently.` };
   }
 
   return insertPost(db, {
-    title: parsed.title.trim(),
+    title: (parsed.title as string).trim(),
     category: "news",
-    excerpt: parsed.excerpt?.trim() || null,
-    body: parsed.body.trim(),
+    excerpt: (parsed.excerpt as string | undefined)?.trim() || null,
+    body: (parsed.body as string).trim(),
     cover_url: null,
     photos: [],
     is_published: false,  // external claim about a real person → always requires human review
     is_auto: true,
     auto_type: "celebrity",
-    auto_topic: parsed.personName,
+    auto_topic: personName,
     byline: EDITORIAL_BYLINE,
     source_urls: sources,
     author_id: await getAdminProfileId(db),
     published_at: new Date().toISOString(),
-    personName: parsed.personName,
+    personName,
     sources,
   });
 }

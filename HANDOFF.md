@@ -51,14 +51,16 @@ Set: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
    on home, red "Admin" nav link shown to admins.
 10. **AI blog auto-writer** — `/api/cron/generate-blog`, four content types, all
     via the **Google Gemini free tier** with live model discovery (handles free-key
-    quirks: rate limits, deprecated/TTS models — see git history on this file for
-    the debug trail). Manual "Generate a post now" button in Admin → Blog has a
-    type picker; POST body `{ type }`, admin-verified. Needs `GEMINI_API_KEY` +
-    `CRON_SECRET`.
+    quirks: rate limits, deprecated/TTS models, thinking-token truncation, raw
+    control chars breaking JSON.parse — the code has defenses for all of these).
+    Manual "Generate a post now" button in Admin → Blog has a type picker; POST
+    body `{ type }`, admin-verified. Needs `GEMINI_API_KEY` + `CRON_SECRET`.
     - **`event`** (daily, 09:00 UTC) — roundup from our own real upcoming events.
-      Nothing outside our data used → **auto-published**.
+      Nothing outside our data used → **auto-published**. This is the
+      well-exercised path (confirmed working after a long debug trail).
     - **`movement`** (weekly, Tue) — general art-history/style guide (Cubism,
-      Renaissance, etc., rotated from a static list). Not tied to live data →
+      Renaissance, etc., rotated from a static list), category **`guide`** (the
+      same category other manual how-to posts use). Not tied to live data →
       always inserted as a **draft**.
     - **`exhibition`** (weekly, Thu) — real gallery/exhibition news for a rotating
       Italian city, found via **Gemini's Google Search grounding** (`tools:
@@ -73,12 +75,23 @@ Set: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
       older `is_auto`/`auto_city` columns, which are kept for the `event` type).
     - Byline: all auto posts get `posts.byline = "The Local Art Hub Editorial
       Team"` — one consistent, honest credit, no fabricated author personas.
-    - **STATUS: freshly built, not yet tested by the user** — the `event` type
-      was previously confirmed working after a long debug trail (429 → 404 → 400
-      → 400 (TTS model) → 404 (deprecated model) → newest-model-first fix). The
-      three new types (`movement`/`exhibition`/`celebrity`) share the same
-      request/model-discovery code path but have NOT been clicked yet — if they
-      fail, check the returned error message first (it now includes real API text).
+    - **STATUS: `movement`/`exhibition`/`celebrity` are freshly built, not yet
+      clicked by the user.** They share the `event` type's hardened request/
+      model-discovery path, so most of the historical failure modes are already
+      covered — but if one fails, check the returned error message first (it
+      includes real API text, not just a status code).
+    - Separate from this: `/api/cron/fetch-news` (daily) pulls **real RSS
+      articles** (PetaPixel, Colossal, Dezeen, Creative Boom, No Film School)
+      into a `news_items` table, shown on `/news` — zero AI involved, so it's a
+      different (simpler, zero-hallucination-risk) way of getting more
+      art/creative content onto the site. See `app/admin/news/page.tsx`.
+11. **Other surface added since the last full review of this file** (not authored
+    in this session — skim the actual code before relying on details here):
+    competitions section (`/competitions`, `/admin/competitions`), per-event SEO
+    pages (`/events/[city]`, `/events/[city]/[event]`, `/events/[city]/weekend`),
+    Ticketmaster affiliate link wrapping (`lib/affiliate.ts`, inert until its env
+    var is set), AdSense prep (`/admin/ads`, `app/components/AdSlot.tsx`,
+    `ads.txt`), and an SEO pass (JSON-LD, sitemap/robots via `SITE_URL`).
 
 ## Database (migrations applied to the Supabase project)
 - **`events`**: title, description, city, venue, event_date, photos[], source
@@ -86,11 +99,12 @@ Set: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
   created_by, artist_id, is_published. RLS: public reads published; artists manage
   own; admins manage all. Partial-unique index on `(source, external_id)` for
   import dedupe.
-- **`posts`**: title, slug (unique), category (feature/concert/show/event/
-  culture/review/news), excerpt, body, cover_url, photos[], is_published,
-  published_at, author_id, byline, source_urls[], is_auto, auto_city (legacy,
-  `event` type only), auto_type, auto_topic. RLS: public reads published; admins
-  manage.
+- **`posts`**: title, slug (unique), category (guide/feature/concert/show/event/
+  review/news), excerpt, body, cover_url, photos[], is_published, published_at,
+  author_id, byline, source_urls[], is_auto, auto_city (legacy, `event` type
+  only), auto_type, auto_topic. RLS: public reads published; admins manage.
+- **`news_items`**: title, link (unique), source, category, excerpt, image_url,
+  published_at — real RSS content, no `posts` overlap.
 - **`profiles.is_admin`** boolean + **`is_admin()`** security-definer helper.
 - Seeded samples (deletable from admin): 3 `[SAMPLE]` events (Florence/Milan),
   1 `[SAMPLE]` blog post.
