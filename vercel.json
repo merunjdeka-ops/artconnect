@@ -6,6 +6,9 @@
   "devCommand": "next dev",
   "crons": [
     { "path": "/api/cron/generate-blog", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/generate-blog?type=movement", "schedule": "0 10 * * 2" },
+    { "path": "/api/cron/generate-blog?type=exhibition", "schedule": "0 10 * * 4" },
+    { "path": "/api/cron/generate-blog?type=celebrity", "schedule": "0 10 * * 6" },
     { "path": "/api/cron/fetch-news", "schedule": "0 6 * * *" }
   ]
 }
