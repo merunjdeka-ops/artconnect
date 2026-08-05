@@ -92,6 +92,25 @@ Set: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
     Ticketmaster affiliate link wrapping (`lib/affiliate.ts`, inert until its env
     var is set), AdSense prep (`/admin/ads`, `app/components/AdSlot.tsx`,
     `ads.txt`), and an SEO pass (JSON-LD, sitemap/robots via `SITE_URL`).
+12. **Privilege-escalation fix (DB-only, no app code changed)** — `profiles`'
+    "Users can update own profile" RLS policy only checked row ownership
+    (`auth.uid() = id`), not which columns changed. Postgres RLS is row-level,
+    not column-level, so ANY logged-in user could previously call
+    `supabase.from('profiles').update({ is_admin: true })` on their own row
+    directly (bypassing the app UI, e.g. from the browser console) and become a
+    full admin — since `is_admin()` gates every admin table (ads, competitions,
+    events, news_items, posts). Fixed with `BEFORE INSERT/UPDATE` triggers that
+    silently revert `is_admin`/`role` changes made by a browser-authenticated
+    request (`auth.role() IN ('anon','authenticated')`); server routes using
+    the service-role key, and direct SQL, are unaffected. Same fix applied to
+    `bookings` (an artist could previously rewrite price/client_id, not just
+    `status`) and `reviews` (an artist could previously rewrite the client's
+    rating/comment, not just their own `artist_reply`). Verified by simulating
+    both an attacker (`authenticated` role — blocked) and a legitimate
+    `service_role` update (still works) directly against the DB.
+    **Still open, needs a manual dashboard toggle (no SQL/MCP tool for it):**
+    Supabase → Authentication → Policies → enable "Leaked password protection"
+    (HaveIBeenPwned check) — flagged by `get_advisors`, low effort, not yet done.
 
 ## Database (migrations applied to the Supabase project)
 - **`events`**: title, description, city, venue, event_date, photos[], source
