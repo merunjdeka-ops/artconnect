@@ -45,6 +45,16 @@ export function cityEnglishName(city: string): string | null {
   return CITY_EN[city] ?? null;
 }
 
+// One comparison key per city whatever language it was written in
+// ("Florence" and "Firenze" → "firenze"). Used for dedupe/cooldowns.
+const CITY_IT: Record<string, string> = Object.fromEntries(
+  Object.entries(CITY_EN).map(([it, en]) => [en.toLowerCase(), it.toLowerCase()]),
+);
+export function cityKey(city: string): string {
+  const c = city.trim().toLowerCase();
+  return CITY_IT[c] ?? c;
+}
+
 function serverSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

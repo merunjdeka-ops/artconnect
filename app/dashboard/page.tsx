@@ -198,7 +198,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex flex-col sm:flex-row gap-3 mt-6 md:mt-0">
               <Link
-                href={`/artists/${profile?.id}`}
+                href={`/artists/${(profile as { slug?: string } | null)?.slug || profile?.id}`}
                 className="text-xs font-bold uppercase tracking-widest border border-black px-6 py-3 hover:bg-black hover:text-white transition-colors text-center"
               >
                 View Public Profile →
@@ -596,7 +596,7 @@ export default function DashboardPage() {
                       </span>
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(`https://thelocalarthub.com/artists/${profile?.id}`);
+                          navigator.clipboard.writeText(`https://www.thelocalarthub.com/artists/${(profile as { slug?: string } | null)?.slug || profile?.id}`);
                         }}
                         className="px-5 py-3 text-xs font-bold uppercase tracking-widest border-l border-black text-xs text-black/50 hover:text-black transition-colors whitespace-nowrap shrink-0"
                       >

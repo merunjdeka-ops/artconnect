@@ -31,13 +31,17 @@ const emptyForm = {
 
 const AUTO_TYPES = [
   { value: "event", label: "Event roundup", desc: "From our real upcoming events — nothing invented. Safe to auto-publish." },
-  { value: "movement", label: "Art movement guide", desc: "General art-history education. Written as a draft for you to skim first." },
+  { value: "movement", label: "Art movement guide", desc: "General, well-established art-history education. Auto-published." },
+  { value: "cityguide", label: "Hiring guide", desc: "Evergreen 'How to hire a … in <city>' guide. Practical advice only — no prices, names or venues. Auto-published." },
   { value: "exhibition", label: "Exhibition review", desc: "Real gallery news, found via Google Search — only writes when it finds a real, cited source. Always a draft." },
   { value: "celebrity", label: "Artist visiting Italy", desc: "Real celebrity/artist news, found via Google Search — only writes when it finds a real, cited source. Always a draft." },
 ] as const;
 
+type BlogRun = { id: string; ran_at: string; type: string; outcome: string; message: string | null };
+
 export default function AdminBlogPage() {
   const [items, setItems] = useState<Post[]>([]);
+  const [runs, setRuns] = useState<BlogRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState("");
   const [error, setError] = useState("");
@@ -60,6 +64,11 @@ export default function AdminBlogPage() {
       const { data } = await supabase.from("posts").select("*").order("published_at", { ascending: false });
       setItems((data as Post[]) || []);
       setLoading(false);
+      // Run log (table from supabase-seo-blog.sql) — empty if not created yet.
+      const { data: runRows } = await supabase
+        .from("blog_runs").select("id, ran_at, type, outcome, message")
+        .order("ran_at", { ascending: false }).limit(8);
+      setRuns((runRows as BlogRun[]) || []);
     }
     load();
   }, []);
@@ -162,13 +171,8 @@ export default function AdminBlogPage() {
       });
       const data = await res.json();
       if (data.generated) {
-        const published = data.is_published;
-        const note = published ? "" : " — saved as a DRAFT, review it below before publishing";
-        if (autoType === "event") setAutoMsg(`Wrote a roundup for ${data.city} (${data.eventCount} events): "${data.title}"${note}`);
-        else if (autoType === "movement") setAutoMsg(`Wrote a guide on "${data.movement}": "${data.title}"${note}`);
-        else if (autoType === "exhibition") setAutoMsg(`Wrote an exhibition post for ${data.city} (${data.sources?.length ?? 0} source(s) cited): "${data.title}"${note}`);
-        else if (autoType === "celebrity") setAutoMsg(`Wrote a post about ${data.personName} (${data.sources?.length ?? 0} source(s) cited): "${data.title}"${note}`);
-        else setAutoMsg(`Wrote "${data.title}"${note}`);
+        const note = data.published ? " — published" : " — saved as a DRAFT, review it below before publishing";
+        setAutoMsg(`Wrote "${data.title}"${note}`);
         const { data: fresh } = await supabase.from("posts").select("*").order("published_at", { ascending: false });
         setItems((fresh as Post[]) || []);
       } else if (data.skipped) {
@@ -198,7 +202,7 @@ export default function AdminBlogPage() {
       {/* Auto-writer */}
       <div className="border border-black bg-black text-white p-8 mb-8">
         <h2 className="text-lg font-black uppercase mb-2">AI Auto-Writer</h2>
-        <p className="text-xs text-white/50 mb-5 max-w-lg">Event roundups run automatically every day and auto-publish (grounded in your real data). Art guides, exhibitions and celebrity news run weekly and are always saved as drafts for you to review — exhibitions and celebrity posts only write when a real, cited source is found.</p>
+        <p className="text-xs text-white/50 mb-5 max-w-lg">Runs on its own: events are imported from Ticketmaster daily, a monthly what&apos;s-on roundup is written for one city per day (each city at most once a month), plus a weekly art-movement guide and a weekly hiring guide — all auto-published. Exhibition and celebrity news need a real cited source and are saved as drafts for you to review.</p>
         <div className="flex flex-wrap gap-2 mb-5">
           {AUTO_TYPES.map(t => (
             <button key={t.value} type="button" onClick={() => setAutoType(t.value)}
@@ -212,6 +216,21 @@ export default function AdminBlogPage() {
           {autoRunning ? "Writing..." : "Generate a post now"}
         </button>
         {autoMsg && <p className="text-xs text-white/70 mt-4 uppercase tracking-widest">{autoMsg}</p>}
+        {runs.length > 0 && (
+          <div className="mt-6 border-t border-white/15 pt-4">
+            <p className="text-[10px] uppercase tracking-widest text-white/40 mb-2">Recent automatic runs</p>
+            <ul className="flex flex-col gap-1">
+              {runs.map(r => (
+                <li key={r.id} className="text-xs text-white/70 flex gap-3">
+                  <span className="text-white/40 whitespace-nowrap">{new Date(r.ran_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                  <span className={r.outcome === "error" ? "text-[#E5000F] font-bold uppercase" : r.outcome === "generated" ? "text-green-400 uppercase" : "text-white/50 uppercase"}>{r.outcome}</span>
+                  <span className="text-white/40">{r.type}</span>
+                  <span className="truncate">{r.message}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="border border-black bg-white p-8 mb-12">

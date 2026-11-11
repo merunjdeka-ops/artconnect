@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import {
   fetchUpcomingEvents, resolveCityFromSlug, eventsJsonLd, jsonLdString, eventPageDescription, cityEnglishName,
 } from "@/lib/events";
@@ -40,10 +40,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CityEventsPage({ params }: Props) {
   const { city: slug } = await params;
   const city = await resolveCityFromSlug(slug);
-  if (!city) notFound();
+  // City with no upcoming events (yet) → the index, not a 404. Temporary
+  // redirect: the page returns as soon as new events are imported.
+  if (!city) redirect("/events");
 
   const events = await fetchUpcomingEvents({ city, limit: 100 });
-  if (events.length === 0) notFound();
+  if (events.length === 0) redirect("/events");
 
   const jsonLd = eventsJsonLd(events);
   const venues = [...new Set(events.map(e => e.venue).filter(Boolean))] as string[];
