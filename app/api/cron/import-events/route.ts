@@ -5,7 +5,7 @@ import { importTicketmasterEvents, normaliseCities } from "@/lib/ticketmaster";
 // Daily Ticketmaster refresh (Vercel Cron, see vercel.json). Before this the
 // import only ran when someone pressed the admin button, so the events feed —
 // and the daily event roundups built from it — slowly ran dry.
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 // Always covered, plus every city we've imported for before.
 const CORE_CITIES = [
