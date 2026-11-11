@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { permanentRedirect, redirect } from "next/navigation";
 import {
   resolveCityFromSlug, findEventBySlug, fetchUpcomingEvents, eventSlug, citySlug,
   eventsJsonLd, jsonLdString, cityEnglishName,
@@ -17,6 +17,11 @@ import AffiliateNote from "../../../components/AffiliateNote";
 export const revalidate = 3600;
 
 type Props = { params: Promise<{ city: string; event: string }> };
+
+function shortDate(iso: string): string {
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Rome" });
+}
 
 function dateLabel(iso: string, locale: "en-GB" | "it-IT"): string {
   const d = new Date(iso);
@@ -35,7 +40,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const year = ev.event_date ? new Date(ev.event_date).getFullYear() : "";
   const en = cityEnglishName(city);
   return {
-    title: `${ev.title} — ${city} ${year} — Tickets, Date & Venue`,
+    // The date is in the title: multi-night runs (e.g. 10 Vasco dates) are
+    // separate events, and identical titles read as duplicate pages.
+    title: `${ev.title} — ${city}${ev.event_date ? `, ${shortDate(ev.event_date)}` : ` ${year}`} — Tickets & Venue`,
     description:
       `${ev.title} in ${en ?? city}${ev.venue ? ` at ${ev.venue}` : ""}` +
       `${ev.event_date ? ` on ${dateLabel(ev.event_date, "en-GB")}` : ""}. ` +
@@ -56,10 +63,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function EventPage({ params }: Props) {
   const { city: cSlug, event: eSlug } = await params;
   const city = await resolveCityFromSlug(cSlug);
-  if (!city) notFound();
+  if (!city) redirect("/events");
 
   const ev = await findEventBySlug(city, eSlug);
-  if (!ev) notFound();
+  // Past events drop out of the data; send their URLs (still in Google's
+  // index from the old sitemap) to the city page instead of a 404.
+  if (!ev) permanentRedirect(`/events/${cSlug}`);
 
   const canonicalSlug = eventSlug(ev);
   const pageUrl = `${SITE_URL}/events/${citySlug(city)}/${canonicalSlug}`;

@@ -5,18 +5,21 @@ import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 import { cdnUrl } from "@/lib/cloudinary";
 
-type WorkItem = {
+export type WorkItem = {
   id: string;
   title: string | null;
   media_url: string;
   artist: { id: string; full_name: string | null; category: string | null; location: string | null } | null;
 };
 
-export default function FeaturedWork() {
-  const [items, setItems] = useState<WorkItem[]>([]);
-  const [loading, setLoading] = useState(true);
+// `initial` comes from the server render (app/page.tsx) so the section is in
+// the HTML; without it the component fetches on mount as before.
+export default function FeaturedWork({ initial }: { initial?: WorkItem[] } = {}) {
+  const [items, setItems] = useState<WorkItem[]>(initial ?? []);
+  const [loading, setLoading] = useState(!initial);
 
   useEffect(() => {
+    if (initial) return;
     async function load() {
       const supabase = getSupabase();
       const { data } = await supabase
@@ -31,7 +34,7 @@ export default function FeaturedWork() {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [initial]);
 
   // Nothing to show — hide the section entirely.
   if (!loading && items.length === 0) return null;

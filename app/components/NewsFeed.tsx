@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 
-type NewsItem = {
+export type NewsItem = {
   id: string;
   title: string;
   link: string;
@@ -22,11 +22,14 @@ function formatDate(iso: string | null): string {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
-export default function NewsFeed() {
-  const [items, setItems] = useState<NewsItem[]>([]);
-  const [loading, setLoading] = useState(true);
+// `initial` comes from the server render (app/page.tsx) so the section is in
+// the HTML; without it the component fetches on mount as before.
+export default function NewsFeed({ initial }: { initial?: NewsItem[] } = {}) {
+  const [items, setItems] = useState<NewsItem[]>(initial ?? []);
+  const [loading, setLoading] = useState(!initial);
 
   useEffect(() => {
+    if (initial) return;
     async function load() {
       const supabase = getSupabase();
       const { data } = await supabase
@@ -38,7 +41,7 @@ export default function NewsFeed() {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [initial]);
 
   if (!loading && items.length === 0) return null;
 

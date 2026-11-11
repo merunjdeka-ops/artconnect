@@ -112,6 +112,30 @@ Set: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
     Supabase → Authentication → Policies → enable "Leaked password protection"
     (HaveIBeenPwned check) — flagged by `get_advisors`, low effort, not yet done.
 
+## Nov 2026 — SEO + auto-blog fix (PR "SEO overhaul + working auto-blog")
+- **Why auto-posts stopped on 3 Aug 2026:** `insertPost` in
+  `app/api/cron/generate-blog/route.ts` spread result metadata (`city`,
+  `eventCount`, …) into the insert, so PostgREST rejected every row
+  ("column not found"). Now whitelisted via `POST_COLUMNS`.
+- **Auto-blog cadence now:** daily Ticketmaster import (`/api/cron/import-events`,
+  05:00 UTC) → daily monthly-roundup for one city (each city ≤ once per 25 days,
+  ≥3 events, title names the month) → weekly art-movement guide (auto-published)
+  → weekly "How to hire a … in <city>" guide (`type=cityguide`, auto-published)
+  → exhibition/celebrity stay drafts. Every run is logged to `blog_runs` and
+  shown in Admin → Blog.
+- **Server-rendered now:** homepage sections, `/artists`, artist profiles,
+  `/competitions` (client components receive `initial` props).
+- **Artist URLs:** `/artists/<slug>` (`profiles.slug`, set by trigger); UUID
+  links 308 → slug. Shared helpers in `lib/artists.ts` (public-column
+  allow-list — never render email/phone/address).
+- **Sitemap** is `force-dynamic` (the old `revalidate` copy was frozen at the
+  5 Aug build). Past event URLs 308 → city page; empty cities → `/events`.
+- **Duplicate July roundups** are unpublished with `posts.redirect_to` → 308
+  to the newest post for that city.
+- **DB migration:** `supabase-seo-blog.sql` (run once in the SQL editor). App
+  works before it runs (UUID URLs, no run log, no post redirects).
+- Optional env: `NEXT_PUBLIC_GSC_VERIFICATION` (Search Console HTML-tag code).
+
 ## Database (migrations applied to the Supabase project)
 - **`events`**: title, description, city, venue, event_date, photos[], source
   (`local`/`external`/`ticketmaster`), source_name, external_url, external_id,

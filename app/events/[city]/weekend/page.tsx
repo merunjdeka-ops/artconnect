@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   resolveCityFromSlug, fetchUpcomingEvents, fetchWeekendEvents, weekendRange,
   eventsJsonLd, jsonLdString, cityEnglishName,
@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function WeekendPage({ params }: Props) {
   const { city: slug } = await params;
   const city = await resolveCityFromSlug(slug);
-  if (!city) notFound();
+  if (!city) redirect("/events");
 
   const weekend = await fetchWeekendEvents(city);
   const fallback = weekend.length === 0 ? (await fetchUpcomingEvents({ city, limit: 12 })) : [];

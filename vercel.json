@@ -5,10 +5,33 @@
   "installCommand": "npm install",
   "devCommand": "next dev",
   "crons": [
-    { "path": "/api/cron/generate-blog", "schedule": "0 9 * * *" },
-    { "path": "/api/cron/generate-blog?type=movement", "schedule": "0 10 * * 2" },
-    { "path": "/api/cron/generate-blog?type=exhibition", "schedule": "0 10 * * 4" },
-    { "path": "/api/cron/generate-blog?type=celebrity", "schedule": "0 10 * * 6" },
-    { "path": "/api/cron/fetch-news", "schedule": "0 6 * * *" }
+    {
+      "path": "/api/cron/import-events",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/generate-blog",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/generate-blog?type=movement",
+      "schedule": "0 10 * * 2"
+    },
+    {
+      "path": "/api/cron/generate-blog?type=exhibition",
+      "schedule": "0 10 * * 4"
+    },
+    {
+      "path": "/api/cron/generate-blog?type=celebrity",
+      "schedule": "0 10 * * 6"
+    },
+    {
+      "path": "/api/cron/fetch-news",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/generate-blog?type=cityguide",
+      "schedule": "0 10 * * 1"
+    }
   ]
 }

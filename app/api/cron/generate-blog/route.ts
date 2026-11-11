@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { slugify } from "@/lib/blog";
+import { cityKey, cityEnglishName } from "@/lib/events";
+
+// Several model attempts plus a long generation can exceed the default limit.
+export const maxDuration = 60;
 
 // Auto-writes blog posts. Four content types, each with a different trust model:
 //
@@ -24,8 +28,13 @@ import { slugify } from "@/lib/blog";
 
 const EDITORIAL_BYLINE = "The Local Art Hub Editorial Team";
 const RUN_DAYS_EVENT = [0, 1, 2, 3, 4, 5, 6]; // daily
-const LOOKAHEAD_DAYS = 21;
-const EVENT_COOLDOWN_DAYS = 6;      // don't re-cover the same city within this window
+// One "what's on this month" roundup per city per month. The old 6-day cooldown
+// produced three near-identical Bari posts in a fortnight, which reads as
+// scaled/duplicate content to Google. Daily runs now rotate through cities.
+const LOOKAHEAD_DAYS = 35;
+const EVENT_COOLDOWN_DAYS = 25;
+const MIN_EVENTS_PER_ROUNDUP = 3;
+const CITYGUIDE_COOLDOWN_DAYS = 180;
 const MOVEMENT_COOLDOWN_DAYS = 30;  // don't repeat a movement/style too soon
 const EXHIBITION_COOLDOWN_DAYS = 14;
 const CELEBRITY_COOLDOWN_DAYS = 30;
@@ -38,6 +47,18 @@ const ART_MOVEMENTS = [
 ];
 
 const ITALIAN_ART_CITIES = ["Florence", "Milan", "Rome", "Venice", "Turin", "Naples", "Bologna"];
+
+// Evergreen hiring guides: discipline × city. `category` must match the
+// profiles.category values so the CTA deep-links into a filtered artist list.
+const GUIDE_DISCIPLINES = [
+  { role: "wedding photographer", category: "Photography" },
+  { role: "musician or live band for an event", category: "Music" },
+  { role: "DJ", category: "DJ" },
+  { role: "makeup artist", category: "Makeup Artist" },
+  { role: "videographer", category: "Videography" },
+  { role: "portrait painter or illustrator", category: "Painting" },
+];
+const GUIDE_CITIES = ["Florence", "Milan", "Rome", "Venice", "Bologna", "Turin", "Naples"];
 
 function admin(): SupabaseClient {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
@@ -63,6 +84,15 @@ async function recentTopics(db: SupabaseClient, autoType: string, cooldownDays: 
   return new Set((data || []).map(r => (r.auto_topic || "").toLowerCase()).filter(Boolean));
 }
 
+// Cities covered by an event roundup within the cooldown, normalised so the
+// legacy rows (auto_city only, English or Italian names) count too.
+async function recentEventCities(db: SupabaseClient, cooldownDays: number): Promise<Set<string>> {
+  const since = new Date(Date.now() - cooldownDays * 86400_000).toISOString();
+  const { data } = await db.from("posts").select("auto_topic, auto_city")
+    .eq("category", "event").eq("is_auto", true).gte("created_at", since);
+  return new Set((data || []).map(r => r.auto_topic || r.auto_city).filter(Boolean).map(c => cityKey(c as string)));
+}
+
 // Fallback model list used only if the live model-discovery call fails.
 const GEMINI_MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-001", "gemini-1.5-flash"];
 
@@ -85,9 +115,13 @@ async function listGeminiModels(key: string): Promise<string[]> {
     // "no longer available to new users"), so sort by version DESCENDING.
     // Within the same version prefer flash (fast/free) and stable names over
     // preview/latest ones.
+    // Free-tier keys have little or no quota on "pro" models, and previews
+    // come and go — so: stable flash first, then preview flash, then the rest;
+    // newest version first within each group.
     const version = (n: string) => parseFloat(n.match(/gemini-(\d+(?:\.\d+)?)/)?.[1] ?? "0");
-    const rank = (n: string) =>
-      version(n) * 100 + (n.includes("flash") ? 10 : 0) + (/preview|latest/.test(n) ? 0 : 1);
+    const tier = (n: string) =>
+      n.includes("flash") ? (/preview|latest/.test(n) ? 2 : 3) : (n.includes("pro") ? 0 : 1);
+    const rank = (n: string) => tier(n) * 1000 + version(n);
     const ordered = [...new Set(avail)].sort((a, b) => rank(b) - rank(a));
     return ordered.length ? ordered : GEMINI_MODELS;
   } catch {
@@ -144,7 +178,9 @@ async function callGeminiWithFallback(geminiKey: string, prompt: string, grounde
     if (aiRes.ok) break;
     lastStatus = aiRes.status;
     lastBody = await aiRes.text();
-    if (![400, 404, 429].includes(aiRes.status)) break;
+    // 400 bad request for this model, 403 model not allowed for this key,
+    // 404 retired, 429 quota, 5xx overloaded → try the next model.
+    if (![400, 403, 404, 429, 500, 503].includes(aiRes.status)) break;
   }
   if (!aiRes || !aiRes.ok) {
     console.error("Gemini error:", lastStatus, lastBody);
@@ -210,7 +246,19 @@ function parseAiJson(aiData: unknown): ParsedPost | { error: string } {
 
 type PostResult = { skipped: string } | { error: string; status: number } | Record<string, unknown>;
 
-async function insertPost(db: SupabaseClient, record: Record<string, unknown>): Promise<PostResult> {
+// Only real `posts` columns may reach the insert. Passing extra keys (the
+// result metadata like `city`, `eventCount`) made PostgREST reject EVERY
+// insert with "column not found" — the reason auto-posts silently stopped
+// on 3 Aug 2026.
+const POST_COLUMNS = [
+  "title", "category", "excerpt", "body", "cover_url", "photos", "is_published",
+  "is_auto", "auto_city", "auto_type", "auto_topic", "byline", "source_urls",
+  "author_id", "published_at",
+] as const;
+
+async function insertPost(db: SupabaseClient, input: Record<string, unknown>): Promise<PostResult> {
+  const record: Record<string, unknown> = {};
+  for (const k of POST_COLUMNS) if (k in input) record[k] = input[k];
   let slug = slugify(record.title as string) || `post-${Date.now()}`;
   let ins = await db.from("posts").insert({ ...record, slug }).select("id").single();
   if (ins.error && ins.error.code === "23505") {
@@ -218,7 +266,7 @@ async function insertPost(db: SupabaseClient, record: Record<string, unknown>): 
     ins = await db.from("posts").insert({ ...record, slug }).select("id").single();
   }
   if (ins.error) return { error: ins.error.message, status: 500 };
-  return { generated: true, postId: ins.data?.id, title: record.title, ...record };
+  return { generated: true, postId: ins.data?.id, slug, title: record.title, published: record.is_published };
 }
 
 // ---------------------------------------------------------------------------
@@ -239,18 +287,22 @@ async function generateEventRoundup(db: SupabaseClient, geminiKey: string): Prom
 
   if (!events || events.length === 0) return { skipped: "No upcoming events to write about." };
 
-  const onCooldown = await recentTopics(db, "event", EVENT_COOLDOWN_DAYS);
+  const onCooldown = await recentEventCities(db, EVENT_COOLDOWN_DAYS);
   const byCity = new Map<string, typeof events>();
   for (const ev of events) {
-    const c = ev.city as string;
-    if (onCooldown.has(c.toLowerCase())) continue;
+    const c = (ev.city as string).trim();
+    if (onCooldown.has(cityKey(c))) continue;
     if (!byCity.has(c)) byCity.set(c, []);
     byCity.get(c)!.push(ev);
   }
-  const eligible = [...byCity.entries()].filter(([, evs]) => evs.length >= 2).sort((a, b) => b[1].length - a[1].length);
-  if (eligible.length === 0) return { skipped: "No city with enough fresh upcoming events." };
+  const eligible = [...byCity.entries()]
+    .filter(([, evs]) => evs.length >= MIN_EVENTS_PER_ROUNDUP)
+    .sort((a, b) => b[1].length - a[1].length);
+  if (eligible.length === 0) return { skipped: "Every city with enough upcoming events already has a roundup this month." };
 
   const [city, cityEvents] = eligible[0];
+  const cityLabel = cityEnglishName(city) ? `${cityEnglishName(city)} (${city})` : city;
+  const monthLabel = now.toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "Europe/Rome" });
   const source = cityEvents.slice(0, 8).map(e => ({
     title: e.title, date: fmt(e.event_date), venue: e.venue, source: e.source_name,
     description: e.description ? String(e.description).slice(0, 500) : undefined,
@@ -260,10 +312,10 @@ async function generateEventRoundup(db: SupabaseClient, geminiKey: string): Prom
     + "You write substantial, lively blog roundups of upcoming events. CRITICAL RULES: use ONLY the event data provided below. "
     + "Never invent events, dates, venues, artists, prices, or any fact not present in the data. Do not add events you think you know about. "
     + "If information is missing, simply omit it. Warm, welcoming editorial tone, British English. Output ONLY valid JSON, no markdown fences.\n\n"
-    + `Real upcoming events in ${city}. Write a roundup blog post about them.\n\n`
+    + `Real upcoming events in ${cityLabel} over the next few weeks (${monthLabel}). Write a roundup blog post about them.\n\n`
     + `EVENTS:\n${JSON.stringify(source, null, 2)}\n\n`
     + `Return ONLY this JSON object:\n`
-    + `{"title": "catchy headline mentioning ${city}", "excerpt": "one-sentence teaser", `
+    + `{"title": "headline that names ${cityEnglishName(city) ?? city} and ${monthLabel} (e.g. \\"What's On in ... — ${monthLabel}\\")", "excerpt": "one-sentence teaser", `
     + `"body": "a well-developed article of 600 to 900 words in plain text (use \\n\\n between paragraphs). `
     + `Open with an inviting paragraph about what the coming weeks look like in ${city} based on the listed events. `
     + `Then give each event its own paragraph — name, date and venue woven into flowing prose, drawing on the description text where provided. `
@@ -294,8 +346,6 @@ async function generateEventRoundup(db: SupabaseClient, geminiKey: string): Prom
     byline: EDITORIAL_BYLINE,
     author_id: await getAdminProfileId(db),
     published_at: new Date().toISOString(),
-    eventCount: cityEvents.length,
-    city,
   });
 }
 
@@ -329,14 +379,15 @@ async function generateMovementGuide(db: SupabaseClient, geminiKey: string): Pro
     body: (parsed.body as string).trim(),
     cover_url: null,
     photos: [],
-    is_published: false,  // editorial/general-knowledge content → review before publishing
+    // Well-established art history, not claims about current events or living
+    // people → published automatically (exhibition/celebrity stay drafts).
+    is_published: true,
     is_auto: true,
     auto_type: "movement",
     auto_topic: choice,
     byline: EDITORIAL_BYLINE,
     author_id: await getAdminProfileId(db),
     published_at: new Date().toISOString(),
-    movement: choice,
   });
 }
 
@@ -385,8 +436,6 @@ async function generateExhibitionReview(db: SupabaseClient, geminiKey: string): 
     source_urls: sources,
     author_id: await getAdminProfileId(db),
     published_at: new Date().toISOString(),
-    city,
-    sources,
   });
 }
 
@@ -435,12 +484,86 @@ async function generateCelebrityVisit(db: SupabaseClient, geminiKey: string): Pr
     source_urls: sources,
     author_id: await getAdminProfileId(db),
     published_at: new Date().toISOString(),
-    personName,
-    sources,
   });
 }
 
-async function generate(type: string): Promise<PostResult> {
+// ---------------------------------------------------------------------------
+// Type 5: Evergreen hiring guide — "How to hire a <role> in <city>". Targets
+// booking-intent searches. Practical advice only: the prompt forbids prices,
+// named businesses, venues and statistics, so there is nothing to fact-check.
+// Auto-published; one discipline×city pair per run, never repeated within
+// CITYGUIDE_COOLDOWN_DAYS.
+// ---------------------------------------------------------------------------
+async function generateCityGuide(db: SupabaseClient, geminiKey: string): Promise<PostResult> {
+  const done = await recentTopics(db, "cityguide", CITYGUIDE_COOLDOWN_DAYS);
+  let pick: { role: string; category: string; city: string } | null = null;
+  for (const city of GUIDE_CITIES) {
+    for (const d of GUIDE_DISCIPLINES) {
+      const topic = `${d.category}|${city}`.toLowerCase();
+      if (!done.has(topic)) { pick = { ...d, city }; break; }
+    }
+    if (pick) break;
+  }
+  if (!pick) return { skipped: "Every discipline × city guide was written recently." };
+
+  const prompt = "You are the editor of The Local Art Hub, a platform where people in Italy book local artists directly "
+    + "(no agencies, no commission). "
+    + `Write a genuinely useful, practical guide: how to hire a ${pick.role} in ${pick.city}, Italy. `
+    + "Cover: deciding what you need, how to judge a portfolio, questions to ask before booking, what a fair agreement "
+    + "should include (deposit, timings, deliverables, cancellation), local practicalities worth planning for in "
+    + `${pick.city} (season, travel time across the city, permits for public spaces in general terms), and red flags. `
+    + "STRICT RULES: do NOT state any prices, price ranges, statistics, laws by name, or named businesses, venues, "
+    + "people or websites. Speak in general, practical terms. No invented facts. Warm, expert, British English. "
+    + "Use short subheadings written as plain lines followed by a blank line. "
+    + "Close by inviting readers to browse local artists on The Local Art Hub and contact them directly. "
+    + "Output ONLY valid JSON, no markdown fences: "
+    + `{"title": "How to Hire a ... in ${pick.city}: ...", "excerpt": "one-sentence teaser", "body": "900 to 1200 words of plain text (use \\n\\n between paragraphs)"}`;
+
+  const outcome = await callGeminiWithFallback(geminiKey, prompt, false);
+  if (!outcome.ok) return { error: outcome.error, status: outcome.status };
+  const parsed = parseAiJson(outcome.data);
+  if ("error" in parsed) return { error: parsed.error, status: 502 };
+  if (!parsed.title || !parsed.body) return { error: "AI output missing title or body.", status: 502 };
+
+  return insertPost(db, {
+    title: (parsed.title as string).trim(),
+    category: "guide",
+    excerpt: (parsed.excerpt as string | undefined)?.trim() || null,
+    body: (parsed.body as string).trim(),
+    cover_url: null,
+    photos: [],
+    is_published: true,
+    is_auto: true,
+    auto_type: "cityguide",
+    auto_topic: `${pick.category}|${pick.city}`,
+    byline: EDITORIAL_BYLINE,
+    author_id: await getAdminProfileId(db),
+    published_at: new Date().toISOString(),
+  });
+}
+
+// Record every run so Admin → Blog can show why nothing was published.
+// Best-effort: never let logging break the run (or a missing table).
+async function logRun(type: string, trigger: string, result: PostResult): Promise<void> {
+  try {
+    const outcome = "generated" in result ? "generated" : "skipped" in result ? "skipped" : "error";
+    const message = "skipped" in result ? String(result.skipped)
+      : "error" in result ? String(result.error)
+      : String((result as { title?: unknown }).title ?? "");
+    await admin().from("blog_runs").insert({
+      type, trigger, outcome, message: message.slice(0, 500),
+      post_id: (result as { postId?: string }).postId ?? null,
+    });
+  } catch { /* table not created yet — ignore */ }
+}
+
+async function generate(type: string, trigger = "cron"): Promise<PostResult> {
+  const result = await runGenerator(type);
+  await logRun(type, trigger, result);
+  return result;
+}
+
+async function runGenerator(type: string): Promise<PostResult> {
   const geminiKey = process.env.GEMINI_API_KEY;
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return { error: "Server not configured.", status: 500 };
   if (!geminiKey) return { error: "AI writer not configured. Add GEMINI_API_KEY.", status: 500 };
@@ -450,6 +573,7 @@ async function generate(type: string): Promise<PostResult> {
     case "movement": return generateMovementGuide(db, geminiKey);
     case "exhibition": return generateExhibitionReview(db, geminiKey);
     case "celebrity": return generateCelebrityVisit(db, geminiKey);
+    case "cityguide": return generateCityGuide(db, geminiKey);
     case "event":
     default:
       return generateEventRoundup(db, geminiKey);
@@ -467,7 +591,7 @@ export async function GET(req: NextRequest) {
   if (type === "event" && !RUN_DAYS_EVENT.includes(new Date().getUTCDay())) {
     return NextResponse.json({ skipped: "Not a scheduled day." });
   }
-  const result = await generate(type);
+  const result = await generate(type, "cron");
   return NextResponse.json(result, { status: (result as { status?: number }).status ?? 200 });
 }
 
@@ -488,6 +612,6 @@ export async function POST(req: NextRequest) {
     if (body?.type) type = body.type;
   } catch { /* no body → default to event */ }
 
-  const result = await generate(type);
+  const result = await generate(type, "manual");
   return NextResponse.json(result, { status: (result as { status?: number }).status ?? 200 });
 }

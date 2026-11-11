@@ -8,7 +8,7 @@ import { affiliateTicketUrl, ticketRel } from "@/lib/affiliate";
 import { cdnUrl, lightTmUrl } from "@/lib/cloudinary";
 import AffiliateNote from "./AffiliateNote";
 
-type EventItem = {
+export type EventItem = {
   id: string;
   title: string;
   city: string | null;
@@ -37,10 +37,12 @@ function startOfToday(): string {
   return today.toISOString();
 }
 
-export default function EventsFeed() {
-  const [events, setEvents] = useState<EventItem[]>([]);
-  const [cities, setCities] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+// `initial` = server-rendered events + city list (app/page.tsx), so the feed
+// is in the HTML; without it the component fetches on mount as before.
+export default function EventsFeed({ initial }: { initial?: { events: EventItem[]; cities: string[] } } = {}) {
+  const [events, setEvents] = useState<EventItem[]>(initial?.events ?? []);
+  const [cities, setCities] = useState<string[]>(initial?.cities ?? []);
+  const [loading, setLoading] = useState(!initial);
   const [city, setCity] = useState("all");
   const [search, setSearch] = useState("");
   const [filterLabel, setFilterLabel] = useState("");
@@ -49,6 +51,7 @@ export default function EventsFeed() {
   const scroller = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (initial) return;
     async function load() {
       const supabase = getSupabase();
       const { data } = await supabase
@@ -73,7 +76,7 @@ export default function EventsFeed() {
       setCities(unique);
     }
     load();
-  }, []);
+  }, [initial]);
 
   // Both the dropdown and the search ask the DB directly — the feed only
   // holds the 24 nearest events, so filtering it client-side misses events

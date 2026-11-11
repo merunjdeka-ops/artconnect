@@ -36,39 +36,25 @@ export const metadata: Metadata = {
   },
   description: "Book local artists, find local events near you and follow local art news across Italy — Florence, Milan, Rome and beyond. Concerts, shows, exhibitions, artist portfolios and creative stories on The Local Art Hub.",
   metadataBase: new URL(SITE_URL),
-  keywords: [
-    "local artists Italy",
-    "local events",
-    "local events near me",
-    "local event information",
-    "Florence events",
-    "Italy events",
-    "local art news",
-    "art news",
-    "new media art",
-    "local art blog",
-    "book artist Italy",
-    "photographer Italy",
-    "musician Italy",
-    "wedding photographer Italy",
-    "artisti locali Italia",
-    "eventi Italia",
-  ],
   openGraph: {
     siteName: "The Local Art Hub",
     locale: "en_US",
     type: "website",
-    url: SITE_URL,
     title: "The Local Art Hub — Local Artists, Events & Art News in Italy",
     description: "Book local artists, find local events near you and follow local art news across Italy — Florence, Milan, Rome and beyond.",
+    images: [{ url: "/og", width: 1200, height: 630, alt: "The Local Art Hub" }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
+    images: ["/og"],
     title: "The Local Art Hub — Local Artists, Events & Art News in Italy",
     description: "Book local artists, find local events near you and follow local art news across Italy — Florence, Milan, Rome and beyond.",
   },
-  // Add your Google Search Console verification code below (get it from search.google.com/search-console)
-  // verification: { google: "YOUR_VERIFICATION_CODE_HERE" },
+  // Search Console: set NEXT_PUBLIC_GSC_VERIFICATION in Vercel to the code from
+  // search.google.com/search-console → Settings → Ownership → HTML tag.
+  ...(process.env.NEXT_PUBLIC_GSC_VERIFICATION
+    ? { verification: { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION } }
+    : {}),
   // AdSense site-ownership meta tag — appears once NEXT_PUBLIC_ADSENSE_CLIENT is set
   ...(ADSENSE_CLIENT ? { other: { "google-adsense-account": ADSENSE_CLIENT } } : {}),
 };

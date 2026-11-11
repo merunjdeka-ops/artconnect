@@ -5,7 +5,7 @@ import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 import { cdnUrl } from "@/lib/cloudinary";
 
-type Competition = {
+export type Competition = {
   id: string;
   title: string;
   category: string;
@@ -29,11 +29,14 @@ function formatDeadline(iso: string | null): string {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export default function CompetitionsFeed() {
-  const [items, setItems] = useState<Competition[]>([]);
-  const [loading, setLoading] = useState(true);
+// `initial` comes from the server render (app/page.tsx) so the section is in
+// the HTML; without it the component fetches on mount as before.
+export default function CompetitionsFeed({ initial }: { initial?: Competition[] } = {}) {
+  const [items, setItems] = useState<Competition[]>(initial ?? []);
+  const [loading, setLoading] = useState(!initial);
 
   useEffect(() => {
+    if (initial) return;
     async function load() {
       const supabase = getSupabase();
       const { data } = await supabase
@@ -47,7 +50,7 @@ export default function CompetitionsFeed() {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [initial]);
 
   if (!loading && items.length === 0) return null;
 

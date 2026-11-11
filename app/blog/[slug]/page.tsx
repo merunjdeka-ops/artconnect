@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { cdnUrl } from "@/lib/cloudinary";
@@ -37,6 +37,17 @@ const getPost = cache(async (slug: string): Promise<Post | null> => {
   return (data as Post) ?? null;
 });
 
+// Consolidated duplicates are unpublished with redirect_to set → 301 to the
+// surviving post so their links and rankings carry over. Tolerates the
+// column not existing yet (query error → no redirect).
+const getRedirect = cache(async (slug: string): Promise<string | null> => {
+  const { data, error } = await getSupabase()
+    .from("posts").select("redirect_to").eq("slug", slug).maybeSingle();
+  if (error) return null;
+  const target = (data as { redirect_to?: string | null } | null)?.redirect_to;
+  return target && target !== slug ? target : null;
+});
+
 function fmt(iso: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -48,7 +59,7 @@ type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPost(slug);
-  if (!post) return { title: "Post not found" };
+  if (!post) return { title: "Post not found", robots: { index: false } };
   const description = post.excerpt || (post.body ? post.body.replace(/\s+/g, " ").slice(0, 155) : "");
   return {
     title: post.title,
@@ -67,7 +78,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
   const post = await getPost(slug);
-  if (!post) notFound();
+  if (!post) {
+    const target = await getRedirect(slug);
+    if (target) permanentRedirect(`/blog/${target}`);
+    notFound();
+  }
 
   const gallery = (post.photos || []).filter(u => u !== post.cover_url);
 

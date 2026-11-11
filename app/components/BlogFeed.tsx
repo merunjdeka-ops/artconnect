@@ -6,7 +6,7 @@ import { getSupabase } from "@/lib/supabase";
 import { cdnUrl } from "@/lib/cloudinary";
 import { categoryLabel } from "@/lib/blog";
 
-type Post = {
+export type Post = {
   id: string;
   title: string;
   slug: string;
@@ -16,11 +16,14 @@ type Post = {
   published_at: string | null;
 };
 
-export default function BlogFeed() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+// `initial` comes from the server render (app/page.tsx) so the section is in
+// the HTML; without it the component fetches on mount as before.
+export default function BlogFeed({ initial }: { initial?: Post[] } = {}) {
+  const [posts, setPosts] = useState<Post[]>(initial ?? []);
+  const [loading, setLoading] = useState(!initial);
 
   useEffect(() => {
+    if (initial) return;
     async function load() {
       const supabase = getSupabase();
       const { data } = await supabase
@@ -33,7 +36,7 @@ export default function BlogFeed() {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [initial]);
 
   if (!loading && posts.length === 0) return null;
 

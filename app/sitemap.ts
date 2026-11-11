@@ -2,9 +2,12 @@ import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { fetchEventCities, fetchUpcomingEvents, citySlug, eventSlug } from "@/lib/events";
 import { SITE_URL } from "@/lib/config";
+import { fetchListedArtists, artistUrl } from "@/lib/artists";
 
-// Refresh the sitemap hourly so new artists appear without a redeploy
-export const revalidate = 3600;
+// Built on every request. The previous `revalidate = 3600` never refreshed in
+// production: the live sitemap was frozen at the 5 Aug 2026 build, still
+// listing long-past events and missing new posts.
+export const dynamic = "force-dynamic";
 
 const BASE_URLS: MetadataRoute.Sitemap = [
   { url: SITE_URL, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
@@ -28,15 +31,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const supabase = createClient(url, key);
-    const { data: artists } = await supabase
-      .from("profiles")
-      .select("id, created_at")
-      .eq("role", "artist")
-      .eq("is_deactivated", false);
-
-    const artistUrls: MetadataRoute.Sitemap = (artists ?? []).map((a) => ({
-      url: `${SITE_URL}/artists/${a.id}`,
-      lastModified: new Date(a.created_at ?? Date.now()),
+    // Only complete profiles (bio + discipline) — the same set the /artists
+    // grid shows — at their slug URLs.
+    const artists = await fetchListedArtists();
+    const artistUrls: MetadataRoute.Sitemap = artists.map((a) => ({
+      url: artistUrl(a),
+      lastModified: new Date(a.daily_pic_updated_at ?? a.created_at ?? Date.now()),
       changeFrequency: "weekly",
       priority: 0.8,
     }));
