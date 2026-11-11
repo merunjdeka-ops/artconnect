@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
-import { fetchEventCities, fetchUpcomingEvents, citySlug, eventSlug } from "@/lib/events";
+import { fetchEventCities, fetchUpcomingEvents, citySlug, eventSlug, fetchVenues, cityMonths } from "@/lib/events";
 import { SITE_URL } from "@/lib/config";
 import { fetchListedArtists, artistUrl } from "@/lib/artists";
 
@@ -76,6 +76,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.7,
       }));
 
+    // Venue pages and monthly city pages ("eventi Firenze dicembre 2026").
+    const venues = await fetchVenues();
+    const venueUrls: MetadataRoute.Sitemap = venues.length
+      ? [
+          { url: `${SITE_URL}/venues`, lastModified: new Date(), changeFrequency: "daily" as const, priority: 0.6 },
+          ...venues.map(v => ({
+            url: `${SITE_URL}/venues/${v.slug}`, lastModified: new Date(), changeFrequency: "daily" as const, priority: 0.6,
+          })),
+        ]
+      : [];
+    const byCity = new Map<string, typeof events>();
+    for (const ev of events) if (ev.city) byCity.set(ev.city, [...(byCity.get(ev.city) ?? []), ev]);
+    const monthUrls: MetadataRoute.Sitemap = [...byCity.entries()].flatMap(([city, evs]) =>
+      cityMonths(evs).map(m => ({
+        url: `${SITE_URL}/events/${citySlug(city)}/${m.slug}`, lastModified: new Date(),
+        changeFrequency: "daily" as const, priority: 0.6,
+      })));
+
     const { data: posts } = await supabase
       .from("posts")
       .select("slug, published_at")
@@ -91,6 +109,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...BASE_URLS,
       ...(competitionCount ? [COMPETITIONS_URL] : []),
       ...cityUrls,
+      ...monthUrls,
+      ...venueUrls,
       ...eventUrls,
       ...postUrls,
       ...artistUrls,

@@ -233,3 +233,101 @@ export function eventPageDescription(city: string, events: PublicEvent[]): strin
   const venuePart = venues.length ? ` at ${venues.join(", ")}` : "";
   return `${events.length} upcoming concert${events.length === 1 ? "" : "s"}, shows and live events in ${cityLabel}${venuePart}. Dates, venues and tickets — updated daily on ${SITE_NAME}.`;
 }
+
+// ─── Venue pages ──────────────────────────────────────────────────────────
+// One page per venue with at least MIN_VENUE_EVENTS upcoming events
+// ("Mandela Forum programma", "Teatro Cartiere Carrara eventi"). Venues with
+// a single listing would be thin pages, so they're left out.
+export const MIN_VENUE_EVENTS = 2;
+
+export function venueSlug(venue: string, city: string): string {
+  return slugify(`${venue} ${city}`);
+}
+
+export type VenueSummary = { venue: string; city: string; slug: string; count: number };
+
+export async function fetchVenues(): Promise<VenueSummary[]> {
+  const events = await fetchUpcomingEvents({ limit: 1000 });
+  const map = new Map<string, VenueSummary>();
+  for (const ev of events) {
+    if (!ev.venue || !ev.city) continue;
+    const slug = venueSlug(ev.venue, ev.city);
+    const v = map.get(slug) ?? { venue: ev.venue.trim(), city: ev.city.trim(), slug, count: 0 };
+    v.count++;
+    map.set(slug, v);
+  }
+  return [...map.values()]
+    .filter(v => v.count >= MIN_VENUE_EVENTS)
+    .sort((a, b) => a.city.localeCompare(b.city) || b.count - a.count);
+}
+
+export async function fetchVenueBySlug(slug: string): Promise<{ venue: VenueSummary; events: PublicEvent[] } | null> {
+  const venues = await fetchVenues();
+  const venue = venues.find(v => v.slug === slug);
+  if (!venue) return null;
+  const events = (await fetchUpcomingEvents({ city: venue.city, limit: 300 }))
+    .filter(ev => ev.venue && venueSlug(ev.venue, venue.city) === slug);
+  return { venue, events };
+}
+
+// ─── Monthly city pages ───────────────────────────────────────────────────
+// /events/<city>/<mese>-<anno>, e.g. /events/firenze/dicembre-2026, matching
+// the way people search ("eventi Firenze dicembre"). Italian month names in
+// the URL; English and Italian on the page.
+export const MIN_MONTH_EVENTS = 2;
+const MONTHS_IT = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
+  "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+const MONTHS_EN = ["January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"];
+
+export type MonthKey = { year: number; month: number }; // month 0–11
+
+function romeMonth(iso: string): MonthKey | null {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Rome", year: "numeric", month: "numeric" })
+    .formatToParts(d);
+  const year = Number(parts.find(p => p.type === "year")?.value);
+  const month = Number(parts.find(p => p.type === "month")?.value) - 1;
+  return Number.isFinite(year) && month >= 0 ? { year, month } : null;
+}
+
+export function monthSlug(k: MonthKey): string {
+  return `${MONTHS_IT[k.month]}-${k.year}`;
+}
+
+export function parseMonthSlug(slug: string): MonthKey | null {
+  const m = slug.match(/^([a-z]+)-(\d{4})$/);
+  if (!m) return null;
+  const month = MONTHS_IT.indexOf(m[1]);
+  return month === -1 ? null : { year: Number(m[2]), month };
+}
+
+export function monthLabel(k: MonthKey, lang: "en" | "it"): string {
+  const name = lang === "en" ? MONTHS_EN[k.month] : MONTHS_IT[k.month];
+  return `${name} ${k.year}`;
+}
+
+export function eventsInMonth(events: PublicEvent[], k: MonthKey): PublicEvent[] {
+  return events.filter(ev => {
+    const m = ev.event_date ? romeMonth(ev.event_date) : null;
+    return m?.year === k.year && m.month === k.month;
+  });
+}
+
+// Months that have enough upcoming events in a city, soonest first.
+export function cityMonths(events: PublicEvent[]): { key: MonthKey; slug: string; count: number }[] {
+  const counts = new Map<string, { key: MonthKey; count: number }>();
+  for (const ev of events) {
+    const k = ev.event_date ? romeMonth(ev.event_date) : null;
+    if (!k) continue;
+    const s = monthSlug(k);
+    const c = counts.get(s) ?? { key: k, count: 0 };
+    c.count++;
+    counts.set(s, c);
+  }
+  return [...counts.entries()]
+    .filter(([, v]) => v.count >= MIN_MONTH_EVENTS)
+    .map(([slug, v]) => ({ slug, ...v }))
+    .sort((a, b) => a.key.year - b.key.year || a.key.month - b.key.month);
+}

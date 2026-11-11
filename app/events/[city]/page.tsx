@@ -3,7 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   fetchUpcomingEvents, resolveCityFromSlug, eventsJsonLd, jsonLdString, eventPageDescription, cityEnglishName,
+  cityMonths, monthLabel, venueSlug, MIN_VENUE_EVENTS,
 } from "@/lib/events";
+import { LinkPills } from "../page-shell";
 import { SITE_NAME } from "@/lib/config";
 import EventCard from "../event-card";
 import AffiliateNote from "../../components/AffiliateNote";
@@ -44,8 +46,20 @@ export default async function CityEventsPage({ params }: Props) {
   // redirect: the page returns as soon as new events are imported.
   if (!city) redirect("/events");
 
-  const events = await fetchUpcomingEvents({ city, limit: 100 });
-  if (events.length === 0) redirect("/events");
+  const allEvents = await fetchUpcomingEvents({ city, limit: 300 });
+  if (allEvents.length === 0) redirect("/events");
+  const events = allEvents.slice(0, 100);
+  const monthLinks = cityMonths(allEvents).map(m => ({ href: `/events/${slug}/${m.slug}`, label: monthLabel(m.key, "en") }));
+  const venueCounts = new Map<string, { name: string; count: number }>();
+  for (const e of allEvents) {
+    if (!e.venue) continue;
+    const vs = venueSlug(e.venue, city);
+    venueCounts.set(vs, { name: e.venue, count: (venueCounts.get(vs)?.count ?? 0) + 1 });
+  }
+  const venueLinks = [...venueCounts.entries()]
+    .filter(([, v]) => v.count >= MIN_VENUE_EVENTS)
+    .sort((a, b) => b[1].count - a[1].count)
+    .map(([vs, v]) => ({ href: `/venues/${vs}`, label: v.name }));
 
   const jsonLd = eventsJsonLd(events);
   const venues = [...new Set(events.map(e => e.venue).filter(Boolean))] as string[];
@@ -78,6 +92,8 @@ export default async function CityEventsPage({ params }: Props) {
         >
           This weekend in {city} →
         </Link>
+        <LinkPills title="By month / Per mese" links={monthLinks} />
+        <LinkPills title="Venues / Locali" links={venueLinks} />
       </header>
 
       <section className="px-8 py-12">
