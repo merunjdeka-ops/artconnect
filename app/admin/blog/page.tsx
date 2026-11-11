@@ -169,7 +169,11 @@ export default function AdminBlogPage() {
         headers: { Authorization: `Bearer ${session?.access_token ?? ""}`, "content-type": "application/json" },
         body: JSON.stringify({ type: autoType }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({
+        error: res.status === 504
+          ? "The AI took too long to answer. Please try again in a minute."
+          : `Server error (${res.status}). Please try again.`,
+      }));
       if (data.generated) {
         const note = data.published ? " — published" : " — saved as a DRAFT, review it below before publishing";
         setAutoMsg(`Wrote "${data.title}"${note}`);

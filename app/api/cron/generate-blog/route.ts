@@ -3,8 +3,13 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { slugify } from "@/lib/blog";
 import { cityKey, cityEnglishName } from "@/lib/events";
 
-// Several model attempts plus a long generation can exceed the default limit.
-export const maxDuration = 60;
+// Gemini 2.5+ "thinks" before answering, so one long article can take over a
+// minute, and a model fallback adds more. 60s was too short (Vercel logged
+// "Task timed out after 60 seconds"); 300s is the Hobby + Fluid Compute max.
+export const maxDuration = 300;
+// Per-model cap so one hung call falls through to the next model instead of
+// eating the whole budget.
+const MODEL_TIMEOUT_MS = 110_000;
 
 // Auto-writes blog posts. Four content types, each with a different trust model:
 //
@@ -135,6 +140,7 @@ async function callGemini(model: string, key: string, prompt: string, grounded: 
   // (both of which some models reject with a 400).
   return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
     method: "POST",
+    signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -173,8 +179,18 @@ async function callGeminiWithFallback(geminiKey: string, prompt: string, grounde
   let aiRes: Response | null = null;
   let lastStatus = 500;
   let lastBody = "";
+  const started = Date.now();
   for (const model of models.slice(0, 10)) {
-    aiRes = await callGemini(model, geminiKey, prompt, grounded);
+    // Leave room to save the post and log the run before Vercel's limit.
+    if (Date.now() - started > 250_000 - MODEL_TIMEOUT_MS) break;
+    try {
+      aiRes = await callGemini(model, geminiKey, prompt, grounded);
+    } catch {
+      aiRes = null;
+      lastStatus = 504;
+      lastBody = `${model} did not answer within ${MODEL_TIMEOUT_MS / 1000}s`;
+      continue;
+    }
     if (aiRes.ok) break;
     lastStatus = aiRes.status;
     lastBody = await aiRes.text();
