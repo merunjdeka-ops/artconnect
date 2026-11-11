@@ -46,6 +46,9 @@ export default async function EventsPage() {
         <p className="mt-6 text-sm text-black/60 max-w-lg leading-relaxed">
           Concerts, live music, exhibitions and shows across the country — updated daily. Pick a city or browse everything coming up.
         </p>
+        <Link href="/venues" className="inline-block mt-5 text-xs font-bold uppercase tracking-widest border-b-2 border-black hover:border-[#E5000F] hover:text-[#E5000F] transition-colors pb-0.5">
+          Browse by venue →
+        </Link>
       </header>
 
       {cities.length > 0 && (

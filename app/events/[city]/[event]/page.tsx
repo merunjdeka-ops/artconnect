@@ -3,8 +3,9 @@ import Link from "next/link";
 import { permanentRedirect, redirect } from "next/navigation";
 import {
   resolveCityFromSlug, findEventBySlug, fetchUpcomingEvents, eventSlug, citySlug,
-  eventsJsonLd, jsonLdString, cityEnglishName,
+  eventsJsonLd, jsonLdString, cityEnglishName, parseMonthSlug, venueSlug, MIN_MONTH_EVENTS, MIN_VENUE_EVENTS,
 } from "@/lib/events";
+import { loadMonth, monthMetadata, MonthView } from "../month-view";
 import { SITE_NAME, SITE_URL } from "@/lib/config";
 import { affiliateTicketUrl, ticketRel } from "@/lib/affiliate";
 import { cdnUrl, lightTmUrl } from "@/lib/cloudinary";
@@ -35,6 +36,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { city: cSlug, event: eSlug } = await params;
   const city = await resolveCityFromSlug(cSlug);
   if (!city) return { title: "Event" };
+  const monthKey = parseMonthSlug(eSlug);
+  if (monthKey) {
+    const { events } = await loadMonth(city, monthKey);
+    return events.length >= MIN_MONTH_EVENTS
+      ? monthMetadata(city, cSlug, monthKey, events.length)
+      : { title: "Events", robots: { index: false } };
+  }
   const ev = await findEventBySlug(city, eSlug);
   if (!ev) return { title: "Event" };
   const year = ev.event_date ? new Date(ev.event_date).getFullYear() : "";
@@ -65,6 +73,14 @@ export default async function EventPage({ params }: Props) {
   const city = await resolveCityFromSlug(cSlug);
   if (!city) redirect("/events");
 
+  // /events/<city>/<mese>-<anno> → monthly page (thin months go to the city page).
+  const monthKey = parseMonthSlug(eSlug);
+  if (monthKey) {
+    const { events, all } = await loadMonth(city, monthKey);
+    if (events.length < MIN_MONTH_EVENTS) redirect(`/events/${cSlug}`);
+    return <MonthView city={city} cSlug={cSlug} keyM={monthKey} events={events} all={all} />;
+  }
+
   const ev = await findEventBySlug(city, eSlug);
   // Past events drop out of the data; send their URLs (still in Google's
   // index from the old sitemap) to the city page instead of a 404.
@@ -77,9 +93,11 @@ export default async function EventPage({ params }: Props) {
 
   const ticketHref = ev.external_url ? affiliateTicketUrl(ev.external_url) : null;
   const cover = ev.photos?.[0];
-  const others = (await fetchUpcomingEvents({ city, limit: 9 }))
-    .filter(e => e.id !== ev.id)
-    .slice(0, 8);
+  const cityEvents = await fetchUpcomingEvents({ city, limit: 300 });
+  const others = cityEvents.filter(e => e.id !== ev.id).slice(0, 8);
+  const venueEventCount = ev.venue
+    ? cityEvents.filter(e => e.venue && venueSlug(e.venue, city) === venueSlug(ev.venue!, city)).length
+    : 0;
 
   return (
     <main className="min-h-screen bg-[#F2EDE4] text-black font-sans">
@@ -145,7 +163,11 @@ export default async function EventPage({ params }: Props) {
               {ev.venue && (
                 <div className="flex justify-between gap-4 px-4 py-3">
                   <dt className="font-bold uppercase tracking-widest text-xs">Venue / Luogo</dt>
-                  <dd className="text-right">{ev.venue}</dd>
+                  <dd className="text-right">
+                    {venueEventCount >= MIN_VENUE_EVENTS
+                      ? <Link href={`/venues/${venueSlug(ev.venue, city)}`} className="underline hover:text-[#E5000F]">{ev.venue}</Link>
+                      : ev.venue}
+                  </dd>
                 </div>
               )}
               <div className="flex justify-between gap-4 px-4 py-3">
