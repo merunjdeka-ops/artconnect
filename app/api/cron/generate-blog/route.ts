@@ -295,18 +295,34 @@ async function generateEventRoundup(db: SupabaseClient, geminiKey: string): Prom
     if (!byCity.has(c)) byCity.set(c, []);
     byCity.get(c)!.push(ev);
   }
+  // Count DISTINCT shows: an exhibition imported as one row per opening day
+  // (e.g. a Banksy show with 40 daily rows) is one item, not forty.
+  const distinctTitles = (evs: typeof events) => new Set(evs.map(e => String(e.title).trim().toLowerCase())).size;
   const eligible = [...byCity.entries()]
-    .filter(([, evs]) => evs.length >= MIN_EVENTS_PER_ROUNDUP)
+    .filter(([, evs]) => distinctTitles(evs) >= MIN_EVENTS_PER_ROUNDUP)
     .sort((a, b) => b[1].length - a[1].length);
   if (eligible.length === 0) return { skipped: "Every city with enough upcoming events already has a roundup this month." };
 
   const [city, cityEvents] = eligible[0];
   const cityLabel = cityEnglishName(city) ? `${cityEnglishName(city)} (${city})` : city;
   const monthLabel = now.toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "Europe/Rome" });
-  const source = cityEvents.slice(0, 8).map(e => ({
-    title: e.title, date: fmt(e.event_date), venue: e.venue, source: e.source_name,
-    description: e.description ? String(e.description).slice(0, 500) : undefined,
-  }));
+  // One entry per show; multi-date runs collapse to "first – last (N dates)".
+  const groups = new Map<string, typeof cityEvents>();
+  for (const e of cityEvents) {
+    const k = String(e.title).trim().toLowerCase();
+    groups.set(k, [...(groups.get(k) ?? []), e]);
+  }
+  const source = [...groups.values()].slice(0, 8).map(runs => {
+    const first = runs[0];
+    const last = runs[runs.length - 1];
+    const date = runs.length > 1
+      ? `${fmt(first.event_date)} to ${fmt(last.event_date)} (${runs.length} dates in this period)`
+      : fmt(first.event_date);
+    return {
+      title: first.title, date, venue: first.venue, source: first.source_name,
+      description: first.description ? String(first.description).slice(0, 500) : undefined,
+    };
+  });
 
   const prompt = "You are the arts editor for The Local Art Hub, a platform for booking local artists in Italy. "
     + "You write substantial, lively blog roundups of upcoming events. CRITICAL RULES: use ONLY the event data provided below. "
@@ -319,6 +335,7 @@ async function generateEventRoundup(db: SupabaseClient, geminiKey: string): Prom
     + `"body": "a well-developed article of 600 to 900 words in plain text (use \\n\\n between paragraphs). `
     + `Open with an inviting paragraph about what the coming weeks look like in ${city} based on the listed events. `
     + `Then give each event its own paragraph — name, date and venue woven into flowing prose, drawing on the description text where provided. `
+    + `Each listed item appears exactly once; for items with a date range, mention the range once rather than listing every date. `
     + `Vary the sentence rhythm so it reads as editorial, not a listing. `
     + `Close by inviting readers to explore and book local artists on The Local Art Hub. `
     + `Remember: every fact must come from the event data above — pad with tone and craft, never with invented details"}`;
@@ -329,7 +346,7 @@ async function generateEventRoundup(db: SupabaseClient, geminiKey: string): Prom
   if ("error" in parsed) return { error: parsed.error, status: 502 };
   if (!parsed.title || !parsed.body) return { error: "AI output missing title or body.", status: 502 };
 
-  const photos = cityEvents.map(e => (e.photos?.[0] as string | undefined)).filter(Boolean).slice(0, 4) as string[];
+  const photos = [...new Set([...groups.values()].map(runs => runs[0].photos?.[0] as string | undefined).filter(Boolean))].slice(0, 4) as string[];
 
   return insertPost(db, {
     title: (parsed.title as string).trim(),
