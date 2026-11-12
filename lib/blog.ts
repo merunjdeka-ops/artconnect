@@ -6,6 +6,7 @@ export const POST_CATEGORIES = [
   { value: "event", label: "Event" },
   { value: "review", label: "Review" },
   { value: "news", label: "News" },
+  { value: "gear", label: "Gear & Tech" },
 ] as const;
 
 export function categoryLabel(value: string): string {
