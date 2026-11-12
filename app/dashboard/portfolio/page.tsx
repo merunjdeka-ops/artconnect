@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NavbarAuth from "@/app/components/NavbarAuth";
 import { getSupabase } from "@/lib/supabase";
+import { cdnUrl } from "@/lib/cloudinary";
 
 type MediaType = "image" | "soundcloud" | "spotify" | "youtube";
 
@@ -15,6 +16,16 @@ type PortfolioItem = {
   media_url: string;
   media_type: MediaType;
 };
+
+type EditState = {
+  id: string;
+  title: string;
+  description: string;
+  media_url: string; // only used for music
+};
+
+const MAX_IMAGES = 20;
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024; // 3 MB
 
 function getMusicEmbedUrl(url: string): { type: MediaType; embedUrl: string } | null {
   try {
@@ -47,7 +58,7 @@ function MusicEmbed({ item }: { item: PortfolioItem }) {
     return <iframe width="100%" height="120" scrolling="no" frameBorder="no" allow="autoplay" src={item.media_url} className="mb-3" />;
   }
   if (item.media_type === "spotify") {
-    return <iframe src={item.media_url} width="100%" height="152" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" className="mb-3" />;
+    return <iframe src={item.media_url} width="100%" height="152" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" className="mb-3" />;
   }
   if (item.media_type === "youtube") {
     return <iframe width="100%" height="200" src={item.media_url} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="mb-3" />;
@@ -71,6 +82,10 @@ export default function PortfolioPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Edit state
+  const [editing, setEditing] = useState<EditState | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
 
   // Music embed state
   const [musicUrl, setMusicUrl] = useState("");
@@ -107,7 +122,9 @@ export default function PortfolioPage() {
   async function uploadToCloudinary(file: File): Promise<string> {
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-    if (!cloudName || !uploadPreset) throw new Error("Cloudinary is not configured. Add NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET to your environment variables.");
+    if (!cloudName || !uploadPreset) {
+      throw new Error("Cloudinary is not configured. Please check your environment variables.");
+    }
 
     const formData = new FormData();
     formData.append("file", file);
@@ -117,15 +134,28 @@ export default function PortfolioPage() {
       method: "POST",
       body: formData,
     });
-    if (!res.ok) throw new Error("Image upload failed. Check your Cloudinary settings.");
     const data = await res.json();
+    if (!res.ok) {
+      const cloudinaryMsg = data?.error?.message ?? "";
+      // The most common error: preset is "Signed" — must be "Unsigned" for browser uploads
+      if (cloudinaryMsg.toLowerCase().includes("preset") || cloudinaryMsg.toLowerCase().includes("whitelist")) {
+        throw new Error(
+          "Your Cloudinary upload preset must be set to Unsigned. Go to cloudinary.com → Settings → Upload → find your preset → change Mode to Unsigned, then save."
+        );
+      }
+      throw new Error(cloudinaryMsg || "Image upload failed. Check your Cloudinary settings.");
+    }
     return data.secure_url as string;
   }
 
   async function handleImageAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!imageFile || !imageTitle) return;
-    if (imageItems.length >= 10) { setError("Maximum 10 images allowed."); return; }
+    if (imageItems.length >= MAX_IMAGES) { setError(`Maximum ${MAX_IMAGES} images allowed.`); return; }
+    if (imageFile.size > MAX_IMAGE_BYTES) {
+      setError("Image is larger than 3 MB. Please choose a smaller file.");
+      return;
+    }
     setSaving(true);
     setUploadProgress(true);
     setError("");
@@ -192,6 +222,44 @@ export default function PortfolioPage() {
     setItems(prev => prev.filter(i => i.id !== id));
   }
 
+  async function handleEditSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editing) return;
+    setEditSaving(true);
+    setError("");
+    try {
+      // For music, re-parse URL if it changed
+      const currentItem = items.find(i => i.id === editing.id);
+      let finalMediaUrl = editing.media_url;
+      let finalMediaType: MediaType = currentItem?.media_type ?? "image";
+
+      if (currentItem && currentItem.media_type !== "image" && editing.media_url !== currentItem.media_url) {
+        const parsed = getMusicEmbedUrl(editing.media_url);
+        if (!parsed) { setError("Paste a valid SoundCloud, Spotify, or YouTube link."); setEditSaving(false); return; }
+        finalMediaUrl = parsed.embedUrl;
+        finalMediaType = parsed.type;
+      }
+
+      const supabase = getSupabase();
+      const { error: dbErr } = await supabase
+        .from("portfolio_items")
+        .update({ title: editing.title, description: editing.description, media_url: finalMediaUrl, media_type: finalMediaType })
+        .eq("id", editing.id);
+      if (dbErr) throw dbErr;
+
+      setItems(prev => prev.map(i =>
+        i.id === editing.id
+          ? { ...i, title: editing.title, description: editing.description, media_url: finalMediaUrl, media_type: finalMediaType }
+          : i
+      ));
+      setEditing(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save changes.");
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
   if (loading) return (
     <main className="min-h-screen bg-[#F2EDE4] flex items-center justify-center">
       <p className="text-xs uppercase tracking-widest text-black/40">Loading...</p>
@@ -212,7 +280,7 @@ export default function PortfolioPage() {
             onClick={() => { setTab("images"); setError(""); }}
             className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${tab === "images" ? "bg-black text-white" : "bg-transparent text-black hover:bg-black/5"}`}
           >
-            Images ({imageItems.length}/10)
+            Images ({imageItems.length}/{MAX_IMAGES})
           </button>
           <button
             onClick={() => { setTab("music"); setError(""); }}
@@ -253,7 +321,7 @@ export default function PortfolioPage() {
                   ) : (
                     <>
                       <p className="text-sm font-bold uppercase mb-1">Click to choose an image</p>
-                      <p className="text-xs text-black/40">JPG, PNG, WEBP — max 10MB</p>
+                      <p className="text-xs text-black/40">JPG, PNG, WEBP — max 3MB</p>
                     </>
                   )}
                   <input
@@ -261,7 +329,17 @@ export default function PortfolioPage() {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={e => setImageFile(e.target.files?.[0] || null)}
+                    onChange={e => {
+                      const f = e.target.files?.[0] || null;
+                      if (f && f.size > MAX_IMAGE_BYTES) {
+                        setError("Image is larger than 3 MB. Please choose a smaller file.");
+                        setImageFile(null);
+                        e.target.value = "";
+                        return;
+                      }
+                      setError("");
+                      setImageFile(f);
+                    }}
                   />
                 </div>
                 <button
@@ -280,12 +358,49 @@ export default function PortfolioPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-black border border-black">
                 {imageItems.map(item => (
                   <div key={item.id} className="bg-[#F2EDE4] p-4">
-                    <img src={item.media_url} alt={item.title} className="w-full h-48 object-cover mb-3 border border-black/10" />
-                    <h3 className="font-black uppercase text-sm">{item.title}</h3>
-                    {item.description && <p className="text-xs text-black/50 mt-1">{item.description}</p>}
-                    <button onClick={() => handleDelete(item.id)} className="mt-2 text-xs text-[#E5000F] uppercase tracking-widest hover:underline">
-                      Remove
-                    </button>
+                    <img src={cdnUrl(item.media_url, "w_800,c_limit,q_auto,f_auto")} alt={item.title} className="w-full h-48 object-cover mb-3 border border-black/10" />
+
+                    {editing?.id === item.id ? (
+                      <form onSubmit={handleEditSave} className="flex flex-col gap-2 mt-1">
+                        <input
+                          value={editing.title}
+                          onChange={e => setEditing({ ...editing, title: e.target.value })}
+                          required
+                          placeholder="Title *"
+                          className="border border-black px-3 py-2 text-xs outline-none focus:border-[#E5000F] transition-colors"
+                        />
+                        <input
+                          value={editing.description}
+                          onChange={e => setEditing({ ...editing, description: e.target.value })}
+                          placeholder="Description (optional)"
+                          className="border border-black px-3 py-2 text-xs outline-none focus:border-[#E5000F] transition-colors"
+                        />
+                        <div className="flex gap-3 mt-1">
+                          <button type="submit" disabled={editSaving} className="flex-1 py-2 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-50">
+                            {editSaving ? "Saving…" : "Save"}
+                          </button>
+                          <button type="button" onClick={() => setEditing(null)} className="flex-1 py-2 border border-black text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        <h3 className="font-black uppercase text-sm">{item.title}</h3>
+                        {item.description && <p className="text-xs text-black/50 mt-1">{item.description}</p>}
+                        <div className="flex items-center gap-4 mt-2">
+                          <button
+                            onClick={() => setEditing({ id: item.id, title: item.title, description: item.description, media_url: item.media_url })}
+                            className="text-xs text-black/50 uppercase tracking-widest hover:text-black transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button onClick={() => handleDelete(item.id)} className="text-xs text-[#E5000F] uppercase tracking-widest hover:underline">
+                            Remove
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
@@ -340,14 +455,56 @@ export default function PortfolioPage() {
                 {musicItems.map(item => (
                   <div key={item.id} className="border border-black bg-white p-6">
                     <MusicEmbed item={item} />
-                    <h3 className="font-black uppercase text-sm">{item.title}</h3>
-                    {item.description && <p className="text-xs text-black/50 mt-1">{item.description}</p>}
-                    <div className="flex items-center gap-4 mt-2">
-                      <span className="text-xs text-black/30 uppercase tracking-widest">{item.media_type}</span>
-                      <button onClick={() => handleDelete(item.id)} className="text-xs text-[#E5000F] uppercase tracking-widest hover:underline">
-                        Remove
-                      </button>
-                    </div>
+
+                    {editing?.id === item.id ? (
+                      <form onSubmit={handleEditSave} className="flex flex-col gap-2 mt-2">
+                        <input
+                          value={editing.title}
+                          onChange={e => setEditing({ ...editing, title: e.target.value })}
+                          required
+                          placeholder="Title *"
+                          className="border border-black px-3 py-2 text-xs outline-none focus:border-[#E5000F] transition-colors"
+                        />
+                        <input
+                          value={editing.description}
+                          onChange={e => setEditing({ ...editing, description: e.target.value })}
+                          placeholder="Description (optional)"
+                          className="border border-black px-3 py-2 text-xs outline-none focus:border-[#E5000F] transition-colors"
+                        />
+                        <input
+                          value={editing.media_url}
+                          onChange={e => setEditing({ ...editing, media_url: e.target.value })}
+                          placeholder="SoundCloud / Spotify / YouTube URL"
+                          type="url"
+                          className="border border-black px-3 py-2 text-xs outline-none focus:border-[#E5000F] transition-colors"
+                        />
+                        <div className="flex gap-3 mt-1">
+                          <button type="submit" disabled={editSaving} className="flex-1 py-2 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E5000F] transition-colors disabled:opacity-50">
+                            {editSaving ? "Saving…" : "Save"}
+                          </button>
+                          <button type="button" onClick={() => setEditing(null)} className="flex-1 py-2 border border-black text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        <h3 className="font-black uppercase text-sm">{item.title}</h3>
+                        {item.description && <p className="text-xs text-black/50 mt-1">{item.description}</p>}
+                        <div className="flex items-center gap-4 mt-2">
+                          <span className="text-xs text-black/30 uppercase tracking-widest">{item.media_type}</span>
+                          <button
+                            onClick={() => setEditing({ id: item.id, title: item.title, description: item.description, media_url: item.media_url })}
+                            className="text-xs text-black/50 uppercase tracking-widest hover:text-black transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button onClick={() => handleDelete(item.id)} className="text-xs text-[#E5000F] uppercase tracking-widest hover:underline">
+                            Remove
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>

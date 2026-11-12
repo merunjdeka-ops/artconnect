@@ -1,0 +1,733 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { slugify } from "@/lib/blog";
+import { cityKey, cityEnglishName } from "@/lib/events";
+
+// Gemini 2.5+ "thinks" before answering, so one long article can take over a
+// minute, and a model fallback adds more. 60s was too short (Vercel logged
+// "Task timed out after 60 seconds"); 300s is the Hobby + Fluid Compute max.
+export const maxDuration = 300;
+// Per-model cap so one hung call falls through to the next model instead of
+// eating the whole budget.
+const MODEL_TIMEOUT_MS = 110_000;
+
+// Auto-writes blog posts. Four content types, each with a different trust model:
+//
+//  - event       Roundup of REAL upcoming events already in our own database.
+//                Nothing outside our data is used → auto-published.
+//  - movement    Educational art-history/style guide (general, well-established
+//                knowledge, not tied to current events) → published as a DRAFT
+//                for a human to skim before it goes live.
+//  - exhibition  Real gallery/exhibition news, found via Google Search grounding.
+//  - celebrity   Real "artist/celebrity visiting Italy" news, via the same
+//                grounding. Both of these are external claims we cannot verify
+//                against our own data, so: they are ONLY ever written when the
+//                API actually returns real search sources (never invented),
+//                the source links are stored and shown to the admin, and the
+//                post is always inserted as a DRAFT — never auto-published.
+//
+// Triggers:
+//  - GET  ?type=<event|movement|exhibition|celebrity>  Authorization: Bearer <CRON_SECRET>
+//    → scheduled (Vercel Cron). Only "event" is daily; others are weekly (see vercel.json).
+//  - POST { type } Authorization: Bearer <admin access token>  → manual "Generate now".
+
+const EDITORIAL_BYLINE = "The Local Art Hub Editorial Team";
+const RUN_DAYS_EVENT = [0, 1, 2, 3, 4, 5, 6]; // daily
+// One "what's on this month" roundup per city per month. The old 6-day cooldown
+// produced three near-identical Bari posts in a fortnight, which reads as
+// scaled/duplicate content to Google. Daily runs now rotate through cities.
+const LOOKAHEAD_DAYS = 35;
+const EVENT_COOLDOWN_DAYS = 25;
+const MIN_EVENTS_PER_ROUNDUP = 3;
+const CITYGUIDE_COOLDOWN_DAYS = 180;
+const MOVEMENT_COOLDOWN_DAYS = 30;  // don't repeat a movement/style too soon
+const EXHIBITION_COOLDOWN_DAYS = 14;
+const CELEBRITY_COOLDOWN_DAYS = 30;
+const GEAR_COOLDOWN_DAYS = 70;      // each comparison theme comes round ~every 10 weeks
+const GEAR_MIN_SOURCES = 2;
+
+// Camera & phone comparisons for photographers and creators. Themes, not model
+// names: the writer finds the CURRENT models via Google Search each time, so
+// the list never goes stale.
+const GEAR_THEMES = [
+  "the best smartphone cameras for photography right now (iPhone vs Google Pixel vs Samsung Galaxy flagships)",
+  "full-frame mirrorless cameras for wedding and event photographers",
+  "beginner-friendly mirrorless cameras for people starting out in photography",
+  "compact travel cameras for photographing a trip around Italy",
+  "cameras and phones for video creators, vloggers and Reels/TikTok",
+  "smartphone vs mirrorless camera: when a phone is enough and when it is not",
+  "mid-range phones with the best cameras for the money",
+  "APS-C mirrorless cameras for street and portrait photography",
+  "action cameras for travel, sport and outdoor creators",
+  "retro-style and film-look digital cameras",
+];
+
+const ART_MOVEMENTS = [
+  "the Renaissance", "Cubism", "Street Art & Graffiti", "Impressionism",
+  "Baroque Art", "Futurism (born in Italy)", "Surrealism", "Pop Art",
+  "Minimalism", "Contemporary Installation Art", "Abstract Expressionism",
+  "Art Nouveau",
+];
+
+const ITALIAN_ART_CITIES = ["Florence", "Milan", "Rome", "Venice", "Turin", "Naples", "Bologna"];
+
+// Evergreen hiring guides: discipline × city. `category` must match the
+// profiles.category values so the CTA deep-links into a filtered artist list.
+const GUIDE_DISCIPLINES = [
+  { role: "wedding photographer", category: "Photography" },
+  { role: "musician or live band for an event", category: "Music" },
+  { role: "DJ", category: "DJ" },
+  { role: "makeup artist", category: "Makeup Artist" },
+  { role: "videographer", category: "Videography" },
+  { role: "portrait painter or illustrator", category: "Painting" },
+];
+const GUIDE_CITIES = ["Florence", "Milan", "Rome", "Venice", "Bologna", "Turin", "Naples"];
+
+function admin(): SupabaseClient {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+function fmt(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+}
+
+async function getAdminProfileId(db: SupabaseClient): Promise<string | null> {
+  const { data } = await db.from("profiles").select("id").eq("is_admin", true).limit(1).maybeSingle();
+  return data?.id || null;
+}
+
+// Recent auto_topic values for a given auto_type, for simple cooldown/dedupe checks.
+async function recentTopics(db: SupabaseClient, autoType: string, cooldownDays: number): Promise<Set<string>> {
+  const since = new Date(Date.now() - cooldownDays * 86400_000).toISOString();
+  const { data } = await db.from("posts").select("auto_topic").eq("auto_type", autoType).gte("created_at", since);
+  return new Set((data || []).map(r => (r.auto_topic || "").toLowerCase()).filter(Boolean));
+}
+
+// Cities covered by an event roundup within the cooldown, normalised so the
+// legacy rows (auto_city only, English or Italian names) count too.
+async function recentEventCities(db: SupabaseClient, cooldownDays: number): Promise<Set<string>> {
+  const since = new Date(Date.now() - cooldownDays * 86400_000).toISOString();
+  const { data } = await db.from("posts").select("auto_topic, auto_city")
+    .eq("category", "event").eq("is_auto", true).gte("created_at", since);
+  return new Set((data || []).map(r => r.auto_topic || r.auto_city).filter(Boolean).map(c => cityKey(c as string)));
+}
+
+// Fallback model list used only if the live model-discovery call fails.
+const GEMINI_MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-001", "gemini-1.5-flash"];
+
+// Ask the API which models this key can actually use for generateContent, so we
+// never send a guessed name that 404s. Flash models first (fast + free).
+async function listGeminiModels(key: string): Promise<string[]> {
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+    if (!res.ok) return GEMINI_MODELS;
+    const data = await res.json();
+    // Exclude special-purpose variants (TTS, image generation, audio/live,
+    // embeddings, thinking) — they support generateContent but can't return
+    // plain text articles.
+    const SPECIAL = /tts|image|audio|live|native|embedding|thinking|vision|exp\b/;
+    const avail: string[] = (data.models || [])
+      .filter((m: { supportedGenerationMethods?: string[] }) => (m.supportedGenerationMethods || []).includes("generateContent"))
+      .map((m: { name: string }) => m.name.replace(/^models\//, ""))
+      .filter((n: string) => n.includes("gemini") && !SPECIAL.test(n));
+    // New API keys can only use Google's newer models (older ones 404 with
+    // "no longer available to new users"), so sort by version DESCENDING.
+    // Within the same version prefer flash (fast/free) and stable names over
+    // preview/latest ones.
+    // Free-tier keys have little or no quota on "pro" models, and previews
+    // come and go — so: stable flash first, then preview flash, then the rest;
+    // newest version first within each group.
+    const version = (n: string) => parseFloat(n.match(/gemini-(\d+(?:\.\d+)?)/)?.[1] ?? "0");
+    const tier = (n: string) =>
+      n.includes("flash") ? (/preview|latest/.test(n) ? 2 : 3) : (n.includes("pro") ? 0 : 1);
+    const rank = (n: string) => tier(n) * 1000 + version(n);
+    const ordered = [...new Set(avail)].sort((a, b) => rank(b) - rank(a));
+    return ordered.length ? ordered : GEMINI_MODELS;
+  } catch {
+    return GEMINI_MODELS;
+  }
+}
+
+async function callGemini(model: string, key: string, prompt: string, grounded: boolean): Promise<Response> {
+  // Lowest-common-denominator request shape accepted by all generateContent
+  // models: a single user turn, no system_instruction field, no responseMimeType
+  // (both of which some models reject with a 400).
+  return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+    method: "POST",
+    signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      ...(grounded ? { tools: [{ google_search: {} }] } : {}),
+      // Generous limit: on Gemini 2.5+ internal "thinking" tokens count against
+      // maxOutputTokens, so a tight cap truncates the visible answer mid-JSON.
+      generationConfig: { maxOutputTokens: 8192, temperature: grounded ? 0.4 : 0.7 },
+    }),
+  });
+}
+
+// Escape raw control characters that appear INSIDE JSON string literals —
+// models often emit real newlines in string values, which JSON.parse rejects.
+// Characters outside strings (pretty-printing) are left untouched.
+function escapeCtrlInStrings(json: string): string {
+  let out = "";
+  let inStr = false;
+  for (let i = 0; i < json.length; i++) {
+    const ch = json[i];
+    if (inStr && ch === "\\" && i + 1 < json.length) { out += ch + json[++i]; continue; }
+    if (ch === '"') { inStr = !inStr; out += ch; continue; }
+    if (inStr && ch === "\n") { out += "\\n"; continue; }
+    if (inStr && ch === "\t") { out += "\\t"; continue; }
+    if (inStr && ch === "\r") continue;
+    out += ch;
+  }
+  return out;
+}
+
+type AiOutcome = { ok: true; data: unknown } | { ok: false; error: string; status: number };
+
+// Tries each candidate model in turn, falling through on 400/404/429 (bad
+// model, missing model, rate limit respectively) to the next one.
+async function callGeminiWithFallback(geminiKey: string, prompt: string, grounded: boolean): Promise<AiOutcome> {
+  const models = await listGeminiModels(geminiKey);
+  let aiRes: Response | null = null;
+  let lastStatus = 500;
+  let lastBody = "";
+  const started = Date.now();
+  for (const model of models.slice(0, 10)) {
+    // Leave room to save the post and log the run before Vercel's limit.
+    if (Date.now() - started > 250_000 - MODEL_TIMEOUT_MS) break;
+    try {
+      aiRes = await callGemini(model, geminiKey, prompt, grounded);
+    } catch {
+      aiRes = null;
+      lastStatus = 504;
+      lastBody = `${model} did not answer within ${MODEL_TIMEOUT_MS / 1000}s`;
+      continue;
+    }
+    if (aiRes.ok) break;
+    lastStatus = aiRes.status;
+    lastBody = await aiRes.text();
+    // 400 bad request for this model, 403 model not allowed for this key,
+    // 404 retired, 429 quota, 5xx overloaded → try the next model.
+    if (![400, 403, 404, 429, 500, 503].includes(aiRes.status)) break;
+  }
+  if (!aiRes || !aiRes.ok) {
+    console.error("Gemini error:", lastStatus, lastBody);
+    if (lastStatus === 429) {
+      return { ok: false, error: "The free AI is rate-limited right now. Please wait a minute and try again.", status: 429 };
+    }
+    const reason = lastBody.replace(/\s+/g, " ").slice(0, 160);
+    return { ok: false, error: `AI request failed (${lastStatus})${reason ? ": " + reason : ""}`, status: 502 };
+  }
+  return { ok: true, data: await aiRes.json() };
+}
+
+type Part = { text?: string; thought?: boolean };
+type Candidate = { content?: { parts?: Part[] }; finishReason?: string; groundingMetadata?: { groundingChunks?: { web?: { uri?: string } }[] } };
+
+function getCandidate(aiData: unknown): Candidate | undefined {
+  return (aiData as { candidates?: Candidate[] })?.candidates?.[0];
+}
+
+// Join ALL text parts (skipping "thought" parts) — newer models can split the
+// answer across parts, and parts[0] alone may be empty.
+function extractText(aiData: unknown): string {
+  const parts = getCandidate(aiData)?.content?.parts || [];
+  return parts.filter(p => typeof p.text === "string" && !p.thought).map(p => p.text).join("");
+}
+
+function extractSources(aiData: unknown): string[] {
+  const chunks = getCandidate(aiData)?.groundingMetadata?.groundingChunks || [];
+  const urls = chunks.map(c => c.web?.uri).filter((u): u is string => Boolean(u));
+  return [...new Set(urls)].slice(0, 5);
+}
+
+type ParsedPost = { title?: string; excerpt?: string; body?: string; [key: string]: unknown };
+
+// Returns the parsed JSON object, or a self-explanatory error string if the
+// output couldn't be parsed at all (logging the full response for Vercel logs).
+function parseAiJson(aiData: unknown): ParsedPost | { error: string } {
+  const raw = extractText(aiData);
+  const jsonStr = raw.replace(/```(?:json)?/gi, "").trim();
+  const tryParse = (s: string): ParsedPost | null => { try { return JSON.parse(s); } catch { return null; } };
+
+  let parsed = tryParse(jsonStr);
+  if (!parsed) {
+    const start = jsonStr.indexOf("{");
+    const end = jsonStr.lastIndexOf("}");
+    if (start !== -1 && end > start) {
+      const block = jsonStr.slice(start, end + 1);
+      parsed = tryParse(block) ?? tryParse(escapeCtrlInStrings(block));
+    }
+  }
+  if (!parsed) {
+    console.error("Unparseable AI output:", JSON.stringify(aiData).slice(0, 3000));
+    const candidate = getCandidate(aiData);
+    const reason = candidate?.finishReason;
+    if (reason === "MAX_TOKENS") {
+      return { error: "AI answer was cut off by the token limit before the JSON completed. Try again." };
+    }
+    const detail = raw ? ` Output began: "${raw.slice(0, 140).replace(/\s+/g, " ")}…"` : " The model returned no text at all.";
+    return { error: `AI returned unparseable output${reason ? ` (finishReason: ${reason})` : ""}.${detail}` };
+  }
+  return parsed;
+}
+
+type PostResult = { skipped: string } | { error: string; status: number } | Record<string, unknown>;
+
+// Only real `posts` columns may reach the insert. Passing extra keys (the
+// result metadata like `city`, `eventCount`) made PostgREST reject EVERY
+// insert with "column not found" — the reason auto-posts silently stopped
+// on 3 Aug 2026.
+const POST_COLUMNS = [
+  "title", "category", "excerpt", "body", "cover_url", "photos", "is_published",
+  "is_auto", "auto_city", "auto_type", "auto_topic", "byline", "source_urls",
+  "author_id", "published_at",
+] as const;
+
+async function insertPost(db: SupabaseClient, input: Record<string, unknown>): Promise<PostResult> {
+  const record: Record<string, unknown> = {};
+  for (const k of POST_COLUMNS) if (k in input) record[k] = input[k];
+  let slug = slugify(record.title as string) || `post-${Date.now()}`;
+  let ins = await db.from("posts").insert({ ...record, slug }).select("id").single();
+  if (ins.error && ins.error.code === "23505") {
+    slug = `${slug}-${Math.floor(performance.now())}`;
+    ins = await db.from("posts").insert({ ...record, slug }).select("id").single();
+  }
+  if (ins.error) return { error: ins.error.message, status: 500 };
+  return { generated: true, postId: ins.data?.id, slug, title: record.title, published: record.is_published };
+}
+
+// ---------------------------------------------------------------------------
+// Type 1: Event roundup — grounded entirely in our own database, auto-published.
+// ---------------------------------------------------------------------------
+async function generateEventRoundup(db: SupabaseClient, geminiKey: string): Promise<PostResult> {
+  const now = new Date();
+  const until = new Date(now.getTime() + LOOKAHEAD_DAYS * 86400_000);
+
+  const { data: events } = await db
+    .from("events")
+    .select("title, description, city, venue, event_date, photos, source_name, external_url")
+    .eq("is_published", true)
+    .not("city", "is", null)
+    .gte("event_date", now.toISOString())
+    .lte("event_date", until.toISOString())
+    .order("event_date", { ascending: true });
+
+  if (!events || events.length === 0) return { skipped: "No upcoming events to write about." };
+
+  const onCooldown = await recentEventCities(db, EVENT_COOLDOWN_DAYS);
+  const byCity = new Map<string, typeof events>();
+  for (const ev of events) {
+    const c = (ev.city as string).trim();
+    if (onCooldown.has(cityKey(c))) continue;
+    if (!byCity.has(c)) byCity.set(c, []);
+    byCity.get(c)!.push(ev);
+  }
+  // Count DISTINCT shows: an exhibition imported as one row per opening day
+  // (e.g. a Banksy show with 40 daily rows) is one item, not forty.
+  const distinctTitles = (evs: typeof events) => new Set(evs.map(e => String(e.title).trim().toLowerCase())).size;
+  const eligible = [...byCity.entries()]
+    .filter(([, evs]) => distinctTitles(evs) >= MIN_EVENTS_PER_ROUNDUP)
+    .sort((a, b) => b[1].length - a[1].length);
+  if (eligible.length === 0) return { skipped: "Every city with enough upcoming events already has a roundup this month." };
+
+  const [city, cityEvents] = eligible[0];
+  const cityLabel = cityEnglishName(city) ? `${cityEnglishName(city)} (${city})` : city;
+  const monthLabel = now.toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "Europe/Rome" });
+  // One entry per show; multi-date runs collapse to "first – last (N dates)".
+  const groups = new Map<string, typeof cityEvents>();
+  for (const e of cityEvents) {
+    const k = String(e.title).trim().toLowerCase();
+    groups.set(k, [...(groups.get(k) ?? []), e]);
+  }
+  const source = [...groups.values()].slice(0, 8).map(runs => {
+    const first = runs[0];
+    const last = runs[runs.length - 1];
+    const date = runs.length > 1
+      ? `${fmt(first.event_date)} to ${fmt(last.event_date)} (${runs.length} dates in this period)`
+      : fmt(first.event_date);
+    return {
+      title: first.title, date, venue: first.venue, source: first.source_name,
+      description: first.description ? String(first.description).slice(0, 500) : undefined,
+    };
+  });
+
+  const prompt = "You are the arts editor for The Local Art Hub, a platform for booking local artists in Italy. "
+    + "You write substantial, lively blog roundups of upcoming events. CRITICAL RULES: use ONLY the event data provided below. "
+    + "Never invent events, dates, venues, artists, prices, or any fact not present in the data. Do not add events you think you know about. "
+    + "If information is missing, simply omit it. Warm, welcoming editorial tone, British English. Output ONLY valid JSON, no markdown fences.\n\n"
+    + `Real upcoming events in ${cityLabel} over the next few weeks (${monthLabel}). Write a roundup blog post about them.\n\n`
+    + `EVENTS:\n${JSON.stringify(source, null, 2)}\n\n`
+    + `Return ONLY this JSON object:\n`
+    + `{"title": "headline that names ${cityEnglishName(city) ?? city} and ${monthLabel} (e.g. \\"What's On in ... — ${monthLabel}\\")", "excerpt": "one-sentence teaser", `
+    + `"body": "a well-developed article of 600 to 900 words in plain text (use \\n\\n between paragraphs). `
+    + `Open with an inviting paragraph about what the coming weeks look like in ${city} based on the listed events. `
+    + `Then give each event its own paragraph — name, date and venue woven into flowing prose, drawing on the description text where provided. `
+    + `Each listed item appears exactly once; for items with a date range, mention the range once rather than listing every date. `
+    + `Vary the sentence rhythm so it reads as editorial, not a listing. `
+    + `Close by inviting readers to explore and book local artists on The Local Art Hub. `
+    + `Remember: every fact must come from the event data above — pad with tone and craft, never with invented details"}`;
+
+  const outcome = await callGeminiWithFallback(geminiKey, prompt, false);
+  if (!outcome.ok) return { error: outcome.error, status: outcome.status };
+  const parsed = parseAiJson(outcome.data);
+  if ("error" in parsed) return { error: parsed.error, status: 502 };
+  if (!parsed.title || !parsed.body) return { error: "AI output missing title or body.", status: 502 };
+
+  const photos = [...new Set([...groups.values()].map(runs => runs[0].photos?.[0] as string | undefined).filter(Boolean))].slice(0, 4) as string[];
+
+  return insertPost(db, {
+    title: (parsed.title as string).trim(),
+    category: "event",
+    excerpt: (parsed.excerpt as string | undefined)?.trim() || null,
+    body: (parsed.body as string).trim(),
+    cover_url: photos[0] || null,
+    photos,
+    is_published: true,   // event roundups are grounded in our own data → safe to auto-publish
+    is_auto: true,
+    auto_city: city,
+    auto_type: "event",
+    auto_topic: city,
+    byline: EDITORIAL_BYLINE,
+    author_id: await getAdminProfileId(db),
+    published_at: new Date().toISOString(),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Type 2: Art movement/style guide — general knowledge, not tied to live data.
+// Always a DRAFT: it's editorial content, not verified against a source.
+// ---------------------------------------------------------------------------
+async function generateMovementGuide(db: SupabaseClient, geminiKey: string): Promise<PostResult> {
+  const onCooldown = await recentTopics(db, "movement", MOVEMENT_COOLDOWN_DAYS);
+  const choice = ART_MOVEMENTS.find(m => !onCooldown.has(m.toLowerCase()));
+  if (!choice) return { skipped: "All art movements were covered recently." };
+
+  const prompt = "You are the arts editor for The Local Art Hub, a boutique platform for booking local artists in Italy. "
+    + `Write an engaging, educational blog post about "${choice}". Cover its origins, defining characteristics, and 2-3 `
+    + "historically significant, widely-known artists associated with it. This is general art-history education: state only "
+    + "well-established, widely-known facts. Do NOT invent specific dates, quotes, statistics, or claims you are not confident about. "
+    + "Warm, accessible editorial tone for art lovers, British English. End with one short line inviting readers to discover local "
+    + "artists working in related styles on The Local Art Hub. Output ONLY valid JSON, no markdown fences: "
+    + `{"title": "engaging headline about ${choice}", "excerpt": "one-sentence teaser", "body": "a well-developed article of 500 to 800 words in plain text (use \\n\\n between paragraphs)"}`;
+
+  const outcome = await callGeminiWithFallback(geminiKey, prompt, false);
+  if (!outcome.ok) return { error: outcome.error, status: outcome.status };
+  const parsed = parseAiJson(outcome.data);
+  if ("error" in parsed) return { error: parsed.error, status: 502 };
+  if (!parsed.title || !parsed.body) return { error: "AI output missing title or body.", status: 502 };
+
+  return insertPost(db, {
+    title: (parsed.title as string).trim(),
+    category: "guide",
+    excerpt: (parsed.excerpt as string | undefined)?.trim() || null,
+    body: (parsed.body as string).trim(),
+    cover_url: null,
+    photos: [],
+    // Well-established art history, not claims about current events or living
+    // people → published automatically (exhibition/celebrity stay drafts).
+    is_published: true,
+    is_auto: true,
+    auto_type: "movement",
+    auto_topic: choice,
+    byline: EDITORIAL_BYLINE,
+    author_id: await getAdminProfileId(db),
+    published_at: new Date().toISOString(),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Type 3: Exhibition/gallery review — MUST be grounded in real Google Search
+// results. If the API returns zero real sources, nothing is written at all.
+// Always a DRAFT with source links shown, for a human to verify before publish.
+// ---------------------------------------------------------------------------
+async function generateExhibitionReview(db: SupabaseClient, geminiKey: string): Promise<PostResult> {
+  const onCooldown = await recentTopics(db, "exhibition", EXHIBITION_COOLDOWN_DAYS);
+  const city = ITALIAN_ART_CITIES.find(c => !onCooldown.has(c.toLowerCase()));
+  if (!city) return { skipped: "All cities were covered recently." };
+
+  const prompt = "Use Google Search to find REAL art exhibitions or gallery shows that are currently open, or opening soon, "
+    + `in ${city}, Italy. You MUST base your answer strictly on real, verifiable search results — never invent an exhibition `
+    + `name, venue, or date. If you cannot find any real, currently relevant exhibitions in ${city} via search, respond with `
+    + `exactly {"none": true} and nothing else. Otherwise, write a short blog preview covering 1-3 real exhibitions you found, `
+    + "using the real venue names and dates reported by your search results. Warm editorial tone, British English. "
+    + `Output ONLY valid JSON, no markdown fences: {"title": "...", "excerpt": "one-sentence teaser", "body": "3 to 4 substantial paragraphs of plain text (use \\n\\n between paragraphs)"}`
+    + ` — or exactly {"none": true} if nothing real was found.`;
+
+  const outcome = await callGeminiWithFallback(geminiKey, prompt, true);
+  if (!outcome.ok) return { error: outcome.error, status: outcome.status };
+
+  const sources = extractSources(outcome.data);
+  const parsed = parseAiJson(outcome.data);
+
+  // Defense in depth: require BOTH a real grounding source from the API AND
+  // that the model didn't itself say "nothing found".
+  if ("error" in parsed || parsed.none || sources.length === 0 || !parsed.title || !parsed.body) {
+    return { skipped: `No verifiable exhibitions found for ${city} right now.` };
+  }
+
+  return insertPost(db, {
+    title: (parsed.title as string).trim(),
+    category: "review",
+    excerpt: (parsed.excerpt as string | undefined)?.trim() || null,
+    body: (parsed.body as string).trim(),
+    cover_url: null,
+    photos: [],
+    is_published: false,  // external claim → always requires human review before going live
+    is_auto: true,
+    auto_type: "exhibition",
+    auto_topic: city,
+    byline: EDITORIAL_BYLINE,
+    source_urls: sources,
+    author_id: await getAdminProfileId(db),
+    published_at: new Date().toISOString(),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Type 4: "Famous artist/celebrity visiting Italy" news — same grounding
+// requirement as exhibitions: real sources or nothing is written.
+// ---------------------------------------------------------------------------
+async function generateCelebrityVisit(db: SupabaseClient, geminiKey: string): Promise<PostResult> {
+  const prompt = "Use Google Search to find REAL, current news about a well-known artist, musician, or entertainer who is "
+    + "visiting, touring, exhibiting, or performing in Italy soon or right now. You MUST base this strictly on real search "
+    + "results — never invent a visit that isn't reported by real news sources. If you cannot find any real, verifiable news "
+    + `of this kind, respond with exactly {"none": true} and nothing else. Otherwise write a short, exciting blog news post `
+    + "about it, naming the real person and the real city/venue/date as reported by your search results. Warm editorial tone, "
+    + `British English. Output ONLY valid JSON, no markdown fences: {"title": "...", "excerpt": "one-sentence teaser", `
+    + `"body": "3 to 4 substantial paragraphs of plain text (use \\n\\n between paragraphs)", "personName": "the real person's name"} `
+    + `— or exactly {"none": true} if nothing real was found.`;
+
+  const outcome = await callGeminiWithFallback(geminiKey, prompt, true);
+  if (!outcome.ok) return { error: outcome.error, status: outcome.status };
+
+  const sources = extractSources(outcome.data);
+  const parsed = parseAiJson(outcome.data);
+
+  if ("error" in parsed || parsed.none || sources.length === 0 || !parsed.title || !parsed.body || !parsed.personName) {
+    return { skipped: "No verifiable artist/celebrity Italy visit found right now." };
+  }
+  const personName = parsed.personName as string;
+
+  const onCooldown = await recentTopics(db, "celebrity", CELEBRITY_COOLDOWN_DAYS);
+  if (onCooldown.has(personName.toLowerCase())) {
+    return { skipped: `${personName} was already covered recently.` };
+  }
+
+  return insertPost(db, {
+    title: (parsed.title as string).trim(),
+    category: "news",
+    excerpt: (parsed.excerpt as string | undefined)?.trim() || null,
+    body: (parsed.body as string).trim(),
+    cover_url: null,
+    photos: [],
+    is_published: false,  // external claim about a real person → always requires human review
+    is_auto: true,
+    auto_type: "celebrity",
+    auto_topic: personName,
+    byline: EDITORIAL_BYLINE,
+    source_urls: sources,
+    author_id: await getAdminProfileId(db),
+    published_at: new Date().toISOString(),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Type 5: Evergreen hiring guide — "How to hire a <role> in <city>". Targets
+// booking-intent searches. Practical advice only: the prompt forbids prices,
+// named businesses, venues and statistics, so there is nothing to fact-check.
+// Auto-published; one discipline×city pair per run, never repeated within
+// CITYGUIDE_COOLDOWN_DAYS.
+// ---------------------------------------------------------------------------
+async function generateCityGuide(db: SupabaseClient, geminiKey: string): Promise<PostResult> {
+  const done = await recentTopics(db, "cityguide", CITYGUIDE_COOLDOWN_DAYS);
+  let pick: { role: string; category: string; city: string } | null = null;
+  for (const city of GUIDE_CITIES) {
+    for (const d of GUIDE_DISCIPLINES) {
+      const topic = `${d.category}|${city}`.toLowerCase();
+      if (!done.has(topic)) { pick = { ...d, city }; break; }
+    }
+    if (pick) break;
+  }
+  if (!pick) return { skipped: "Every discipline × city guide was written recently." };
+
+  const prompt = "You are the editor of The Local Art Hub, a platform where people in Italy book local artists directly "
+    + "(no agencies, no commission). "
+    + `Write a genuinely useful, practical guide: how to hire a ${pick.role} in ${pick.city}, Italy. `
+    + "Cover: deciding what you need, how to judge a portfolio, questions to ask before booking, what a fair agreement "
+    + "should include (deposit, timings, deliverables, cancellation), local practicalities worth planning for in "
+    + `${pick.city} (season, travel time across the city, permits for public spaces in general terms), and red flags. `
+    + "STRICT RULES: do NOT state any prices, price ranges, statistics, laws by name, or named businesses, venues, "
+    + "people or websites. Speak in general, practical terms. No invented facts. Warm, expert, British English. "
+    + "Use short subheadings written as plain lines followed by a blank line. "
+    + "Close by inviting readers to browse local artists on The Local Art Hub and contact them directly. "
+    + "Output ONLY valid JSON, no markdown fences: "
+    + `{"title": "How to Hire a ... in ${pick.city}: ...", "excerpt": "one-sentence teaser", "body": "900 to 1200 words of plain text (use \\n\\n between paragraphs)"}`;
+
+  const outcome = await callGeminiWithFallback(geminiKey, prompt, false);
+  if (!outcome.ok) return { error: outcome.error, status: outcome.status };
+  const parsed = parseAiJson(outcome.data);
+  if ("error" in parsed) return { error: parsed.error, status: 502 };
+  if (!parsed.title || !parsed.body) return { error: "AI output missing title or body.", status: 502 };
+
+  return insertPost(db, {
+    title: (parsed.title as string).trim(),
+    category: "guide",
+    excerpt: (parsed.excerpt as string | undefined)?.trim() || null,
+    body: (parsed.body as string).trim(),
+    cover_url: null,
+    photos: [],
+    is_published: true,
+    is_auto: true,
+    auto_type: "cityguide",
+    auto_topic: `${pick.category}|${pick.city}`,
+    byline: EDITORIAL_BYLINE,
+    author_id: await getAdminProfileId(db),
+    published_at: new Date().toISOString(),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Type 6: Gear comparison — cameras and phones for photographers/creators.
+// Grounded in live Google Search (product specs change constantly), so it is
+// only published when the API returns at least GEAR_MIN_SOURCES real sources,
+// which are listed under the post. No prices: they change daily and vary by
+// retailer, so the post tells readers to check current prices instead.
+// ---------------------------------------------------------------------------
+async function generateGearComparison(db: SupabaseClient, geminiKey: string): Promise<PostResult> {
+  const done = await recentTopics(db, "gear", GEAR_COOLDOWN_DAYS);
+  const theme = GEAR_THEMES.find(t => !done.has(t.toLowerCase()));
+  if (!theme) return { skipped: "Every gear comparison theme was covered recently." };
+  const year = new Date().getFullYear();
+
+  const prompt = "You are the gear editor of The Local Art Hub, a platform where people in Italy book local photographers, "
+    + "videographers and other artists. Use Google Search to research, then write a comparison article about: "
+    + `${theme}. Compare 3 to 5 specific models that are CURRENTLY on sale in ${year} (prefer the latest generation). `
+    + "STRICT RULES: every model name, release and specification (sensor size, resolution, video modes, stabilisation, "
+    + "battery, weight, lenses, etc.) must come from your search results — never guess or invent a figure; if a spec is not "
+    + "in your results, leave it out. Do NOT state any prices or price ranges — instead say readers should check current "
+    + "prices with retailers. Do not claim you personally tested anything. "
+    + "Structure: a short intro; one section per model with its key strengths, weaknesses and who it suits; a "
+    + "'Quick comparison' section with one plain line per model summarising the main differences; and a 'Which should you "
+    + "choose?' section giving clear recommendations by type of photographer or creator. Write subheadings as plain lines "
+    + "followed by a blank line. Practical, honest, British English. Finish with one sentence noting that if readers would "
+    + "rather hire a professional, they can find local photographers and videographers on The Local Art Hub. "
+    + "If your search does not give you reliable, current information for at least 3 models, respond with exactly "
+    + '{"none": true}. Otherwise output ONLY valid JSON, no markdown fences: '
+    + `{"title": "specific headline naming the comparison and ${year}", "excerpt": "one-sentence teaser", `
+    + '"body": "1000 to 1400 words of plain text (use \\n\\n between paragraphs)"}';
+
+  const outcome = await callGeminiWithFallback(geminiKey, prompt, true);
+  if (!outcome.ok) return { error: outcome.error, status: outcome.status };
+
+  const sources = extractSources(outcome.data);
+  const parsed = parseAiJson(outcome.data);
+  if ("error" in parsed || parsed.none || !parsed.title || !parsed.body) {
+    return { skipped: `Not enough reliable, current information found for: ${theme}.` };
+  }
+  if (sources.length < GEAR_MIN_SOURCES) {
+    return { skipped: `Only ${sources.length} verifiable source(s) for "${theme}" — not publishing an unsourced comparison.` };
+  }
+
+  const body = (parsed.body as string).trim()
+    + "\n\nSpecifications were checked against the sources listed below at the time of writing. "
+    + "Manufacturers update models and firmware often, so confirm current details and prices before you buy.";
+
+  return insertPost(db, {
+    title: (parsed.title as string).trim(),
+    category: "gear",
+    excerpt: (parsed.excerpt as string | undefined)?.trim() || null,
+    body,
+    cover_url: null,
+    photos: [],
+    is_published: true,
+    is_auto: true,
+    auto_type: "gear",
+    auto_topic: theme,
+    byline: EDITORIAL_BYLINE,
+    source_urls: sources,
+    author_id: await getAdminProfileId(db),
+    published_at: new Date().toISOString(),
+  });
+}
+
+// Record every run so Admin → Blog can show why nothing was published.
+// Best-effort: never let logging break the run (or a missing table).
+async function logRun(type: string, trigger: string, result: PostResult): Promise<void> {
+  try {
+    const outcome = "generated" in result ? "generated" : "skipped" in result ? "skipped" : "error";
+    const message = "skipped" in result ? String(result.skipped)
+      : "error" in result ? String(result.error)
+      : String((result as { title?: unknown }).title ?? "");
+    await admin().from("blog_runs").insert({
+      type, trigger, outcome, message: message.slice(0, 500),
+      post_id: (result as { postId?: string }).postId ?? null,
+    });
+  } catch { /* table not created yet — ignore */ }
+}
+
+async function generate(type: string, trigger = "cron"): Promise<PostResult> {
+  const result = await runGenerator(type);
+  await logRun(type, trigger, result);
+  return result;
+}
+
+async function runGenerator(type: string): Promise<PostResult> {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return { error: "Server not configured.", status: 500 };
+  if (!geminiKey) return { error: "AI writer not configured. Add GEMINI_API_KEY.", status: 500 };
+
+  const db = admin();
+  switch (type) {
+    case "movement": return generateMovementGuide(db, geminiKey);
+    case "exhibition": return generateExhibitionReview(db, geminiKey);
+    case "celebrity": return generateCelebrityVisit(db, geminiKey);
+    case "cityguide": return generateCityGuide(db, geminiKey);
+    case "gear": return generateGearComparison(db, geminiKey);
+    case "event":
+    default:
+      return generateEventRoundup(db, geminiKey);
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const type = req.nextUrl.searchParams.get("type") || "event";
+  // The daily cron only actually writes on scheduled weekdays for the "event"
+  // type; other types are scheduled weekly in vercel.json and always run.
+  if (type === "event" && !RUN_DAYS_EVENT.includes(new Date().getUTCDay())) {
+    return NextResponse.json({ skipped: "Not a scheduled day." });
+  }
+  const result = await generate(type, "cron");
+  return NextResponse.json(result, { status: (result as { status?: number }).status ?? 200 });
+}
+
+export async function POST(req: NextRequest) {
+  // Manual admin trigger.
+  const token = req.headers.get("authorization")?.replace("Bearer ", "");
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+  const { data: { user } } = await authClient.auth.getUser(token);
+  if (!user) return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return NextResponse.json({ error: "Server not configured." }, { status: 500 });
+  const { data: profile } = await admin().from("profiles").select("is_admin").eq("id", user.id).maybeSingle();
+  if (!profile?.is_admin) return NextResponse.json({ error: "Admins only" }, { status: 403 });
+
+  let type = "event";
+  try {
+    const body = await req.json();
+    if (body?.type) type = body.type;
+  } catch { /* no body → default to event */ }
+
+  const result = await generate(type, "manual");
+  return NextResponse.json(result, { status: (result as { status?: number }).status ?? 200 });
+}

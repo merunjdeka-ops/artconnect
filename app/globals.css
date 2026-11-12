@@ -3,6 +3,7 @@
 :root {
   --background: #F2EDE4;
   --foreground: #000000;
+  --red: #E5000F;
 }
 
 @theme inline {
@@ -12,26 +13,44 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ── Base ── */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Fade in up */
+/* ── Page enter animation ── */
+@keyframes pageFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+main {
+  animation: pageFadeIn 0.35s ease both;
+}
+
+/* ── Fade in up (staggered sections) ── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(24px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-in-up {
-  animation: fadeInUp 0.5s ease both;
+  animation: fadeInUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .fade-in-up-1 { animation-delay: 0.05s; }
 .fade-in-up-2 { animation-delay: 0.12s; }
 .fade-in-up-3 { animation-delay: 0.19s; }
 .fade-in-up-4 { animation-delay: 0.26s; }
+.fade-in-up-5 { animation-delay: 0.33s; }
 
-/* Fade in */
+/* ── Fade in ── */
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -39,3 +58,168 @@ body {
 .fade-in {
   animation: fadeIn 0.4s ease both;
 }
+
+/* ── Slide in from bottom ── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.slide-up {
+  animation: slideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Images: smooth load ── */
+img {
+  transition: opacity 0.3s ease;
+}
+img[loading] {
+  opacity: 0;
+}
+img.loaded {
+  opacity: 1;
+}
+
+/* ── Smooth transitions on interactive elements ── */
+a, button {
+  transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ── Links: no layout shift on hover ── */
+a {
+  text-decoration: none;
+}
+
+/* ── Input / textarea focus ring ── */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* ── Skeleton loader ── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #e8e3da 25%, #f0ebe2 50%, #e8e3da 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 2px;
+}
+
+/* ── Marquee ticker (flows right → left; owner wants motion even under
+      OS reduced-motion, so no prefers-reduced-motion override) ── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marquee 45s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* ── Scroll reveal: use with JS IntersectionObserver ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.08s; }
+.reveal-delay-2 { transition-delay: 0.16s; }
+.reveal-delay-3 { transition-delay: 0.24s; }
+
+/* ── Card lift on hover ── */
+.card-hover {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+}
+
+/* ── Top loading bar ── */
+@keyframes loadingBar {
+  0%   { width: 0%; opacity: 1; }
+  70%  { width: 85%; opacity: 1; }
+  100% { width: 100%; opacity: 0; }
+}
+.loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: var(--red);
+  animation: loadingBar 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* ── Smooth modal/overlay entrance ── */
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.overlay-in {
+  animation: overlayIn 0.2s ease both;
+}
+.modal-in {
+  animation: modalIn 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+::-webkit-scrollbar-thumb {
+  background: #c4bfb6;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #000;
+}
+
+/* ── Rich caption rendered output ── */
+.rich-caption b, .rich-caption strong { font-weight: 700; }
+.rich-caption i, .rich-caption em { font-style: italic; }
+.rich-caption u { text-decoration: underline; }
+.rich-caption s { text-decoration: line-through; }
+.rich-caption ul { list-style: disc; padding-left: 1.25rem; margin: 0.25rem 0; }
+.rich-caption ol { list-style: decimal; padding-left: 1.25rem; margin: 0.25rem 0; }
+.rich-caption li { margin: 0.15rem 0; }
+.rich-caption br { display: block; content: ""; margin: 0.1rem 0; }
+
+/* ── Selection color ── */
+::selection {
+  background: var(--red);
+  color: #fff;
+}
+
+/* ── Focus visible (keyboard nav) ── */
+:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
+
