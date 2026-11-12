@@ -43,6 +43,24 @@ const CITYGUIDE_COOLDOWN_DAYS = 180;
 const MOVEMENT_COOLDOWN_DAYS = 30;  // don't repeat a movement/style too soon
 const EXHIBITION_COOLDOWN_DAYS = 14;
 const CELEBRITY_COOLDOWN_DAYS = 30;
+const GEAR_COOLDOWN_DAYS = 70;      // each comparison theme comes round ~every 10 weeks
+const GEAR_MIN_SOURCES = 2;
+
+// Camera & phone comparisons for photographers and creators. Themes, not model
+// names: the writer finds the CURRENT models via Google Search each time, so
+// the list never goes stale.
+const GEAR_THEMES = [
+  "the best smartphone cameras for photography right now (iPhone vs Google Pixel vs Samsung Galaxy flagships)",
+  "full-frame mirrorless cameras for wedding and event photographers",
+  "beginner-friendly mirrorless cameras for people starting out in photography",
+  "compact travel cameras for photographing a trip around Italy",
+  "cameras and phones for video creators, vloggers and Reels/TikTok",
+  "smartphone vs mirrorless camera: when a phone is enough and when it is not",
+  "mid-range phones with the best cameras for the money",
+  "APS-C mirrorless cameras for street and portrait photography",
+  "action cameras for travel, sport and outdoor creators",
+  "retro-style and film-look digital cameras",
+];
 
 const ART_MOVEMENTS = [
   "the Renaissance", "Cubism", "Street Art & Graffiti", "Impressionism",
@@ -575,6 +593,70 @@ async function generateCityGuide(db: SupabaseClient, geminiKey: string): Promise
   });
 }
 
+// ---------------------------------------------------------------------------
+// Type 6: Gear comparison — cameras and phones for photographers/creators.
+// Grounded in live Google Search (product specs change constantly), so it is
+// only published when the API returns at least GEAR_MIN_SOURCES real sources,
+// which are listed under the post. No prices: they change daily and vary by
+// retailer, so the post tells readers to check current prices instead.
+// ---------------------------------------------------------------------------
+async function generateGearComparison(db: SupabaseClient, geminiKey: string): Promise<PostResult> {
+  const done = await recentTopics(db, "gear", GEAR_COOLDOWN_DAYS);
+  const theme = GEAR_THEMES.find(t => !done.has(t.toLowerCase()));
+  if (!theme) return { skipped: "Every gear comparison theme was covered recently." };
+  const year = new Date().getFullYear();
+
+  const prompt = "You are the gear editor of The Local Art Hub, a platform where people in Italy book local photographers, "
+    + "videographers and other artists. Use Google Search to research, then write a comparison article about: "
+    + `${theme}. Compare 3 to 5 specific models that are CURRENTLY on sale in ${year} (prefer the latest generation). `
+    + "STRICT RULES: every model name, release and specification (sensor size, resolution, video modes, stabilisation, "
+    + "battery, weight, lenses, etc.) must come from your search results — never guess or invent a figure; if a spec is not "
+    + "in your results, leave it out. Do NOT state any prices or price ranges — instead say readers should check current "
+    + "prices with retailers. Do not claim you personally tested anything. "
+    + "Structure: a short intro; one section per model with its key strengths, weaknesses and who it suits; a "
+    + "'Quick comparison' section with one plain line per model summarising the main differences; and a 'Which should you "
+    + "choose?' section giving clear recommendations by type of photographer or creator. Write subheadings as plain lines "
+    + "followed by a blank line. Practical, honest, British English. Finish with one sentence noting that if readers would "
+    + "rather hire a professional, they can find local photographers and videographers on The Local Art Hub. "
+    + "If your search does not give you reliable, current information for at least 3 models, respond with exactly "
+    + '{"none": true}. Otherwise output ONLY valid JSON, no markdown fences: '
+    + `{"title": "specific headline naming the comparison and ${year}", "excerpt": "one-sentence teaser", `
+    + '"body": "1000 to 1400 words of plain text (use \\n\\n between paragraphs)"}';
+
+  const outcome = await callGeminiWithFallback(geminiKey, prompt, true);
+  if (!outcome.ok) return { error: outcome.error, status: outcome.status };
+
+  const sources = extractSources(outcome.data);
+  const parsed = parseAiJson(outcome.data);
+  if ("error" in parsed || parsed.none || !parsed.title || !parsed.body) {
+    return { skipped: `Not enough reliable, current information found for: ${theme}.` };
+  }
+  if (sources.length < GEAR_MIN_SOURCES) {
+    return { skipped: `Only ${sources.length} verifiable source(s) for "${theme}" — not publishing an unsourced comparison.` };
+  }
+
+  const body = (parsed.body as string).trim()
+    + "\n\nSpecifications were checked against the sources listed below at the time of writing. "
+    + "Manufacturers update models and firmware often, so confirm current details and prices before you buy.";
+
+  return insertPost(db, {
+    title: (parsed.title as string).trim(),
+    category: "gear",
+    excerpt: (parsed.excerpt as string | undefined)?.trim() || null,
+    body,
+    cover_url: null,
+    photos: [],
+    is_published: true,
+    is_auto: true,
+    auto_type: "gear",
+    auto_topic: theme,
+    byline: EDITORIAL_BYLINE,
+    source_urls: sources,
+    author_id: await getAdminProfileId(db),
+    published_at: new Date().toISOString(),
+  });
+}
+
 // Record every run so Admin → Blog can show why nothing was published.
 // Best-effort: never let logging break the run (or a missing table).
 async function logRun(type: string, trigger: string, result: PostResult): Promise<void> {
@@ -607,6 +689,7 @@ async function runGenerator(type: string): Promise<PostResult> {
     case "exhibition": return generateExhibitionReview(db, geminiKey);
     case "celebrity": return generateCelebrityVisit(db, geminiKey);
     case "cityguide": return generateCityGuide(db, geminiKey);
+    case "gear": return generateGearComparison(db, geminiKey);
     case "event":
     default:
       return generateEventRoundup(db, geminiKey);

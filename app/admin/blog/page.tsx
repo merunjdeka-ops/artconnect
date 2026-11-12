@@ -32,6 +32,7 @@ const emptyForm = {
 const AUTO_TYPES = [
   { value: "event", label: "Event roundup", desc: "From our real upcoming events — nothing invented. Safe to auto-publish." },
   { value: "movement", label: "Art movement guide", desc: "General, well-established art-history education. Auto-published." },
+  { value: "gear", label: "Camera & phone comparison", desc: "Compares current cameras/phones for photographers and creators, researched via Google Search. Published only with 2+ real sources; never states prices. Auto-published." },
   { value: "cityguide", label: "Hiring guide", desc: "Evergreen 'How to hire a … in <city>' guide. Practical advice only — no prices, names or venues. Auto-published." },
   { value: "exhibition", label: "Exhibition review", desc: "Real gallery news, found via Google Search — only writes when it finds a real, cited source. Always a draft." },
   { value: "celebrity", label: "Artist visiting Italy", desc: "Real celebrity/artist news, found via Google Search — only writes when it finds a real, cited source. Always a draft." },
@@ -206,7 +207,7 @@ export default function AdminBlogPage() {
       {/* Auto-writer */}
       <div className="border border-black bg-black text-white p-8 mb-8">
         <h2 className="text-lg font-black uppercase mb-2">AI Auto-Writer</h2>
-        <p className="text-xs text-white/50 mb-5 max-w-lg">Runs on its own: events are imported from Ticketmaster daily, a monthly what&apos;s-on roundup is written for one city per day (each city at most once a month), plus a weekly art-movement guide and a weekly hiring guide — all auto-published. Exhibition and celebrity news need a real cited source and are saved as drafts for you to review.</p>
+        <p className="text-xs text-white/50 mb-5 max-w-lg">Runs on its own: events are imported from Ticketmaster daily, a monthly what&apos;s-on roundup is written for one city per day (each city at most once a month), plus a weekly art-movement guide, a weekly hiring guide and a weekly camera &amp; phone comparison — all auto-published. Exhibition and celebrity news need a real cited source and are saved as drafts for you to review.</p>
         <div className="flex flex-wrap gap-2 mb-5">
           {AUTO_TYPES.map(t => (
             <button key={t.value} type="button" onClick={() => setAutoType(t.value)}
