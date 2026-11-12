@@ -198,6 +198,7 @@ async function callGeminiWithFallback(geminiKey: string, prompt: string, grounde
   let lastStatus = 500;
   let lastBody = "";
   const started = Date.now();
+  const tried: string[] = [];
   for (const model of models.slice(0, 10)) {
     // Leave room to save the post and log the run before Vercel's limit.
     if (Date.now() - started > 250_000 - MODEL_TIMEOUT_MS) break;
@@ -212,14 +213,21 @@ async function callGeminiWithFallback(geminiKey: string, prompt: string, grounde
     if (aiRes.ok) break;
     lastStatus = aiRes.status;
     lastBody = await aiRes.text();
+    tried.push(`${model}:${aiRes.status}`);
     // 400 bad request for this model, 403 model not allowed for this key,
     // 404 retired, 429 quota, 5xx overloaded → try the next model.
     if (![400, 403, 404, 429, 500, 503].includes(aiRes.status)) break;
   }
   if (!aiRes || !aiRes.ok) {
-    console.error("Gemini error:", lastStatus, lastBody);
+    console.error("Gemini error:", lastStatus, "tried:", tried.join(", "), lastBody);
     if (lastStatus === 429) {
-      return { ok: false, error: "The free AI is rate-limited right now. Please wait a minute and try again.", status: 429 };
+      // A retry delay of hours means the free tier's DAILY quota is used up
+      // (it resets at midnight Pacific ≈ 09:00 in Italy), not a 1-minute limit.
+      const delay = Number(lastBody.match(/"retryDelay":\s*"(\d+)s"/)?.[1] ?? 0);
+      const msg = delay > 3600
+        ? `The free AI's daily quota is used up (tried ${tried.length} models). It resets around 09:00 Italian time; scheduled posts will resume then.`
+        : "The free AI is rate-limited right now. Please wait a minute and try again.";
+      return { ok: false, error: msg, status: 429 };
     }
     const reason = lastBody.replace(/\s+/g, " ").slice(0, 160);
     return { ok: false, error: `AI request failed (${lastStatus})${reason ? ": " + reason : ""}`, status: 502 };
