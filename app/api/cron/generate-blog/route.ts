@@ -56,17 +56,17 @@ const GEAR_MIN_SOURCES = 2;
 // Camera & phone comparisons for photographers and creators. Themes, not model
 // names: the writer finds the CURRENT models via Google Search each time, so
 // the list never goes stale.
-const GEAR_THEMES = [
-  "the best smartphone cameras for photography right now (iPhone vs Google Pixel vs Samsung Galaxy flagships)",
-  "full-frame mirrorless cameras for wedding and event photographers",
-  "beginner-friendly mirrorless cameras for people starting out in photography",
-  "compact travel cameras for photographing a trip around Italy",
-  "cameras and phones for video creators, vloggers and Reels/TikTok",
-  "smartphone vs mirrorless camera: when a phone is enough and when it is not",
-  "mid-range phones with the best cameras for the money",
-  "APS-C mirrorless cameras for street and portrait photography",
-  "action cameras for travel, sport and outdoor creators",
-  "retro-style and film-look digital cameras",
+const GEAR_THEMES: { theme: string; query: string }[] = [
+  { theme: "the best smartphone cameras for photography right now (iPhone vs Google Pixel vs Samsung Galaxy flagships)", query: "best camera phone" },
+  { theme: "full-frame mirrorless cameras for wedding and event photographers", query: "best full-frame mirrorless camera for wedding photography" },
+  { theme: "beginner-friendly mirrorless cameras for people starting out in photography", query: "best beginner mirrorless camera" },
+  { theme: "compact travel cameras for photographing a trip around Italy", query: "best compact travel camera" },
+  { theme: "cameras and phones for video creators, vloggers and Reels/TikTok", query: "best vlogging camera for creators" },
+  { theme: "smartphone vs mirrorless camera: when a phone is enough and when it is not", query: "smartphone vs mirrorless camera image quality" },
+  { theme: "mid-range phones with the best cameras for the money", query: "best mid-range phone camera" },
+  { theme: "APS-C mirrorless cameras for street and portrait photography", query: "best APS-C mirrorless camera street portrait" },
+  { theme: "action cameras for travel, sport and outdoor creators", query: "best action camera" },
+  { theme: "retro-style and film-look digital cameras", query: "best retro style digital camera film look" },
 ];
 
 const ART_MOVEMENTS = [
@@ -331,6 +331,94 @@ async function insertPost(db: SupabaseClient, input: Record<string, unknown>): P
 }
 
 // ---------------------------------------------------------------------------
+// Research for the post types that need current facts from the web (gear,
+// exhibition, celebrity). Two backends:
+//  • Tavily (TAVILY_API_KEY set) — free plan, 1,000 searches/month, no card.
+//    We search, pass the results to Gemini as plain text (an ungrounded call,
+//    which the Gemini free tier allows) and keep only the sources it says it
+//    used.
+//  • Gemini's built-in Google Search grounding — needs billing on the key
+//    (not available on the free tier).
+// ---------------------------------------------------------------------------
+type ResearchOutcome =
+  | { ok: true; parsed: ParsedPost; sources: string[] }
+  | { ok: false; error: string; status: number };
+
+type TavilyResult = { title?: string; url?: string; content?: string; raw_content?: string | null };
+
+async function tavilySearch(key: string, query: string, topic: "general" | "news", timeRange?: string): Promise<TavilyResult[]> {
+  const res = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      query, topic, search_depth: "basic", max_results: 5,
+      include_raw_content: "text", ...(timeRange ? { time_range: timeRange } : {}),
+    }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!res.ok) throw new Error(`Tavily ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const data = await res.json() as { results?: TavilyResult[] };
+  return data.results ?? [];
+}
+
+async function researchAndWrite(
+  geminiKey: string,
+  task: string,
+  queries: string[],
+  opts: { topic?: "general" | "news"; timeRange?: string } = {},
+): Promise<ResearchOutcome> {
+  const tavilyKey = process.env.TAVILY_API_KEY;
+
+  if (!tavilyKey) {
+    const outcome = await callGeminiWithFallback(geminiKey, "Use Google Search to research this. " + task, true);
+    if (!outcome.ok) return outcome;
+    const parsed = parseAiJson(outcome.data);
+    if ("error" in parsed) return { ok: false, error: String(parsed.error), status: 502 };
+    return { ok: true, parsed, sources: extractSources(outcome.data) };
+  }
+
+  // Gather and de-duplicate results across the queries.
+  const seen = new Set<string>();
+  const results: TavilyResult[] = [];
+  for (const q of queries) {
+    try {
+      for (const r of await tavilySearch(tavilyKey, q, opts.topic ?? "general", opts.timeRange)) {
+        if (!r.url || seen.has(r.url)) continue;
+        seen.add(r.url);
+        results.push(r);
+      }
+    } catch (e) {
+      console.error("Tavily search failed:", q, e);
+    }
+  }
+  if (results.length === 0) return { ok: false, error: "Web search returned no results (check TAVILY_API_KEY).", status: 502 };
+
+  const picked = results.slice(0, 10);
+  const block = picked.map((r, i) => {
+    const text = (r.raw_content || r.content || "").replace(/\s+/g, " ").slice(0, 3500);
+    return `[${i + 1}] ${r.title ?? ""}\nURL: ${r.url}\n${text}`;
+  }).join("\n\n");
+
+  const prompt = "You have no web access. These are today's web SEARCH RESULTS, numbered:\n\n"
+    + block
+    + "\n\n--- END OF SEARCH RESULTS ---\n\n"
+    + "Use ONLY facts stated in the search results above; if something is not in them, leave it out. "
+    + "In your JSON output, also include \"used_sources\": an array of the result numbers you actually relied on.\n\n"
+    + task;
+
+  const outcome = await callGeminiWithFallback(geminiKey, prompt, false);
+  if (!outcome.ok) return outcome;
+  const parsed = parseAiJson(outcome.data);
+  if ("error" in parsed) return { ok: false, error: String(parsed.error), status: 502 };
+  const used = Array.isArray(parsed.used_sources) ? parsed.used_sources : [];
+  const sources = [...new Set(used
+    .map(n => Number(n))
+    .filter(n => Number.isInteger(n) && n >= 1 && n <= picked.length)
+    .map(n => picked[n - 1].url as string))];
+  return { ok: true, parsed, sources };
+}
+
+// ---------------------------------------------------------------------------
 // Type 1: Event roundup — grounded entirely in our own database, auto-published.
 // ---------------------------------------------------------------------------
 async function generateEventRoundup(db: SupabaseClient, geminiKey: string): Promise<PostResult> {
@@ -479,7 +567,7 @@ async function generateExhibitionReview(db: SupabaseClient, geminiKey: string): 
   const city = ITALIAN_ART_CITIES.find(c => !onCooldown.has(c.toLowerCase()));
   if (!city) return { skipped: "All cities were covered recently." };
 
-  const prompt = "Use Google Search to find REAL art exhibitions or gallery shows that are currently open, or opening soon, "
+  const prompt = "From the search results, find REAL art exhibitions or gallery shows that are currently open, or opening soon, "
     + `in ${city}, Italy. You MUST base your answer strictly on real, verifiable search results — never invent an exhibition `
     + `name, venue, or date. If you cannot find any real, currently relevant exhibitions in ${city} via search, respond with `
     + `exactly {"none": true} and nothing else. Otherwise, write a short blog preview covering 1-3 real exhibitions you found, `
@@ -487,15 +575,17 @@ async function generateExhibitionReview(db: SupabaseClient, geminiKey: string): 
     + `Output ONLY valid JSON, no markdown fences: {"title": "...", "excerpt": "one-sentence teaser", "body": "3 to 4 substantial paragraphs of plain text (use \\n\\n between paragraphs)"}`
     + ` — or exactly {"none": true} if nothing real was found.`;
 
-  const outcome = await callGeminiWithFallback(geminiKey, prompt, true);
+  const year = new Date().getFullYear();
+  const outcome = await researchAndWrite(geminiKey, prompt, [
+    `art exhibitions ${city} ${year} mostre`,
+    `mostre in corso ${city} ${year}`,
+  ], { topic: "general", timeRange: "month" });
   if (!outcome.ok) return { error: outcome.error, status: outcome.status };
+  const { parsed, sources } = outcome;
 
-  const sources = extractSources(outcome.data);
-  const parsed = parseAiJson(outcome.data);
-
-  // Defense in depth: require BOTH a real grounding source from the API AND
-  // that the model didn't itself say "nothing found".
-  if ("error" in parsed || parsed.none || sources.length === 0 || !parsed.title || !parsed.body) {
+  // Defense in depth: require BOTH a real source AND that the model didn't
+  // itself say "nothing found".
+  if (parsed.none || sources.length === 0 || !parsed.title || !parsed.body) {
     return { skipped: `No verifiable exhibitions found for ${city} right now.` };
   }
 
@@ -522,7 +612,7 @@ async function generateExhibitionReview(db: SupabaseClient, geminiKey: string): 
 // requirement as exhibitions: real sources or nothing is written.
 // ---------------------------------------------------------------------------
 async function generateCelebrityVisit(db: SupabaseClient, geminiKey: string): Promise<PostResult> {
-  const prompt = "Use Google Search to find REAL, current news about a well-known artist, musician, or entertainer who is "
+  const prompt = "From the search results, find REAL, current news about a well-known artist, musician, or entertainer who is "
     + "visiting, touring, exhibiting, or performing in Italy soon or right now. You MUST base this strictly on real search "
     + "results — never invent a visit that isn't reported by real news sources. If you cannot find any real, verifiable news "
     + `of this kind, respond with exactly {"none": true} and nothing else. Otherwise write a short, exciting blog news post `
@@ -531,13 +621,14 @@ async function generateCelebrityVisit(db: SupabaseClient, geminiKey: string): Pr
     + `"body": "3 to 4 substantial paragraphs of plain text (use \\n\\n between paragraphs)", "personName": "the real person's name"} `
     + `— or exactly {"none": true} if nothing real was found.`;
 
-  const outcome = await callGeminiWithFallback(geminiKey, prompt, true);
+  const outcome = await researchAndWrite(geminiKey, prompt, [
+    "famous artist visiting Italy tour exhibition",
+    "concerto tour Italia annunciato date",
+  ], { topic: "news", timeRange: "week" });
   if (!outcome.ok) return { error: outcome.error, status: outcome.status };
+  const { parsed, sources } = outcome;
 
-  const sources = extractSources(outcome.data);
-  const parsed = parseAiJson(outcome.data);
-
-  if ("error" in parsed || parsed.none || sources.length === 0 || !parsed.title || !parsed.body || !parsed.personName) {
+  if (parsed.none || sources.length === 0 || !parsed.title || !parsed.body || !parsed.personName) {
     return { skipped: "No verifiable artist/celebrity Italy visit found right now." };
   }
   const personName = parsed.personName as string;
@@ -629,12 +720,13 @@ async function generateCityGuide(db: SupabaseClient, geminiKey: string): Promise
 // ---------------------------------------------------------------------------
 async function generateGearComparison(db: SupabaseClient, geminiKey: string): Promise<PostResult> {
   const done = await recentTopics(db, "gear", GEAR_COOLDOWN_DAYS);
-  const theme = GEAR_THEMES.find(t => !done.has(t.toLowerCase()));
-  if (!theme) return { skipped: "Every gear comparison theme was covered recently." };
+  const pick = GEAR_THEMES.find(t => !done.has(t.theme.toLowerCase()));
+  if (!pick) return { skipped: "Every gear comparison theme was covered recently." };
+  const { theme, query } = pick;
   const year = new Date().getFullYear();
 
   const prompt = "You are the gear editor of The Local Art Hub, a platform where people in Italy book local photographers, "
-    + "videographers and other artists. Use Google Search to research, then write a comparison article about: "
+    + "videographers and other artists. Using the search results, write a comparison article about: "
     + `${theme}. Compare 3 to 5 specific models that are CURRENTLY on sale in ${year} (prefer the latest generation). `
     + "STRICT RULES: every model name, release and specification (sensor size, resolution, video modes, stabilisation, "
     + "battery, weight, lenses, etc.) must come from your search results — never guess or invent a figure; if a spec is not "
@@ -650,12 +742,14 @@ async function generateGearComparison(db: SupabaseClient, geminiKey: string): Pr
     + `{"title": "specific headline naming the comparison and ${year}", "excerpt": "one-sentence teaser", `
     + '"body": "1000 to 1400 words of plain text (use \\n\\n between paragraphs)"}';
 
-  const outcome = await callGeminiWithFallback(geminiKey, prompt, true);
+  const outcome = await researchAndWrite(geminiKey, prompt, [
+    `${query} ${year}`,
+    `${query} ${year} review comparison`,
+    `${query} ${year} specifications`,
+  ], { topic: "general", timeRange: "year" });
   if (!outcome.ok) return { error: outcome.error, status: outcome.status };
-
-  const sources = extractSources(outcome.data);
-  const parsed = parseAiJson(outcome.data);
-  if ("error" in parsed || parsed.none || !parsed.title || !parsed.body) {
+  const { parsed, sources } = outcome;
+  if (parsed.none || !parsed.title || !parsed.body) {
     return { skipped: `Not enough reliable, current information found for: ${theme}.` };
   }
   if (sources.length < GEAR_MIN_SOURCES) {
