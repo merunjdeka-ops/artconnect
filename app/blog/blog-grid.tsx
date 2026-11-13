@@ -24,8 +24,10 @@ function fmt(iso: string | null) {
   return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Rome" });
 }
 
-export default function BlogGrid({ posts }: { posts: BlogListPost[] }) {
-  const [cat, setCat] = useState("all");
+export default function BlogGrid({ posts, initialCategory }: { posts: BlogListPost[]; initialCategory?: string }) {
+  const [cat, setCat] = useState(
+    initialCategory && posts.some(p => p.category === initialCategory) ? initialCategory : "all",
+  );
 
   const visible = cat === "all" ? posts : posts.filter(p => p.category === cat);
   const usedCats = POST_CATEGORIES.filter(c => posts.some(p => p.category === c.value));

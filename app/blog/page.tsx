@@ -14,7 +14,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/blog" },
 };
 
-export default async function BlogPage() {
+type Props = { searchParams: Promise<{ category?: string }> };
+
+export default async function BlogPage({ searchParams }: Props) {
+  const { category } = await searchParams;
   const { data } = await getSupabase()
     .from("posts")
     .select("id, title, slug, category, excerpt, cover_url, published_at")
@@ -39,7 +42,7 @@ export default async function BlogPage() {
         <p className="text-sm text-black/60 max-w-md mt-6 leading-relaxed">Artist features, concerts, shows, reviews and what&apos;s happening in your local creative community.</p>
       </section>
 
-      <BlogGrid posts={posts} />
+      <BlogGrid posts={posts} initialCategory={category} />
 
       <footer className="px-8 py-6 flex flex-wrap gap-4 items-center justify-between border-t border-black">
         <Link href="/" className="text-sm font-black tracking-tight leading-none"><span className="text-[#E5000F]" style={{fontFamily:"var(--font-logo),Georgia,serif",fontWeight:"normal",fontStyle:"normal"}}>the</span><span className="uppercase"> Local Art Hub</span></Link>

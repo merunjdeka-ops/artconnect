@@ -18,7 +18,23 @@ export type Post = {
 
 // `initial` comes from the server render (app/page.tsx) so the section is in
 // the HTML; without it the component fetches on mount as before.
-export default function BlogFeed({ initial }: { initial?: Post[] } = {}) {
+type FeedProps = {
+  initial?: Post[];
+  category?: string;          // only this category (e.g. "gear")
+  excludeCategory?: string;   // everything except this category
+  eyebrow?: string;
+  heading?: [string, string];
+  href?: string;
+  linkLabel?: string;
+};
+
+// Homepage post strip. Used twice: "The Journal" (everything except gear)
+// and "Gear & Tech" (gear only), so a tech post never shows in both.
+export default function BlogFeed({
+  initial, category, excludeCategory,
+  eyebrow = "The Journal", heading = ["From the", "Local Scene"],
+  href = "/blog", linkLabel = "Read the blog →",
+}: FeedProps = {}) {
   const [posts, setPosts] = useState<Post[]>(initial ?? []);
   const [loading, setLoading] = useState(!initial);
 
@@ -26,17 +42,18 @@ export default function BlogFeed({ initial }: { initial?: Post[] } = {}) {
     if (initial) return;
     async function load() {
       const supabase = getSupabase();
-      const { data } = await supabase
+      let q = supabase
         .from("posts")
         .select("id, title, slug, category, excerpt, cover_url, published_at")
-        .eq("is_published", true)
-        .order("published_at", { ascending: false })
-        .limit(3);
+        .eq("is_published", true);
+      if (category) q = q.eq("category", category);
+      if (excludeCategory) q = q.neq("category", excludeCategory);
+      const { data } = await q.order("published_at", { ascending: false }).limit(3);
       setPosts((data as Post[]) || []);
       setLoading(false);
     }
     load();
-  }, [initial]);
+  }, [initial, category, excludeCategory]);
 
   if (!loading && posts.length === 0) return null;
 
@@ -44,11 +61,11 @@ export default function BlogFeed({ initial }: { initial?: Post[] } = {}) {
     <section className="px-8 py-16 border-b border-black">
       <div className="flex flex-wrap items-baseline justify-between gap-4 mb-10 reveal">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-3">The Journal</p>
-          <h2 className="text-4xl font-black uppercase leading-none">From the<br />Local Scene</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#E5000F] mb-3">{eyebrow}</p>
+          <h2 className="text-4xl font-black uppercase leading-none">{heading[0]}<br />{heading[1]}</h2>
         </div>
-        <Link href="/blog" className="text-xs font-bold uppercase tracking-widest border-b-2 border-black hover:border-[#E5000F] hover:text-[#E5000F] transition-colors pb-0.5">
-          Read the blog →
+        <Link href={href} className="text-xs font-bold uppercase tracking-widest border-b-2 border-black hover:border-[#E5000F] hover:text-[#E5000F] transition-colors pb-0.5">
+          {linkLabel}
         </Link>
       </div>
 

@@ -26,7 +26,7 @@ async function loadHome(): Promise<HomeInitial | undefined> {
   const todayIso = today.toISOString();
 
   try {
-    const [events, cityRows, competitions, posts, news, work] = await Promise.all([
+    const [events, cityRows, competitions, posts, gearPosts, news, work] = await Promise.all([
       db.from("events").select(EVENT_COLUMNS).eq("is_published", true).gte("event_date", todayIso)
         .order("event_date", { ascending: true, nullsFirst: false }).limit(24),
       db.from("events").select("city").eq("is_published", true).gte("event_date", todayIso)
@@ -35,7 +35,9 @@ async function loadHome(): Promise<HomeInitial | undefined> {
         .eq("is_published", true).or(`deadline.is.null,deadline.gte.${new Date().toISOString()}`)
         .order("deadline", { ascending: true, nullsFirst: false }).limit(6),
       db.from("posts").select("id, title, slug, category, excerpt, cover_url, published_at")
-        .eq("is_published", true).order("published_at", { ascending: false }).limit(3),
+        .eq("is_published", true).neq("category", "gear").order("published_at", { ascending: false }).limit(3),
+      db.from("posts").select("id, title, slug, category, excerpt, cover_url, published_at")
+        .eq("is_published", true).eq("category", "gear").order("published_at", { ascending: false }).limit(3),
       db.from("news_items").select("id, title, link, source, category, excerpt, image_url, published_at")
         .order("published_at", { ascending: false, nullsFirst: false }).limit(8),
       db.from("portfolio_items")
@@ -44,13 +46,14 @@ async function loadHome(): Promise<HomeInitial | undefined> {
         .order("created_at", { ascending: false }).limit(8),
     ]);
     // Any failed query → let that section fetch client-side as before.
-    if ([events, cityRows, competitions, posts, news, work].some(r => r.error)) return undefined;
+    if ([events, cityRows, competitions, posts, gearPosts, news, work].some(r => r.error)) return undefined;
     const cities = Array.from(new Set((cityRows.data || []).map(r => (r.city as string).trim()).filter(Boolean)))
       .sort((a, b) => a.localeCompare(b));
     return {
       events: { events: (events.data ?? []) as unknown as HomeInitial["events"]["events"], cities },
       competitions: (competitions.data ?? []) as HomeInitial["competitions"],
       posts: (posts.data ?? []) as HomeInitial["posts"],
+      gearPosts: (gearPosts.data ?? []) as HomeInitial["gearPosts"],
       news: (news.data ?? []) as HomeInitial["news"],
       work: (work.data ?? []) as unknown as HomeInitial["work"],
     };
