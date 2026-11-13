@@ -227,6 +227,18 @@ async function callGeminiWithFallback(geminiKey: string, prompt: string, grounde
   }
   if (!aiRes || !aiRes.ok) {
     console.error("Gemini error:", lastStatus, "tried:", tried.join(", "), lastBody);
+    // "limit: 0" = no allowance at all on this key, not a used-up one. Google
+    // Search grounding is "Not available" on the Gemini API free tier
+    // (ai.google.dev/gemini-api/docs/pricing), so grounded post types (gear,
+    // exhibition, celebrity) can only run with billing enabled on the key.
+    if (lastStatus === 429 && grounded && /limit:\s*0\b/.test(lastBody)) {
+      return {
+        ok: false,
+        error: "This post type researches on Google Search, which isn't included in Gemini's free tier. "
+          + "Enable billing on the Gemini API key (Google AI Studio → Billing) to turn it on.",
+        status: 402,
+      };
+    }
     if (lastStatus === 429) {
       // A retry delay of hours means the free tier's DAILY quota is used up
       // (it resets at midnight Pacific ≈ 09:00 in Italy), not a 1-minute limit.
