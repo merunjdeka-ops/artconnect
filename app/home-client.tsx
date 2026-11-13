@@ -107,6 +107,7 @@ export type HomeInitial = {
   events: { events: EventItem[]; cities: string[] };
   competitions: Competition[];
   posts: Post[];
+  gearPosts: Post[];
   news: NewsItem[];
   work: WorkItem[];
 };
@@ -289,7 +290,15 @@ export default function HomeClient({ initial }: { initial?: HomeInitial }) {
       <CompetitionsFeed initial={initial?.competitions} />
 
       {/* BLOG / JOURNAL FEED */}
-      <BlogFeed initial={initial?.posts} />
+      <BlogFeed initial={initial?.posts} excludeCategory="gear" />
+      <BlogFeed
+        initial={initial?.gearPosts}
+        category="gear"
+        eyebrow="Gear & Tech"
+        heading={["Cameras &", "Phones Compared"]}
+        href="/blog?category=gear"
+        linkLabel="All gear guides →"
+      />
 
       {/* CREATIVE NEWS WIRE */}
       <NewsFeed initial={initial?.news} />

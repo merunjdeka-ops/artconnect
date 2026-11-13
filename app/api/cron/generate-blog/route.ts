@@ -40,6 +40,13 @@ const LOOKAHEAD_DAYS = 35;
 const EVENT_COOLDOWN_DAYS = 25;
 const MIN_EVENTS_PER_ROUNDUP = 3;
 const CITYGUIDE_COOLDOWN_DAYS = 180;
+// Minimum gap between successful scheduled posts of each type (see GET).
+const MIN_INTERVAL_HOURS: Record<string, number> = {
+  event: 20,       // one roundup a day; afternoon slot retries a failed morning
+  gear: 6 * 24,    // weekly; daily slots retry until it succeeds
+  movement: 6 * 24,
+  cityguide: 6 * 24,
+};
 const MOVEMENT_COOLDOWN_DAYS = 30;  // don't repeat a movement/style too soon
 const EXHIBITION_COOLDOWN_DAYS = 14;
 const CELEBRITY_COOLDOWN_DAYS = 30;
@@ -710,10 +717,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const type = req.nextUrl.searchParams.get("type") || "event";
-  // The daily cron only actually writes on scheduled weekdays for the "event"
-  // type; other types are scheduled weekly in vercel.json and always run.
   if (type === "event" && !RUN_DAYS_EVENT.includes(new Date().getUTCDay())) {
     return NextResponse.json({ skipped: "Not a scheduled day." });
+  }
+  // Catch-up: crons fire more often than each type is meant to publish, so a
+  // run that failed (Gemini overloaded / daily quota) is retried at the next
+  // slot instead of waiting a whole week. A type that already succeeded within
+  // its interval is skipped here without calling the AI or logging a run.
+  const interval = MIN_INTERVAL_HOURS[type];
+  if (interval) {
+    const since = new Date(Date.now() - interval * 3600_000).toISOString();
+    const { data: recent } = await admin().from("blog_runs").select("id")
+      .eq("type", type).eq("outcome", "generated").gte("ran_at", since).limit(1);
+    if (recent && recent.length > 0) {
+      return NextResponse.json({ skipped: `A ${type} post was already generated in the last ${interval}h.` });
+    }
   }
   const result = await generate(type, "cron");
   return NextResponse.json(result, { status: (result as { status?: number }).status ?? 200 });
