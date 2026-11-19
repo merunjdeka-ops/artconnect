@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { permanentRedirect, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import {
   resolveCityFromSlug, findEventBySlug, fetchUpcomingEvents, eventSlug, citySlug,
   eventsJsonLd, jsonLdString, cityEnglishName, parseMonthSlug, venueSlug, MIN_MONTH_EVENTS, MIN_VENUE_EVENTS,
@@ -71,20 +71,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function EventPage({ params }: Props) {
   const { city: cSlug, event: eSlug } = await params;
   const city = await resolveCityFromSlug(cSlug);
-  if (!city) redirect("/events");
+  if (!city) notFound();
 
   // /events/<city>/<mese>-<anno> → monthly page (thin months go to the city page).
   const monthKey = parseMonthSlug(eSlug);
   if (monthKey) {
     const { events, all } = await loadMonth(city, monthKey);
-    if (events.length < MIN_MONTH_EVENTS) redirect(`/events/${cSlug}`);
+    if (events.length < MIN_MONTH_EVENTS) notFound();
     return <MonthView city={city} cSlug={cSlug} keyM={monthKey} events={events} all={all} />;
   }
 
   const ev = await findEventBySlug(city, eSlug);
-  // Past events drop out of the data; send their URLs (still in Google's
-  // index from the old sitemap) to the city page instead of a 404.
-  if (!ev) permanentRedirect(`/events/${cSlug}`);
+  // Past events drop out of the data. Answer with a real 404 (the events
+  // not-found page lists what's on instead): redirecting expired events to
+  // the city page made Google report them as "Soft 404".
+  if (!ev) notFound();
 
   const canonicalSlug = eventSlug(ev);
   const pageUrl = `${SITE_URL}/events/${citySlug(city)}/${canonicalSlug}`;

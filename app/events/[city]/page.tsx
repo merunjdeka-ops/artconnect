@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import {
   fetchUpcomingEvents, resolveCityFromSlug, eventsJsonLd, jsonLdString, eventPageDescription, cityEnglishName,
   cityMonths, monthLabel, venueSlug, MIN_VENUE_EVENTS,
@@ -44,10 +44,12 @@ export default async function CityEventsPage({ params }: Props) {
   const city = await resolveCityFromSlug(slug);
   // City with no upcoming events (yet) → the index, not a 404. Temporary
   // redirect: the page returns as soon as new events are imported.
-  if (!city) redirect("/events");
+  // Unknown city / no upcoming events → a real 404. Redirecting to /events
+  // is reported by Google as a "soft 404" (redirect to an unrelated page).
+  if (!city) notFound();
 
   const allEvents = await fetchUpcomingEvents({ city, limit: 300 });
-  if (allEvents.length === 0) redirect("/events");
+  if (allEvents.length === 0) notFound();
   const events = allEvents.slice(0, 100);
   const monthLinks = cityMonths(allEvents).map(m => ({ href: `/events/${slug}/${m.slug}`, label: monthLabel(m.key, "en") }));
   const venueCounts = new Map<string, { name: string; count: number }>();
