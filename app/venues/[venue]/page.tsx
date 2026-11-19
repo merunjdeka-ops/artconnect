@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import {
   fetchVenueBySlug, eventsJsonLd, jsonLdString, citySlug, cityEnglishName, cityMonths, monthLabel,
 } from "@/lib/events";
@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function VenuePage({ params }: Props) {
   const { venue: slug } = await params;
   const data = await fetchVenueBySlug(slug);
-  if (!data || data.events.length === 0) redirect("/venues");
+  if (!data || data.events.length === 0) notFound();
   const { venue, events } = data;
   const cSlug = citySlug(venue.city);
   const pageUrl = `${SITE_URL}/venues/${slug}`;
