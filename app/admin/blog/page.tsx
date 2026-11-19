@@ -32,7 +32,7 @@ const emptyForm = {
 const AUTO_TYPES = [
   { value: "event", label: "Event roundup", desc: "From our real upcoming events — nothing invented. Safe to auto-publish." },
   { value: "movement", label: "Art movement guide", desc: "General, well-established art-history education. Auto-published." },
-  { value: "gear", label: "Camera & phone comparison", desc: "Compares current cameras/phones for photographers and creators, researched via Google Search. Published only with 2+ real sources; never states prices. Auto-published." },
+  { value: "gear", label: "Camera & phone comparison", desc: "Compares current cameras/phones for photographers and creators, researched on the web (free Tavily search). Published only with 2+ real sources; never states prices. Auto-published." },
   { value: "cityguide", label: "Hiring guide", desc: "Evergreen 'How to hire a … in <city>' guide. Practical advice only — no prices, names or venues. Auto-published." },
   { value: "exhibition", label: "Exhibition review", desc: "Real gallery news, found via Google Search — only writes when it finds a real, cited source. Always a draft." },
   { value: "celebrity", label: "Artist visiting Italy", desc: "Real celebrity/artist news, found via Google Search — only writes when it finds a real, cited source. Always a draft." },
